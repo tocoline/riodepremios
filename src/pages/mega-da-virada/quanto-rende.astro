@@ -1,0 +1,100 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { VIRADA } from '../../lib/loterias';
+
+// valores padrão (editáveis na página)
+const P = { premio: VIRADA.premioValor, ganhadores: 1, ir: 30, taxa: 0.8, irr: 15, salario: 3000, gasto: 50000 };
+const liquido = (P.premio / P.ganhadores) * (1 - P.ir / 100);
+const mes = liquido * (P.taxa / 100) * (1 - P.irr / 100);
+const fmt = (v: number, d = 0) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: d, minimumFractionDigits: d });
+const porDia = fmt(mes / 30);
+const linhas = [
+  ['por mês', fmt(mes)], ['por dia', fmt(mes / 30)], ['por hora', fmt(mes / 30 / 24)],
+  ['por minuto', fmt(mes / 30 / 24 / 60, 2)], ['por segundo', fmt(mes / 30 / 24 / 3600, 2)],
+];
+const imagem = `/imagem-concurso.png?tipo=rende&v=${encodeURIComponent(porDia + ' por dia')}`;
+---
+<Base title={`Quanto rende R$ 1 bilhão da Mega da Virada? Por mês, dia, hora e segundo`} description={`Simule quanto rende o prêmio de ${VIRADA.premioTexto} da Mega da Virada ${VIRADA.ano}: valor líquido após o IR e rendimento por mês, dia, hora, minuto e segundo. Compare com o seu salário.`} image={imagem} type="article">
+  <ViradaHero titulo="Quanto rende R$ 1 bilhão?" crumb="Quanto rende" sub="Descontado o Imposto de Renda e aplicado, o prêmio da Mega da Virada rende uma fortuna a cada segundo. Faça as contas com os seus números." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Um prêmio de <strong>R$ 1 bilhão</strong> vira cerca de <strong>{fmt(liquido)}</strong> depois dos 30% de IR. Aplicado a 0,8% ao mês (descontado o IR de 15% sobre o rendimento), renderia aproximadamente <strong>{fmt(mes)} por mês</strong> — ou <strong>{porDia} por dia</strong>. Os valores são uma simulação: ajuste a taxa para a rentabilidade atual.</p></Resposta>
+
+    <div class="card qr" style="margin-top:20px">
+      <div class="qr-big">
+        {linhas.map(([l, v]) => <div class="qr-i"><span class="qr-v" data-k={l}>{v}</span><span class="qr-l">{l}</span></div>)}
+      </div>
+      <form class="qr-form" onsubmit="return false">
+        <div class="row">
+          <div class="field"><label>Prêmio bruto (R$)</label><input name="premio" type="number" step="1000000" value={P.premio} inputmode="decimal" /></div>
+          <div class="field"><label>Dividido entre (ganhadores)</label><input name="ganhadores" type="number" min="1" value={P.ganhadores} inputmode="numeric" /></div>
+          <div class="field"><label>Rendimento ao mês (%)</label><input name="taxa" type="number" step="0.05" min="0" value={P.taxa} inputmode="decimal" /></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Seu salário mensal (R$)</label><input name="salario" type="number" step="100" min="1" value={P.salario} inputmode="decimal" /></div>
+          <div class="field"><label>Se gastasse por mês (R$)</label><input name="gasto" type="number" step="1000" min="1" value={P.gasto} inputmode="decimal" /></div>
+        </div>
+      </form>
+      <ul class="qr-fatos">
+        <li data-f="salario">O rendimento de <strong>1 dia</strong> equivale a <strong>{Math.round(mes / 30 / P.salario).toLocaleString('pt-BR')} meses</strong> do seu salário.</li>
+        <li data-f="segundos">A cada <strong>{Math.max(1, Math.round(P.salario / (mes / 30 / 24 / 3600))).toLocaleString('pt-BR')} segundos</strong>, o prêmio rende um salário seu inteiro.</li>
+        <li data-f="gasto">Gastando <strong>{fmt(P.gasto)} por mês</strong> sem render nada, o dinheiro duraria <strong>{Math.round(liquido / P.gasto / 12).toLocaleString('pt-BR')} anos</strong>.</li>
+      </ul>
+      <div class="acts" style="margin:6px 0 0">
+        <a class="btn btn-sm wa" data-wa target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+        <button class="btn btn-sm" type="button" data-copiar>Copiar resultado</button>
+      </div>
+      <p class="small faint" style="margin:10px 0 0">Simulação educativa, sem garantia de rentabilidade e sem recomendação de investimento. Considera IR de 30% sobre o prêmio e de 15% sobre o rendimento (alíquota de aplicações de longo prazo). Mês de 30 dias.</p>
+    </div>
+    <Ad />
+    <div class="prose">
+      <h2>Por que o valor líquido é menor?</h2>
+      <p>Pela legislação, prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Além disso, o rendimento de aplicações financeiras também é tributado. Por isso a simulação desconta os dois impostos. Veja o guia de <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">Imposto de Renda sobre prêmios</a>.</p>
+      <h2>E se houver mais de um ganhador?</h2>
+      <p>A Mega da Virada não acumula: se várias apostas acertarem as seis dezenas, o prêmio é dividido igualmente. Mude o campo "Dividido entre" para ver como fica a sua parte — e use o <a href="/mega-da-virada/gerador/">gerador de jogos</a> para fugir das combinações mais populares, que costumam ser divididas.</p>
+    </div>
+    <Faq itens={[
+      { q: 'Quanto rende R$ 1 bilhão na poupança?', a: 'Depende da regra vigente da poupança e da taxa Selic no período. Para simular, informe a rentabilidade mensal atual da poupança no campo "Rendimento ao mês". Lembre que a poupança é isenta de IR — nesse caso, o rendimento líquido é maior do que o da simulação padrão.' },
+      { q: 'Quanto sobra do prêmio da Mega da Virada depois do imposto?', a: `Com IR de 30%, um prêmio de R$ 1 bilhão resulta em cerca de R$ 700 milhões líquidos para um único ganhador.` },
+      { q: 'Qual o prêmio estimado da Mega da Virada 2026?', a: `A Caixa estima ${VIRADA.premioTexto} para o concurso ${VIRADA.concurso}, sorteado em ${VIRADA.dataTexto}, às ${VIRADA.hora}.` },
+    ]} />
+  </section>
+</Base>
+<script>
+  import { linkWhatsApp, compartilhar } from '../../lib/compartilhar';
+  const f = document.querySelector<HTMLFormElement>('.qr-form')!;
+  const fmt = (v: number, d = 0) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = (v: number) => Math.round(v).toLocaleString('pt-BR');
+  let txt = '';
+  const calc = () => {
+    const v = (k: string) => Number((f.elements.namedItem(k) as HTMLInputElement).value) || 0;
+    const liq = (v('premio') / Math.max(1, v('ganhadores'))) * 0.7;
+    const mes = liq * (v('taxa') / 100) * 0.85, dia = mes / 30, seg = dia / 86400;
+    const set = (k: string, t: string) => { const e = document.querySelector(`[data-k="${k}"]`); if (e) e.textContent = t; };
+    set('por mês', fmt(mes)); set('por dia', fmt(dia)); set('por hora', fmt(dia / 24)); set('por minuto', fmt(dia / 1440, 2)); set('por segundo', fmt(seg, 2));
+    const sal = Math.max(1, v('salario')), gasto = Math.max(1, v('gasto'));
+    document.querySelector('[data-f="salario"]')!.innerHTML = `O rendimento de <strong>1 dia</strong> equivale a <strong>${int(dia / sal)} meses</strong> do seu salário.`;
+    document.querySelector('[data-f="segundos"]')!.innerHTML = `A cada <strong>${int(Math.max(1, sal / seg))} segundos</strong>, o prêmio rende um salário seu inteiro.`;
+    document.querySelector('[data-f="gasto"]')!.innerHTML = `Gastando <strong>${fmt(gasto)} por mês</strong> sem render nada, o dinheiro duraria <strong>${int(liq / gasto / 12)} anos</strong>.`;
+    txt = `💰 R$ ${(v('premio') / 1e6).toLocaleString('pt-BR')} milhões da Mega da Virada renderiam ${fmt(dia)} POR DIA (${fmt(seg, 2)} por segundo) depois do imposto. Faça a sua conta:`;
+    (document.querySelector('[data-wa]') as HTMLAnchorElement).href = linkWhatsApp(txt, location.origin + '/mega-da-virada/quanto-rende/');
+  };
+  f.addEventListener('input', calc);
+  document.querySelector('[data-copiar]')!.addEventListener('click', async (e) => { if (await compartilhar('Quanto rende R$ 1 bilhão', txt, location.origin + '/mega-da-virada/quanto-rende/')) (e.target as HTMLElement).textContent = 'Copiado ✓'; });
+  calc();
+</script>
+<style>
+  .qr-big { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .qr-i { padding: 18px 14px; border-radius: var(--r-sm); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 14%, var(--surface2)), var(--surface2)); border: 1px solid color-mix(in srgb, var(--gold) 30%, var(--line)); display: flex; flex-direction: column; gap: 4px; }
+  .qr-v { font: 700 clamp(1.2rem, 2.6vw, 1.7rem)/1.1 var(--display); color: var(--gold); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .qr-l { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+  .qr-fatos { list-style: none; padding: 0; margin: 8px 0 14px; display: grid; gap: 8px; }
+  .qr-fatos li { padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface2); border: 1px solid var(--line); }
+  .wa { background: #25d366; color: #05210f; border: 0; }
+  .wa:hover { background: #22c55e; color: #05210f; }
+</style>

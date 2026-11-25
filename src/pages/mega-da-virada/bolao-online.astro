@@ -1,0 +1,178 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Countdown from '../../components/Countdown.astro';
+import { VIRADA } from '../../lib/loterias';
+import { cachear } from '../../lib/cache';
+
+cachear(Astro, 3600);
+const b = Astro.url.searchParams.get('b');
+let nomeBolao = '';
+if (b) { try { nomeBolao = (JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)))).t ?? '').toString().replace(/[^\p{L}\p{N} ]/gu, '').slice(0, 30); } catch {} }
+const imagem = `/imagem-concurso.png?tipo=bolao${nomeBolao ? `&n=${encodeURIComponent(nomeBolao)}` : ''}`;
+---
+<Base title={b ? `${nomeBolao || 'Bolão'} — Mega da Virada ${VIRADA.ano}` : `Bolão online da Mega da Virada ${VIRADA.ano}: monte, compartilhe e confira`} description={`Monte o bolão da família ou da firma para a Mega da Virada ${VIRADA.ano}: participantes, jogos e cotas em um link para o WhatsApp. No dia do sorteio, o link confere os jogos automaticamente.`} image={imagem} noindex={!!b}>
+  <ViradaHero titulo={b ? (nomeBolao || 'Bolão da Mega da Virada') : 'Bolão online da Mega da Virada'} crumb="Bolão online" sub={b ? `Jogos do bolão para o concurso ${VIRADA.concurso}. A conferência acontece aqui automaticamente quando o resultado sair.` : 'Monte o bolão da família ou da firma em 1 minuto, mande o link no grupo e, no dia do sorteio, o próprio link confere todos os jogos.'} />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <div class="bo" data-b={b ?? ''}>
+      <!-- Modo edição -->
+      <form class="card bo-edit" onsubmit="return false" hidden={!!b}>
+        <h2 style="margin-top:0">Monte seu bolão</h2>
+        <div class="row">
+          <div class="field"><label for="bo-t">Nome do bolão</label><input id="bo-t" name="t" maxlength="30" placeholder="Ex.: Bolão da Família Silva" /></div>
+          <div class="field"><label for="bo-c">Valor de cada cota (R$, opcional)</label><input id="bo-c" name="c" type="number" min="0" step="0.5" inputmode="decimal" /></div>
+        </div>
+        <div class="field"><label for="bo-p">Participantes — um por linha</label><textarea id="bo-p" name="p" rows="4" placeholder="Ana&#10;João&#10;Maria"></textarea></div>
+        <div class="field">
+          <label for="bo-j">Jogos — um por linha (6 a 20 números de 1 a 60)</label>
+          <textarea id="bo-j" name="j" rows="5" placeholder="05 12 23 34 45 56&#10;01 09 17 28 39 41 52"></textarea>
+          <span class="small faint">Dica: gere jogos com o botão abaixo ou com os <a href="/mega-da-virada/seus-numeros/">números da sorte</a> de cada participante.</span>
+        </div>
+        <div class="acts">
+          <button class="btn" type="button" data-aleatorio>+ Jogo aleatório</button>
+          <button class="btn btn-primary" type="button" data-criar>Criar link do bolão</button>
+        </div>
+        <div class="bo-resumo grid g3"></div>
+        <p class="bo-erro small" style="color:var(--gold)"></p>
+      </form>
+      <!-- Modo visualização -->
+      <div class="bo-ver" hidden={!b}>
+        <div class="card bo-head">
+          <div class="bo-status"></div>
+          <div class="bo-cd"><p class="lbl">Sorteio em {VIRADA.dataCurta}, às {VIRADA.hora}</p><Countdown alvo={VIRADA.data} compacto /></div>
+        </div>
+        <div class="bo-share card">
+          <a class="btn btn-sm wa" data-wa target="_blank" rel="noopener">Mandar no WhatsApp</a>
+          <button class="btn btn-sm" type="button" data-copiar>Copiar link</button>
+          <button class="btn btn-sm" type="button" data-editar>Editar bolão</button>
+        </div>
+        <div class="bo-info grid g3"></div>
+        <h2>Participantes</h2><div class="bo-parts"></div>
+        <h2>Jogos</h2><div class="bo-jogos"></div>
+        <p class="small faint">Conferência informativa, com base no resultado oficial publicado pela Caixa. Para receber prêmios, valide os bilhetes na lotérica ou no app oficial. O link guarda os dados do bolão no próprio endereço — nada fica salvo em nossos servidores.</p>
+      </div>
+    </div>
+    <Ad />
+    {!b && (
+      <>
+        <Resposta><p>Para fazer um bolão da Mega da Virada, defina os participantes e o valor das cotas, escolha os jogos (de 6 a 20 números cada) e registre as apostas na lotérica ou no app da Caixa. Use esta ferramenta para organizar tudo em um link: no dia {VIRADA.dataCurta}, ele mostra automaticamente quantos números cada jogo acertou.</p></Resposta>
+        <div class="prose" style="margin-top:24px">
+          <h2>Como organizar o bolão sem confusão</h2>
+          <ol>
+            <li><strong>Combine o valor da cota</strong> e quem é o responsável por fazer as apostas.</li>
+            <li><strong>Monte os jogos aqui</strong> e mande o link no grupo — todo mundo vê os mesmos jogos.</li>
+            <li><strong>Registre as apostas</strong> na lotérica, no app Loterias Caixa ou no Bolão Caixa e compartilhe a foto dos comprovantes.</li>
+            <li><strong>No dia do sorteio</strong>, abra o link: a conferência é automática, inclusive para jogos com mais de 6 números.</li>
+          </ol>
+          <p>Prazos: apostas individuais até 31/12/2026 às 22h; bolões digitais da Caixa até 9h de 1º/01/2027. Veja todos os prazos no <a href="/mega-da-virada/">guia da Mega da Virada</a> e simule custos na <a href="/mega-da-virada/calculadora-de-bolao/">calculadora de bolão</a>.</p>
+        </div>
+        <Faq itens={[
+          { q: 'Preciso pagar ou me cadastrar?', a: 'Não. A ferramenta é gratuita e não pede cadastro. Os dados do bolão ficam no próprio link.' },
+          { q: 'A conferência vale para jogos com mais de 6 números?', a: 'Sim. Um jogo com mais números equivale a várias combinações de 6, e a ferramenta conta quantas senas, quinas e quadras cada jogo fez.' },
+          { q: 'Esta ferramenta registra a aposta?', a: 'Não. Ela só organiza e confere. A aposta precisa ser registrada em uma lotérica ou nos canais oficiais da Caixa.' },
+        ]} />
+      </>
+    )}
+  </section>
+</Base>
+<script>
+  import { codificar, decodificar, linkWhatsApp, compartilhar } from '../../lib/compartilhar';
+  import { C } from '../../lib/math';
+  import { VIRADA } from '../../lib/loterias';
+  type Bolao = { t: string; p: string[]; j: number[][]; c?: number };
+  const raiz = document.querySelector<HTMLElement>('.bo')!;
+  const f = raiz.querySelector<HTMLFormElement>('.bo-edit')!;
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const esc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]!));
+  const ler = (): { b: Bolao; erros: string[] } => {
+    const g = (n: string) => (f.elements.namedItem(n) as HTMLInputElement).value;
+    const erros: string[] = [];
+    const j = g('j').split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+      const ds = [...new Set(l.split(/[^0-9]+/).filter(Boolean).map(Number))].filter((d) => d >= 1 && d <= 60).sort((a, b) => a - b);
+      if (ds.length < 6 || ds.length > 20) erros.push(`Jogo ${i + 1}: use de 6 a 20 números diferentes entre 1 e 60.`);
+      return ds;
+    }).slice(0, 60);
+    return { b: { t: g('t').trim().slice(0, 30), p: g('p').split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 100), j, c: Number(g('c')) || undefined }, erros };
+  };
+  const resumo = () => {
+    const { b } = ler();
+    const custo = b.j.reduce((a, j) => a + (j.length >= 6 ? 6 * C(j.length, 6) : 0), 0);
+    raiz.querySelector('.bo-resumo')!.innerHTML = `<div class="stat res"><span class="stat-l">Jogos</span><span class="stat-v">${b.j.length}</span></div>
+      <div class="stat res"><span class="stat-l">Custo das apostas</span><span class="stat-v">${brl(custo)}</span></div>
+      <div class="stat res"><span class="stat-l">Por participante</span><span class="stat-v">${b.p.length ? brl(custo / b.p.length) : '—'}</span></div>`;
+  };
+  f.addEventListener('input', resumo);
+  f.querySelector('[data-aleatorio]')!.addEventListener('click', () => {
+    const s = new Set<number>(); const a = new Uint32Array(1);
+    while (s.size < 6) { crypto.getRandomValues(a); s.add(1 + (a[0] % 60)); }
+    const ta = f.elements.namedItem('j') as HTMLTextAreaElement;
+    ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + [...s].sort((x, y) => x - y).map(p2).join(' ');
+    resumo();
+  });
+  f.querySelector('[data-criar]')!.addEventListener('click', () => {
+    const { b, erros } = ler();
+    if (!b.j.length) erros.push('Adicione pelo menos um jogo.');
+    raiz.querySelector('.bo-erro')!.textContent = erros.join(' ');
+    if (erros.length) return;
+    location.href = `/mega-da-virada/bolao-online/?b=${codificar(b)}`;
+  });
+
+  async function ver(b: Bolao) {
+    const url = location.href;
+    const custo = b.j.reduce((a, j) => a + 6 * C(j.length, 6), 0);
+    raiz.querySelector('.bo-info')!.innerHTML = `<div class="stat res"><span class="stat-l">Jogos</span><span class="stat-v">${b.j.length}</span></div>
+      <div class="stat res"><span class="stat-l">Custo das apostas</span><span class="stat-v">${brl(custo)}</span></div>
+      <div class="stat res"><span class="stat-l">${b.c ? 'Valor da cota' : 'Por participante'}</span><span class="stat-v">${b.c ? brl(b.c) : b.p.length ? brl(custo / b.p.length) : '—'}</span></div>`;
+    raiz.querySelector('.bo-parts')!.innerHTML = b.p.length ? `<div class="chips">${b.p.map((n) => `<span class="pill">${esc(n)}</span>`).join('')}</div>` : '<p class="muted">Nenhum participante listado.</p>';
+    const txt = `🍀 ${b.t || 'Nosso bolão'} da Mega da Virada: ${b.j.length} jogo(s). Confira os jogos — o resultado é conferido automaticamente no dia ${VIRADA.dataCurta}:`;
+    (raiz.querySelector('[data-wa]') as HTMLAnchorElement).href = linkWhatsApp(txt, url);
+    raiz.querySelector('[data-copiar]')!.addEventListener('click', async (e) => { if (await compartilhar(b.t || 'Bolão', txt, url)) { (e.target as HTMLElement).textContent = 'Copiado ✓'; } });
+    raiz.querySelector('[data-editar]')!.addEventListener('click', () => {
+      (f.elements.namedItem('t') as HTMLInputElement).value = b.t; (f.elements.namedItem('c') as HTMLInputElement).value = b.c ? String(b.c) : '';
+      (f.elements.namedItem('p') as HTMLTextAreaElement).value = b.p.join('\n'); (f.elements.namedItem('j') as HTMLTextAreaElement).value = b.j.map((j) => j.map(p2).join(' ')).join('\n');
+      f.hidden = false; raiz.querySelector<HTMLElement>('.bo-ver')!.hidden = true; resumo(); f.scrollIntoView({ behavior: 'smooth' });
+    });
+    // resultado do concurso da Virada
+    let res: number[] | null = null;
+    try { const r = await fetch(`/api/resultado.json?loteria=mega-sena&concurso=${VIRADA.concurso}`); if (r.ok) res = (await r.json()).dezenas; } catch {}
+    const st = raiz.querySelector('.bo-status')!;
+    let tot = { s: 0, q: 0, qd: 0 };
+    raiz.querySelector('.bo-jogos')!.innerHTML = b.j.map((j, i) => {
+      const hits = res ? j.filter((d) => res!.includes(d)) : [];
+      const h = hits.length, k = j.length;
+      const s = res ? C(h, 6) : 0, q = res ? C(h, 5) * C(k - h, 1) : 0, qd = res ? C(h, 4) * C(k - h, 2) : 0;
+      tot.s += s; tot.q += q; tot.qd += qd;
+      const premio = [s && `${s} sena${s > 1 ? 's' : ''}`, q && `${q} quina${q > 1 ? 's' : ''}`, qd && `${qd} quadra${qd > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
+      return `<div class="jogo"><span class="jn">Jogo ${i + 1}</span><div class="balls">${j.map((d) => `<span class="ball sm gold ${hits.includes(d) ? 'hit' : ''}">${p2(d)}</span>`).join('')}</div>${res ? `<span class="small">${h} acerto(s)${premio ? ` — <strong class="win">${premio} 🎉</strong>` : ''}</span>` : `<span class="small faint">${k} números · ${brl(6 * C(k, 6))}</span>`}</div>`;
+    }).join('');
+    st.innerHTML = res
+      ? `<p class="lbl">Resultado do concurso ${VIRADA.concurso}</p><div class="balls">${res.map((d) => `<span class="ball gold">${p2(d)}</span>`).join('')}</div><p style="margin:10px 0 0">${tot.s + tot.q + tot.qd ? `<strong class="win">O bolão foi premiado: ${[tot.s && tot.s + ' sena(s)', tot.q && tot.q + ' quina(s)', tot.qd && tot.qd + ' quadra(s)'].filter(Boolean).join(', ')}!</strong>` : 'Desta vez o bolão não foi premiado.'}</p>`
+      : `<p class="lbl">${esc(b.t || 'Bolão da Mega da Virada')}</p><p style="margin:0">Aguardando o sorteio. Abra este link depois das ${VIRADA.hora} de ${VIRADA.dataCurta}: a conferência aparece automaticamente.</p>`;
+    if (res) raiz.querySelector<HTMLElement>('.bo-cd')!.hidden = true;
+  }
+  const b = raiz.dataset.b ? decodificar<Bolao>(raiz.dataset.b) : null;
+  if (b && Array.isArray(b.j)) ver({ t: String(b.t ?? ''), p: (b.p ?? []).map(String), j: b.j.map((x) => x.map(Number)), c: b.c });
+  else if (raiz.dataset.b) { f.hidden = false; raiz.querySelector<HTMLElement>('.bo-ver')!.hidden = true; raiz.querySelector('.bo-erro')!.textContent = 'Este link de bolão está incompleto. Monte o bolão novamente.'; }
+  resumo();
+</script>
+<style>
+  .bo-ver { display: grid; gap: 16px; }
+  .bo-head { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); }
+  .bo-cd .lbl, .bo-status :global(.lbl) { margin: 0 0 8px; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  .bo-cd :global(.cd-u) { background: var(--surface2); border-color: var(--line); }
+  .bo-cd :global(.cd-v) { color: var(--text); }
+  .bo-cd :global(.cd-l) { color: var(--faint); }
+  .bo-share { display: flex; gap: 10px; flex-wrap: wrap; padding: 14px 18px; }
+  .wa { background: #25d366; color: #05210f; border: 0; }
+  .wa:hover { background: #22c55e; color: #05210f; }
+  .bo-jogos { display: grid; gap: 10px; }
+  .bo-parts :global(.chips) { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bo-ver h2 { margin: 10px 0 0; font-size: 1.3rem; }
+</style>

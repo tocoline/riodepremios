@@ -29,6 +29,7 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - [Estatísticas](${u}/mega-da-virada/estatisticas/)
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)
 - [Simulador de chances](${u}/mega-da-virada/simulador/)
+- [Seus números da sorte](${u}/mega-da-virada/seus-numeros/) · [Bolão online com conferência automática](${u}/mega-da-virada/bolao-online/) · [Quanto rende R$ 1 bilhão](${u}/mega-da-virada/quanto-rende/)
 
 ## Estatísticas
 ${LOTERIAS.filter((l) => l.tipo !== 'colunas').map((l) => `- [Estatísticas da ${l.nome}](${u}/${l.slug}/estatisticas/): dezenas mais sorteadas, atrasadas e frequência`).join('\n')}

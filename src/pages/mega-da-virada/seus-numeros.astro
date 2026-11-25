@@ -1,0 +1,110 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { VIRADA } from '../../lib/loterias';
+import { cachear } from '../../lib/cache';
+
+cachear(Astro, 86400);
+// link compartilhado: ?n=Nome&d=05-12-23-34-45-56
+const nome = (Astro.url.searchParams.get('n') ?? '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 24);
+const dz = (Astro.url.searchParams.get('d') ?? '').split('-').map(Number).filter((x) => Number.isInteger(x) && x >= 1 && x <= 60);
+const compartilhado = dz.length === 6 && new Set(dz).size === 6;
+const imagem = compartilhado ? `/imagem-concurso.png?tipo=jogo&d=${dz.join('-')}${nome ? `&n=${encodeURIComponent(nome)}` : ''}` : '/imagem-concurso.png?tipo=jogo&d=7-13-21-33-42-58';
+const titulo = compartilhado && nome ? `Os números da sorte de ${nome} para a Mega da Virada` : 'Seus números da sorte para a Mega da Virada';
+---
+<Base title={`${titulo} ${VIRADA.ano}`} description={`Descubra seus números da sorte para a Mega da Virada ${VIRADA.ano}: digite seu nome e data de nascimento e receba um jogo exclusivo para compartilhar com a família e os amigos.`} image={imagem} noindex={compartilhado}>
+  <ViradaHero titulo={compartilhado && nome ? `Os números da sorte de ${nome}` : 'Seus números da sorte para a Virada'} crumb="Seus números" sub="Digite seu nome e sua data de nascimento e receba um jogo exclusivo. Depois, compartilhe e desafie a família e os amigos a gerar os deles." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:860px">
+    <div class="card sn-card" data-inicial={compartilhado ? dz.join('-') : ''} data-nome={nome}>
+      <div class="sn-res" aria-live="polite">
+        {compartilhado && (
+          <>
+            <p class="lbl">{nome ? `Jogo de ${nome}` : 'Jogo compartilhado'}</p>
+            <div class="balls sn-balls">{dz.map((d) => <span class="ball lg gold">{String(d).padStart(2, '0')}</span>)}</div>
+          </>
+        )}
+      </div>
+      <form class="sn-form" onsubmit="return false">
+        <div class="row">
+          <div class="field"><label for="sn-nome">Seu primeiro nome</label><input id="sn-nome" name="nome" maxlength="24" autocomplete="given-name" placeholder="Ex.: Ana" /></div>
+          <div class="field"><label for="sn-data">Data de nascimento</label><input id="sn-data" name="data" type="date" /></div>
+        </div>
+        <button class="btn btn-primary" type="button" data-gerar>✦ Gerar meus números</button>
+      </form>
+      <div class="sn-share" hidden>
+        <a class="btn btn-sm wa" data-wa target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+        <button class="btn btn-sm" type="button" data-share>Copiar link</button>
+        <button class="btn btn-sm" type="button" data-outro>Gerar outro jogo</button>
+        <a class="btn btn-sm" href={`/mega-da-virada/bolao-online/`}>Usar no bolão →</a>
+      </div>
+      <p class="small faint" style="margin:6px 0 0">Seus dados não são enviados nem armazenados: o jogo é calculado no seu próprio navegador. Diversão, não previsão — todas as combinações têm a mesma chance.</p>
+    </div>
+    <Ad />
+    <Resposta><p>Os "números da sorte" são gerados a partir do seu nome e da sua data de nascimento: a mesma combinação de dados sempre gera o mesmo jogo, então você pode voltar aqui e encontrar seus números de novo. Matematicamente, porém, qualquer jogo tem exatamente a mesma chance: <strong>1 em 50.063.860</strong> com 6 números.</p></Resposta>
+    <div class="prose" style="margin-top:24px">
+      <h2>Por que usar números "diferentes" na Virada?</h2>
+      <p>Milhões de pessoas jogam datas de aniversário — números de 1 a 31. Quando sai uma combinação popular, o prêmio é dividido entre muitos ganhadores. Nosso gerador espalha os números de 1 a 60, o que ajuda a reduzir esse risco sem mudar a probabilidade de acerto.</p>
+      <h2>Monte um bolão com a família</h2>
+      <p>Cada pessoa gera seus números e manda no grupo. Depois é só reunir tudo no <a href="/mega-da-virada/bolao-online/">bolão online</a>, que confere os jogos automaticamente no dia do sorteio ({VIRADA.dataCurta}, às {VIRADA.hora}).</p>
+    </div>
+    <Faq itens={[
+      { q: 'Os números da sorte aumentam minha chance?', a: 'Não. Todas as combinações têm a mesma probabilidade. O gerador é uma forma divertida de escolher — e de evitar as combinações mais populares, que dividem o prêmio.' },
+      { q: 'Meus dados ficam salvos?', a: 'Não. O cálculo acontece no seu navegador. Só o primeiro nome entra no link se você decidir compartilhar.' },
+      { q: 'Posso apostar com esses números?', a: `Sim. Faça a aposta nas lotéricas, no app Loterias Caixa ou no portal Loterias Online. As apostas individuais da Virada vão até 31/12/2026, às 22h.` },
+    ]} />
+  </section>
+</Base>
+<script>
+  import { hashSeed, linkWhatsApp, compartilhar } from '../../lib/compartilhar';
+  const card = document.querySelector<HTMLElement>('.sn-card')!;
+  const res = card.querySelector<HTMLElement>('.sn-res')!;
+  const share = card.querySelector<HTMLElement>('.sn-share')!;
+  let salt = 0, atual: number[] = [], nomeAtual = '';
+  const gerar = (nome: string, data: string) => {
+    const rnd = hashSeed(`${nome.toLowerCase().trim()}|${data}|virada|${salt}`);
+    const s = new Set<number>(); while (s.size < 6) s.add(1 + Math.floor(rnd() * 60));
+    return [...s].sort((a, b) => a - b);
+  };
+  const urlDe = () => `${location.origin}/mega-da-virada/seus-numeros/?${nomeAtual ? `n=${encodeURIComponent(nomeAtual)}&` : ''}d=${atual.join('-')}`;
+  const mostrar = () => {
+    res.innerHTML = `<p class="lbl">${nomeAtual ? `Os números da sorte de ${nomeAtual.replace(/[<>&]/g, '')}` : 'Seus números da sorte'}</p><div class="balls sn-balls">${atual.map((d, i) => `<span class="ball lg gold" style="animation:pop .5s ${i * 0.08}s both">${String(d).padStart(2, '0')}</span>`).join('')}</div>`;
+    share.hidden = false;
+    const txt = `${nomeAtual ? `Os números da sorte de ${nomeAtual}` : 'Meus números da sorte'} para a Mega da Virada: ${atual.map((d) => String(d).padStart(2, '0')).join(' - ')} 🍀 Gere os seus:`;
+    (share.querySelector('[data-wa]') as HTMLAnchorElement).href = linkWhatsApp(txt, urlDe());
+    share.dataset.txt = txt;
+  };
+  card.querySelector('[data-gerar]')!.addEventListener('click', () => {
+    const f = card.querySelector('form')!;
+    nomeAtual = ((f.elements.namedItem('nome') as HTMLInputElement).value || '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 24);
+    const data = (f.elements.namedItem('data') as HTMLInputElement).value;
+    if (!nomeAtual && !data) { (f.elements.namedItem('nome') as HTMLInputElement).focus(); return; }
+    salt = 0; atual = gerar(nomeAtual, data); mostrar();
+    try { history.replaceState(null, '', urlDe()); } catch {}
+  });
+  card.querySelector('[data-outro]')!.addEventListener('click', () => {
+    const f = card.querySelector('form')!;
+    salt++; atual = gerar(nomeAtual, (f.elements.namedItem('data') as HTMLInputElement).value); mostrar();
+    try { history.replaceState(null, '', urlDe()); } catch {}
+  });
+  card.querySelector('[data-share]')!.addEventListener('click', async (e) => {
+    const ok = await compartilhar('Meus números da sorte', share.dataset.txt ?? '', urlDe());
+    if (ok) { (e.target as HTMLElement).textContent = 'Link copiado ✓'; setTimeout(() => ((e.target as HTMLElement).textContent = 'Copiar link'), 1800); }
+  });
+  if (card.dataset.inicial) { atual = card.dataset.inicial.split('-').map(Number); nomeAtual = card.dataset.nome ?? ''; share.hidden = false; mostrar(); }
+</script>
+<style>
+  .sn-card { display: grid; gap: 18px; }
+  .sn-res :global(.lbl) { margin: 0 0 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  .sn-res:empty { display: none; }
+  .sn-share { display: flex; gap: 10px; flex-wrap: wrap; }
+  .wa { background: #25d366; color: #05210f; border: 0; }
+  .wa:hover { background: #22c55e; color: #05210f; }
+  .lbl { margin: 0 0 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  :global(@keyframes pop) { from { transform: scale(.3) rotate(-30deg); opacity: 0; } }
+</style>

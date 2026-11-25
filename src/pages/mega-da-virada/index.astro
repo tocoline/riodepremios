@@ -48,6 +48,11 @@ const schema = [
   },
   { '@context': 'https://schema.org', '@type': 'Article', headline: `Mega da Virada ${VIRADA.ano}: guia completo`, inLanguage: 'pt-BR', dateModified: ultMega?.atualizado_em ?? new Date().toISOString(), author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` }, publisher: { '@id': `${SITE.url}/#org` } },
 ];
+const virais = [
+  ['/mega-da-virada/seus-numeros/', '🍀', 'Seus números da sorte', 'Digite nome e data de nascimento e receba um jogo exclusivo para compartilhar'],
+  ['/mega-da-virada/bolao-online/', '👨‍👩‍👧', 'Bolão online da família', 'Monte o bolão, mande o link no grupo e ele confere sozinho no dia 1º'],
+  ['/mega-da-virada/quanto-rende/', '💰', 'Quanto rende R$ 1 bilhão', 'Por mês, por dia e por segundo — compare com o seu salário'],
+];
 const ferramentas = [
   ['/mega-da-virada/calculadora-de-bolao/', '👥', 'Calculadora de bolão', 'Custo, cotas e prêmio por participante'],
   ['/mega-da-virada/simulador/', '🎰', 'Simulador de chances', 'Sua chance real + simulação de 500 mil sorteios'],
@@ -104,6 +109,16 @@ const ferramentas = [
       </div>
     </section>
   )}
+
+  <section class="wrap section-sm">
+    <span class="eyebrow">Para compartilhar</span>
+    <h2>Especiais da Mega da Virada</h2>
+    <div class="grid g3">
+      {virais.map(([h, i, t, d]) => (
+        <a class="card card-link vt vt-hot" href={h}><span class="vt-i" aria-hidden="true">{i}</span><div><h3>{t}</h3><p class="small muted">{d}</p></div></a>
+      ))}
+    </div>
+  </section>
 
   <section class="wrap section-sm">
     <span class="eyebrow">Ferramentas exclusivas</span>
@@ -180,6 +195,7 @@ const ferramentas = [
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .facts .card { padding: 18px; }
   .last { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
+  .vt-hot { border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
   .vt { display: flex; gap: 16px; align-items: flex-start; }
   .vt h3 { margin: 0 0 4px; }
   .vt p { margin: 0; }

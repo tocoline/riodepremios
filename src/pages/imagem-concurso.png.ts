@@ -16,6 +16,34 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const env = (locals as any).runtime?.env;
   const ctx = (locals as any).runtime?.ctx;
   if (ctx) cache.setExecutionContext(ctx);
+  const tipo = url.searchParams.get('tipo');
+  if (tipo === 'jogo' || tipo === 'bolao' || tipo === 'rende') {
+    // ---- Imagens de compartilhamento da Mega da Virada ----
+    const fonteV = (f: string) => () => env.ASSETS.fetch(new URL(`/og-fonts/${f}`, url)).then((r: Response) => r.arrayBuffer());
+    const dz = (url.searchParams.get('d') ?? '').split('-').map(Number).filter((x) => Number.isInteger(x) && x >= 1 && x <= 60).slice(0, 15);
+    const nome = (url.searchParams.get('n') ?? '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 24);
+    const titulo = tipo === 'jogo' ? (nome ? `Os números da sorte de ${nome}` : 'Meus números da sorte')
+      : tipo === 'bolao' ? (nome ? `Bolão: ${nome}` : 'Nosso bolão da Mega da Virada')
+      : 'Quanto rende R$ 1 bilhão?';
+    const s = dz.length > 8 ? 78 : 100;
+    const bolaV = (d: number) => h('div', { width: s, height: s, borderRadius: s, alignItems: 'center', justifyContent: 'center', color: '#2b1d00', fontSize: s * 0.42, fontFamily: 'SG', backgroundColor: '#d9a521', backgroundImage: 'radial-gradient(circle at 32% 28%, #fff3c4 0%, #e9b730 45%, #7a5605 100%)' }, String(d).padStart(2, '0'));
+    const corpoV = tipo === 'rende'
+      ? h('div', { flexDirection: 'column', gap: 6 }, h('div', { fontSize: 34, color: '#c8d0e0' }, 'Aplicado, depois do Imposto de Renda:'), h('div', { fontSize: 88, color: '#ffd979', fontFamily: 'SG', letterSpacing: -3 }, url.searchParams.get('v')?.slice(0, 24) ?? 'por dia, hora e segundo'))
+      : h('div', { gap: 16, flexWrap: 'wrap', maxWidth: 1080 }, ...dz.map(bolaV));
+    const arvV = h('div', { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'space-between', padding: '56px 64px', color: '#fff', fontFamily: 'IN4',
+      backgroundColor: '#070b18', backgroundImage: 'radial-gradient(70% 90% at 100% 0%, #f2c14e77, transparent 60%), radial-gradient(60% 80% at 0% 100%, #2fdc9855, transparent 60%)' },
+      h('div', { justifyContent: 'space-between', alignItems: 'center' },
+        h('div', { fontSize: 32, fontFamily: 'SG', gap: 10 }, h('span', {}, 'Rio de'), h('span', { color: '#ffd979' }, 'Prêmios')),
+        h('div', { fontSize: 26, color: '#ffd979', padding: '10px 22px', borderRadius: 40, border: '2px solid #ffd97966' }, `Mega da Virada ${VIRADA.ano}`)),
+      h('div', { fontSize: titulo.length > 28 ? 62 : 72, fontFamily: 'SG', letterSpacing: -2, maxWidth: 1080 }, titulo),
+      corpoV,
+      h('div', { fontSize: 28, color: '#c8d0e0' }, tipo === 'rende' ? 'Faça a sua simulação →' : tipo === 'bolao' ? 'Confira os jogos e o resultado no link →' : 'Gere os seus números também →'),
+    );
+    const imgV = await ImageResponse.async(arvV as any, { width: 1200, height: 675, format: 'png',
+      fonts: [new CustomFont('SG', fonteV('sg700.woff'), { weight: 700 }), new CustomFont('IN4', fonteV('in400.woff'), { weight: 400 }), new CustomFont('IN6', fonteV('in600.woff'), { weight: 600 })] });
+    const hv = new Headers(imgV.headers); hv.set('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+    return new Response(imgV.body, { status: 200, headers: hv });
+  }
   const slug = url.searchParams.get('l') ?? '';
   const n = Number(url.searchParams.get('n'));
   const db = getDB(locals);
