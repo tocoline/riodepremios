@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+import { ARTIGOS } from '../../lib/legado';
+import { naoEncontrado } from '../../lib/cache';
+const slug = (Astro.params.slug ?? '').replace(/\/+$/, '');
+const rp = /rio-de-premios|bilhete|cadastr/.test(slug) ? '/rio-de-premios/' : null;
+const destino = ARTIGOS[slug] ?? rp;
+if (destino) return Astro.redirect(destino, 301);
+return naoEncontrado(Astro);
+---

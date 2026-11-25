@@ -15,7 +15,11 @@ interface Props {
 }
 const { title, description, schema = [], noindex = false, image = '/og.png', type = 'website', modificado } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.url).href;
-const fullTitle = title.includes(SITE.nome) ? title : `${title} | ${SITE.nome}`;
+// Google exibe ~60 caracteres: o sufixo da marca só entra se couber
+const tituloBase = title.replace(/\s*\|\s*Rio de Prêmios$/, '');
+const fullTitle = tituloBase.length + 17 <= 62 ? `${tituloBase} | ${SITE.nome}` : tituloBase;
+// Descrição até ~158 caracteres, cortando em fim de palavra
+const desc = description.length <= 160 ? description : description.slice(0, 157).replace(/[\s,;:.\-–—]+\S*$/, '').replace(/[,;:\-–—]$/, '') + '…';
 const ogImage = new URL(image, SITE.url).href;
 
 const base = [
@@ -35,7 +39,7 @@ const base = [
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{fullTitle}</title>
-  <meta name="description" content={description} />
+  <meta name="description" content={desc} />
   <link rel="canonical" href={canonical} />
   {noindex && <meta name="robots" content="noindex, follow" />}
   {!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
@@ -49,7 +53,7 @@ const base = [
   <meta property="og:locale" content="pt_BR" />
   <meta property="og:type" content={type} />
   <meta property="og:title" content={fullTitle} />
-  <meta property="og:description" content={description} />
+  <meta property="og:description" content={desc} />
   <meta property="og:url" content={canonical} />
   <meta property="og:image" content={ogImage} />
   <meta name="twitter:card" content="summary_large_image" />
