@@ -259,8 +259,10 @@ var POR_API = Object.fromEntries(LOTERIAS.map((l) => [l.api, l]));
 // src/index.ts
 var ORIGENS = [
   { nome: "caixa", url: /* @__PURE__ */ __name((api, n2) => `https://servicebus2.caixa.gov.br/portaldeloterias/api/${api}${n2 ? "/" + n2 : ""}`, "url") },
-  { nome: "reserva", url: /* @__PURE__ */ __name((api, n2) => `https://loteriascaixa-api.herokuapp.com/api/${api}/${n2 ?? "latest"}`, "url") }
+  { nome: "reserva", url: /* @__PURE__ */ __name((api, n2) => `https://loteriascaixa-api.herokuapp.com/api/${api}/${n2 ?? "latest"}`, "url") },
+  { nome: "reserva2", url: /* @__PURE__ */ __name((api, n2) => `https://api.guidi.dev.br/loteria/${api}/${n2 ?? "ultimo"}`, "url") }
 ];
+var HEADERS = { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; RioDePremiosBot/1.0)" };
 var LIMITE_SUBREQ = 45;
 var usados = 0;
 async function buscar(api, n2) {
@@ -269,7 +271,7 @@ async function buscar(api, n2) {
     usados++;
     try {
       const r = await fetch(o.url(api, n2), {
-        headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; RioDePremiosBot/1.0)" },
+        headers: HEADERS,
         cf: { cacheTtl: 0 }
       });
       if (!r.ok) continue;
@@ -366,6 +368,25 @@ var index_default = {
     if (url.pathname === "/status") {
       const { results } = await env.DB.prepare("SELECT loteria, COUNT(*) total, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos GROUP BY loteria").all();
       return Response.json(results);
+    }
+    if (url.pathname === "/diag") {
+      const out = [];
+      for (const o of ORIGENS) {
+        const u = o.url("megasena");
+        try {
+          const r = await fetch(u, { headers: HEADERS, cf: { cacheTtl: 0 } });
+          const txt = await r.text();
+          let ok = false;
+          try {
+            ok = !!normalizar("megasena", JSON.parse(txt), o.nome);
+          } catch {
+          }
+          out.push({ fonte: o.nome, url: u, status: r.status, interpretou: ok, inicio: txt.slice(0, 300) });
+        } catch (e) {
+          out.push({ fonte: o.nome, url: u, erro: String(e) });
+        }
+      }
+      return Response.json(out);
     }
     if (url.pathname === "/run") {
       if (!env.RUN_TOKEN || url.searchParams.get("token") !== env.RUN_TOKEN) return new Response("n\xE3o autorizado", { status: 401 });
