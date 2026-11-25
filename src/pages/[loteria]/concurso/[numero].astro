@@ -6,8 +6,14 @@ import Bolas from '../../../components/Bolas.astro';
 import Resposta from '../../../components/Resposta.astro';
 import Ad from '../../../components/Ad.astro';
 import Autor from '../../../components/Autor.astro';
-import { POR_SLUG } from '../../../lib/loterias';
-import { getDB, concurso, vizinhos } from '../../../lib/db';
+import Countdown from '../../../components/Countdown.astro';
+import Palpites from '../../../components/Palpites.astro';
+import TabelasLoteria from '../../../components/TabelasLoteria.astro';
+import Faq from '../../../components/Faq.astro';
+import { POR_SLUG, DIAS, diasTexto } from '../../../lib/loterias';
+import { getDB, concurso, vizinhos, ultimos, anteriores } from '../../../lib/db';
+import { gerarPalpites, frequencias } from '../../../lib/palpites';
+import { chancePrincipal } from '../../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
 import { cachear, naoEncontrado } from '../../../lib/cache';
 import { SITE } from '../../../lib/site';
@@ -17,34 +23,123 @@ const n = Number(Astro.params.numero);
 if (!l || !Number.isInteger(n) || n < 1) return naoEncontrado(Astro);
 const db = getDB(Astro.locals);
 const c = await concurso(db, l, n);
-if (!c) { Astro.response.status = 404; }
-const viz = c ? await vizinhos(db, l, n) : { anterior: null, proximo: null };
-// concursos antigos mudam pouco: cache mais longo no CDN
-cachear(Astro, c && Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300);
+
+// Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
+const [ult] = c ? [null] : await ultimos(db, l, 1);
+const prox = !c && ult && ult.proximo_numero === n ? ult : null;
+if (!c && !prox) return naoEncontrado(Astro);
+
+const hist = await anteriores(db, l, n, 100);
+const palpites = gerarPalpites(l, n, hist);
+const viz = c ? await vizinhos(db, l, n) : { anterior: ult!.numero, proximo: null };
+cachear(Astro, c ? (Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300) : 300);
+
 const dig = l.tipo === 'colunas' ? 1 : 2;
+const dataSorteio = c ? c.data : prox!.proximo_data;
+const diaSemana = dataSorteio ? DIAS[new Date(dataSorteio + 'T12:00:00Z').getUTCDay()] : '';
+const dataCurta = dataSorteio ? dataBR(dataSorteio).slice(0, 5) : '';
+const sorteioISO = dataSorteio ? `${dataSorteio}T20:00:00-03:00` : null;
+const imagem = `/imagem-concurso.png?l=${l.slug}&n=${n}${c ? '&r=1' : ''}`;
 const dz = c?.dezenas.map((d) => pad(d, dig)).join(' - ') ?? '';
-const titulo = c ? `Resultado ${l.nome} ${c.numero} — ${dataBR(c.data)}${c.especial ? ' (Mega da Virada)' : ''}` : `${l.nome} concurso ${n}`;
-const desc = c ? `${l.nome} concurso ${c.numero} de ${dataBR(c.data)}: ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação completa, ganhadores por cidade e próximo concurso.` : `Resultado da ${l.nome} concurso ${n}.`;
-const totalGanhadores = c?.premiacoes.reduce((a, p) => a + p.ganhadores, 0) ?? 0;
-const totalPago = c?.premiacoes.reduce((a, p) => a + p.ganhadores * p.premio, 0) ?? 0;
-const schema = c ? [{
-  '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR',
-  url: `${SITE.url}/${l.slug}/concurso/${c.numero}/`, datePublished: c.data, dateModified: c.atualizado_em,
-  isPartOf: { '@id': `${SITE.url}/#site` },
-}] : [];
+
+// contexto pré-sorteio
+const freq = l.tipo !== 'colunas' ? frequencias(l, hist) : [];
+const quentes = [...freq].sort((a, b) => b.vezes - a.vezes || a.dezena - b.dezena).slice(0, 10);
+const atrasadas = [...freq].sort((a, b) => b.atraso - a.atraso || a.dezena - b.dezena).slice(0, 10);
+let seguidas = 0;
+for (let i = hist.length - 1; i >= 0 && hist[i].acumulado; i--) seguidas++;
+const premio = prox?.proximo_estimativa;
+
+const titulo = c
+  ? `Resultado ${l.nome} ${n} de ${dataBR(c.data)}: dezenas sorteadas${c.especial ? ' (Mega da Virada)' : ''}`
+  : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premio ? ` e prêmio de ${reaisCurto(premio)}` : ' e horário'}`;
+const desc = c
+  ? `${l.nome} ${n} (${dataBR(c.data)}): ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação, ganhadores por cidade e como foram os palpites.`
+  : `${l.nome} concurso ${n}: sorteio ${diaSemana}, ${dataBR(dataSorteio)}, às 20h.${premio ? ` Prêmio estimado de ${reaisCurto(premio)}.` : ''} Palpites estatísticos, dezenas quentes e atrasadas e resultado ao vivo nesta página.`;
+const publicado = c ? `${c.data}T21:00:00-03:00` : (ult!.atualizado_em ?? new Date().toISOString());
+const modificado = c ? c.atualizado_em : (ult!.atualizado_em ?? new Date().toISOString());
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
+  image: [new URL(imagem, SITE.url).href], datePublished: publicado, dateModified: modificado,
+  mainEntityOfPage: `${SITE.url}/${l.slug}/concurso/${n}/`,
+  author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` },
+  publisher: { '@type': 'Organization', name: SITE.nome, logo: { '@type': 'ImageObject', url: `${SITE.url}/icon-512.png` } },
+}];
+const faqPre = prox ? [
+  { q: `Que horas sai o resultado da ${l.nome} ${n}?`, a: `O sorteio do concurso ${n} acontece ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às 20h (horário de Brasília). O resultado aparece nesta mesma página poucos minutos depois, automaticamente.` },
+  { q: `Qual é o prêmio da ${l.nome} ${n}?`, a: premio ? `O prêmio estimado para o concurso ${n} é de ${reais(premio)}${seguidas > 0 ? `, depois de ${seguidas} concurso(s) seguido(s) sem ganhador na faixa principal` : ''}. O valor final é divulgado pela Caixa após o sorteio.` : 'A Caixa divulga a estimativa de prêmio após o concurso anterior. Ela aparece aqui automaticamente.' },
+  { q: 'Até que horas posso apostar?', a: 'Em geral, as apostas ficam abertas até as 19h (horário de Brasília) do dia do sorteio, nas lotéricas, no app Loterias Caixa e no portal Loterias Online. Não deixe para a última hora.' },
+  { q: `Quanto custa e qual a chance de ganhar?`, a: `A aposta mínima custa ${reais(l.preco)} e a chance de acertar a faixa principal com ela é de 1 em ${numero(chancePrincipal(l))}.` },
+  { q: 'Onde assistir ao sorteio?', a: 'Os sorteios são transmitidos ao vivo pelos canais oficiais da Caixa nas redes sociais. Se preferir, acompanhe por aqui: a página é atualizada sozinha quando o resultado sai.' },
+] : [];
 ---
-<Base title={titulo} description={desc} schema={schema} noindex={!c} modificado={c?.atualizado_em}>
+<Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, { nome: `Concurso ${n}` }]} />
     {c?.especial && <span class="pill hot">✦ Concurso especial</span>}
-    <h1>{l.nome} — concurso {n}</h1>
-    {c && <p class="lead">Sorteio realizado em {dataBR(c.data, true)}{c.local ? `, em ${c.local}` : ''}.</p>}
-    {c && <Autor atualizado={c.atualizado_em} />}
+    {prox && <span class="pill hot">⏳ Ainda não sorteado</span>}
+    <h1>{c ? `${l.nome} — resultado do concurso ${n}` : `${l.nome} ${n}: palpites e resultado de ${diaSemana} (${dataCurta})`}</h1>
+    <p class="lead">{c
+      ? `Sorteio realizado em ${dataBR(c.data, true)}${c.local ? `, em ${c.local}` : ''}.`
+      : `Sorteio ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às 20h (Brasília). Esta página mostra o resultado automaticamente assim que ele sair.`}</p>
+    <Autor atualizado={modificado} />
   </div>
 
-  {!c ? (
-    <section class="wrap"><div class="card"><h2>Concurso ainda não disponível</h2><p class="muted">Este concurso ainda não foi sorteado ou está sendo sincronizado. Veja o <a href={`/${l.slug}/`}>último resultado da {l.nome}</a>.</p></div></section>
-  ) : (
+  {prox ? (
+    <>
+      <section class="wrap cgrid">
+        <div class="card big pre" style={`--c:${l.cor}`}>
+          <p class="lbl">Contagem regressiva para o sorteio</p>
+          {sorteioISO && <div class="cd-wrap"><Countdown alvo={sorteioISO} /></div>}
+          {premio ? <div class="prz"><span class="lbl">Prêmio estimado</span><strong>{reaisCurto(premio)}</strong>{seguidas > 0 && <span class="pill hot">Acumulado há {seguidas} concurso{seguidas > 1 ? 's' : ''}</span>}</div> : null}
+          <div class="acts">
+            <a class="btn btn-primary btn-sm" href="#palpites">Ver palpites</a>
+            <a class="btn btn-sm" href={`/ferramentas/gerador-de-numeros/`}>Gerar meus jogos</a>
+          </div>
+        </div>
+        <div class="side">
+          <Resposta>
+            <p>O concurso <strong>{n} da {l.nome}</strong> será sorteado <strong>{diaSemana}, {dataBR(dataSorteio)}, às 20h</strong> (horário de Brasília).{premio ? <> O prêmio estimado é de <strong>{reaisCurto(premio)}</strong>.</> : ''} A aposta mínima custa {reais(l.preco)}. O resultado será publicado nesta página automaticamente, minutos após o sorteio.</p>
+          </Resposta>
+          <figure class="hero-img"><img src={imagem} alt={`${l.nome} concurso ${n} — ${dataBR(dataSorteio)}`} width="1200" height="675" loading="eager" /></figure>
+        </div>
+      </section>
+
+      <div class="wrap"><Ad /></div>
+      <section class="wrap section-sm" id="palpites"><Palpites l={l} palpites={palpites} numero={n} /></section>
+
+      {quentes.length > 0 && hist.length >= 10 && (
+        <section class="wrap section-sm">
+          <h2>Dezenas quentes e atrasadas antes do concurso {n}</h2>
+          <p class="muted">Com base nos últimos {hist.length} concursos da {l.nome} (até o {ult!.numero}).</p>
+          <div class="grid g2">
+            <div class="card"><h3>🔥 Mais sorteadas</h3><Bolas dezenas={quentes.map((q) => q.dezena)} cor={l.cor} tam="sm" /><p class="small faint" style="margin:10px 0 0">{quentes.slice(0, 3).map((q) => `${pad(q.dezena)} saiu ${q.vezes} vezes`).join(' · ')}</p></div>
+            <div class="card"><h3>⏳ Mais atrasadas</h3><Bolas dezenas={atrasadas.map((q) => q.dezena)} cor="#d9a521" tam="sm" /><p class="small faint" style="margin:10px 0 0">{atrasadas.slice(0, 3).map((q) => `${pad(q.dezena)} há ${q.atraso} concursos`).join(' · ')}</p></div>
+          </div>
+          <p><a href={`/${l.slug}/estatisticas/`}>Ver estatísticas completas da {l.nome} →</a></p>
+        </section>
+      )}
+
+      <section class="wrap section-sm">
+        <h2>Último resultado: concurso {ult!.numero}</h2>
+        <a class="card card-link lastc" href={`/${l.slug}/concurso/${ult!.numero}/`}>
+          <div><strong>{l.nome} {ult!.numero}</strong> <span class="faint small">· {dataBR(ult!.data)}</span></div>
+          <Bolas dezenas={ult!.dezenas} cor={l.cor} tam="sm" digitos={dig} />
+          {ult!.acumulado ? <span class="pill hot">Acumulou</span> : <span class="pill ok">Teve ganhador</span>}
+        </a>
+      </section>
+
+      <div class="wrap"><Ad /></div>
+      <section class="wrap section-sm">
+        <h2>Como apostar no concurso {n}</h2>
+        <div class="prose" style="max-width:820px">
+          <p>A {l.nome} sorteia às {diasTexto(l)}. Para concorrer no concurso {n}, faça sua aposta em uma lotérica, no app Loterias Caixa ou no portal Loterias Online até o horário de encerramento do dia {dataBR(dataSorteio)}. Veja o <a href={`/${l.slug}/como-jogar/`}>guia completo de como jogar</a>.</p>
+        </div>
+        <TabelasLoteria l={l} />
+      </section>
+      <section class="section-sm"><div class="narrow"><Faq itens={faqPre} titulo={`Dúvidas sobre a ${l.nome} ${n}`} /></div></section>
+    </>
+  ) : c && (
     <>
       <section class="wrap cgrid">
         <div class="card big" style={`--c:${l.cor}`}>
@@ -63,14 +158,10 @@ const schema = c ? [{
         <div class="side">
           <Resposta>
             <p>O resultado da <strong>{l.nome} {c.numero}</strong> ({dataBR(c.data)}) foi <strong>{dz}</strong>{c.dezenas2 ? ` no 1º sorteio e ${c.dezenas2.map((d) => pad(d)).join(' - ')} no 2º sorteio` : ''}.
-            {c.acumulado ? ' Ninguém acertou a faixa principal.' : ` ${c.premiacoes[0]?.ganhadores ?? ''} aposta(s) acertaram a faixa principal${c.premiacoes[0]?.premio ? `, levando ${reais(c.premiacoes[0].premio)} cada` : ''}.`}</p>
+            {c.acumulado ? ' Ninguém acertou a faixa principal.' : ` ${c.premiacoes[0]?.ganhadores ?? ''} aposta(s) acertaram a faixa principal${c.premiacoes[0]?.premio ? `, levando ${reais(c.premiacoes[0].premio)} cada` : ''}.`}
+            {c.proximo_numero ? <> O <a href={`/${l.slug}/concurso/${c.proximo_numero}/`}>próximo concurso ({c.proximo_numero})</a>{c.proximo_estimativa ? ` tem prêmio estimado em ${reaisCurto(c.proximo_estimativa)}` : ''}.</> : ''}</p>
           </Resposta>
-          <div class="card stats">
-            <div class="stat"><span class="stat-v">{numero(totalGanhadores)}</span><span class="stat-l">apostas premiadas</span></div>
-            <div class="stat"><span class="stat-v">{reaisCurto(totalPago)}</span><span class="stat-l">total em prêmios</span></div>
-            {c.arrecadacao ? <div class="stat"><span class="stat-v">{reaisCurto(c.arrecadacao)}</span><span class="stat-l">arrecadação</span></div> : null}
-            {c.proximo_estimativa ? <div class="stat"><span class="stat-v" style="color:var(--gold)">{reaisCurto(c.proximo_estimativa)}</span><span class="stat-l">estimativa do concurso {c.proximo_numero}{c.proximo_data && ` (${dataBR(c.proximo_data)})`}</span></div> : null}
-          </div>
+          <figure class="hero-img"><img src={imagem} alt={`Resultado ${l.nome} ${n}: ${dz}`} width="1200" height="675" loading="eager" /></figure>
         </div>
       </section>
 
@@ -82,6 +173,7 @@ const schema = c ? [{
             <tbody>{c.premiacoes.map((p) => <tr><td>{p.descricao}</td><td class="num">{numero(p.ganhadores)}</td><td class="num">{p.ganhadores ? reais(p.premio) : '—'}</td></tr>)}</tbody>
           </table>
         </div>
+        {c.arrecadacao ? <p class="small faint" style="margin-top:10px">Arrecadação total: {reais(c.arrecadacao)}.</p> : null}
       </section>
 
       {c.cidades_ganhadoras && (
@@ -95,6 +187,16 @@ const schema = c ? [{
       )}
 
       <div class="wrap"><Ad /></div>
+      <section class="wrap section-sm"><Palpites l={l} palpites={palpites} numero={n} resultado={c.dezenas} resultado2={c.dezenas2} trevosSorteados={c.extra?.trevos} /></section>
+      {c.proximo_numero && (
+        <section class="wrap section-sm">
+          <a class="card card-link nextc" href={`/${l.slug}/concurso/${c.proximo_numero}/`}>
+            <div><span class="lbl">Próximo concurso</span><h3>{l.nome} {c.proximo_numero}{c.proximo_data && ` · ${dataBR(c.proximo_data)}`}</h3></div>
+            {c.proximo_estimativa ? <strong class="nx-v">{reaisCurto(c.proximo_estimativa)}</strong> : null}
+            <span class="btn btn-primary btn-sm">Ver palpites →</span>
+          </a>
+        </section>
+      )}
     </>
   )}
 
@@ -111,7 +213,17 @@ const schema = c ? [{
   .ext { margin: 0; color: var(--muted); }
   .acts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
   .side { display: grid; gap: 16px; }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .hero-img { margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .hero-img img { width: 100%; height: auto; display: block; }
+  .pre .cd-wrap :global(.cd-u) { background: var(--surface2); border-color: var(--line); }
+  .pre .cd-wrap :global(.cd-v) { color: var(--text); }
+  .pre .cd-wrap :global(.cd-l) { color: var(--faint); }
+  .prz { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .prz strong { font: 700 clamp(2rem, 5vw, 3rem)/1.05 var(--display); color: var(--gold); letter-spacing: -.03em; }
+  .lastc { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .nextc { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: space-between; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); }
+  .nextc h3 { margin: 4px 0 0; }
+  .nx-v { font: 700 1.6rem var(--display); color: var(--gold); }
   .pager { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
   @media (max-width: 900px) { .cgrid { grid-template-columns: 1fr; } }
 </style>

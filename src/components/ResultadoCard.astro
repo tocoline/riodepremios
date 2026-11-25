@@ -24,10 +24,10 @@ const digitos = l.tipo === 'colunas' ? 1 : 2;
       {c.extra?.time && <p class="rc-extra">⚽ Time do Coração: <strong>{c.extra.time}</strong></p>}
       {c.extra?.mes && <p class="rc-extra">📅 Mês da Sorte: <strong>{c.extra.mes}</strong></p>}
       {c.proximo_estimativa ? (
-        <div class="rc-prox">
-          <span class="faint small">Próximo concurso{c.proximo_data && ` · ${dataBR(c.proximo_data)}`}</span>
+        <a class="rc-prox" href={`/${l.slug}/concurso/${c.proximo_numero}/`}>
+          <span class="faint small">Concurso {c.proximo_numero}{c.proximo_data && ` · ${dataBR(c.proximo_data)}`} · <u>palpites</u></span>
           <span class="rc-valor">{reaisCurto(c.proximo_estimativa)}</span>
-        </div>
+        </a>
       ) : null}
     </>
   ) : (
@@ -45,7 +45,8 @@ const digitos = l.tipo === 'colunas' ? 1 : 2;
   .rc-meta { margin: 0; font-size: .85rem; color: var(--muted); }
   .rc-sub { margin: 2px 0 -4px; font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); font-weight: 700; }
   .rc-extra { margin: 0; font-size: .92rem; color: var(--muted); }
-  .rc-prox { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--line); }
+  .rc-prox { position: relative; z-index: 2; text-decoration: none; color: inherit; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--line); }
+  .rc-prox:hover { border-color: var(--c); }
   .rc-valor { font: 700 1.25rem var(--display); color: var(--gold); letter-spacing: -.02em; }
   .rc-link { margin-top: auto; font-weight: 600; font-size: .9rem; text-decoration: none; color: var(--c); filter: brightness(1.25); }
   :global(:root[data-theme="light"]) .rc-link { filter: none; }

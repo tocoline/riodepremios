@@ -56,7 +56,7 @@ const schema = [{
         <a class="card card-link" href={`/${l.slug}/resultados/`}><strong>Todos os resultados</strong><span class="faint small">Histórico completo</span></a>
         <a class="card card-link" href={`/${l.slug}/estatisticas/`}><strong>Estatísticas</strong><span class="faint small">Mais sorteadas e atrasadas</span></a>
         <a class="card card-link" href={`/ferramentas/conferidor/?loteria=${l.slug}`}><strong>Conferir aposta</strong><span class="faint small">Veja quantos acertou</span></a>
-        <a class="card card-link" href={`/${l.slug}/como-jogar/`}><strong>Como jogar</strong><span class="faint small">Regras e prêmios</span></a>
+        {c?.proximo_numero ? <a class="card card-link" href={`/${l.slug}/concurso/${c.proximo_numero}/`}><strong>Concurso {c.proximo_numero}</strong><span class="faint small">Palpites e próximo sorteio</span></a> : <a class="card card-link" href={`/${l.slug}/como-jogar/`}><strong>Como jogar</strong><span class="faint small">Regras e prêmios</span></a>}
       </div>
     </div>
   </section>

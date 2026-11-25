@@ -1,0 +1,44 @@
+---
+import Bolas from './Bolas.astro';
+import type { Loteria } from '../lib/loterias';
+import type { Palpite } from '../lib/palpites';
+interface Props { l: Loteria; palpites: Palpite[]; resultado?: number[] | null; resultado2?: number[] | null; trevosSorteados?: number[] | null; numero: number }
+const { l, palpites, resultado, resultado2, trevosSorteados, numero } = Astro.props;
+const dig = l.tipo === 'colunas' ? 1 : 2;
+const acertos = (p: Palpite) => {
+  if (!resultado) return null;
+  if (l.tipo === 'colunas') return p.dezenas.filter((d, i) => d === resultado[i]).length;
+  const a = p.dezenas.filter((d) => resultado.includes(d)).length;
+  return resultado2 ? Math.max(a, p.dezenas.filter((d) => resultado2.includes(d)).length) : a;
+};
+const faixas = l.faixas.map((f) => f.acertos);
+---
+<section class="palp">
+  <h2>{resultado ? `Como se saíram os palpites do concurso ${numero}` : `Palpites para o concurso ${numero} da ${l.nome}`}</h2>
+  <p class="muted">{resultado
+    ? 'Estes foram os palpites publicados aqui antes do sorteio. Confira quantos números cada estratégia acertou.'
+    : `Quatro jogos montados a partir das estatísticas dos últimos 100 concursos da ${l.nome}. Use como ponto de partida, não como garantia.`}</p>
+  <div class="grid g2">
+    {palpites.map((p) => {
+      const a = acertos(p);
+      const hits = resultado ? (l.tipo === 'colunas' ? [] : p.dezenas.filter((d) => resultado.includes(d) || resultado2?.includes(d))) : [];
+      return (
+        <div class="card pc">
+          <div class="pc-top"><h3>{p.nome}</h3>{a !== null && <span class:list={['pill', faixas.includes(a) ? 'ok' : '']}>{a} acerto{a === 1 ? '' : 's'}{faixas.includes(a) ? ' · premiado' : ''}</span>}</div>
+          <Bolas dezenas={p.dezenas} cor={l.cor} tam="sm" digitos={dig} acertos={hits} />
+          {p.trevos && <div class="tv"><span class="small faint">Trevos</span><Bolas dezenas={p.trevos} cor="#d9a521" tam="sm" digitos={1} acertos={trevosSorteados ?? []} /></div>}
+          <p class="small muted">{p.descricao}</p>
+        </div>
+      );
+    })}
+  </div>
+  <p class="small faint">⚠️ Todas as combinações têm exatamente a mesma probabilidade de serem sorteadas. Os palpites são gerados automaticamente a partir de estatísticas públicas e não aumentam a chance de ganhar. Jogue com responsabilidade.</p>
+</section>
+<style>
+  .palp { margin: 8px 0; }
+  .pc { display: flex; flex-direction: column; gap: 12px; }
+  .pc-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pc h3 { margin: 0; font-size: 1.05rem; }
+  .pc p { margin: 0; }
+  .tv { display: flex; align-items: center; gap: 10px; }
+</style>

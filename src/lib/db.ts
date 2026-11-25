@@ -70,3 +70,9 @@ export async function historicoDezenas(db: DB, l: Loteria, apenasEspeciais = fal
   const rows = await all(db, `SELECT numero, data, dezenas, dezenas2 FROM concursos WHERE loteria=? ${apenasEspeciais ? 'AND especial=1' : ''} ORDER BY numero ASC`, l.api);
   return rows.map((r) => ({ numero: r.numero as number, data: r.data as string, dezenas: J(r.dezenas) as number[], dezenas2: J(r.dezenas2) as number[] | null }));
 }
+
+/** Concursos anteriores a `antesDe` (ordem crescente), para palpites e contexto. */
+export async function anteriores(db: DB, l: Loteria, antesDe: number, limite = 100) {
+  const rows = await all(db, 'SELECT numero, data, dezenas, acumulado, extra FROM concursos WHERE loteria=? AND numero<? ORDER BY numero DESC LIMIT ?', l.api, antesDe, limite);
+  return rows.reverse().map((r) => ({ numero: r.numero as number, data: r.data as string, dezenas: (J(r.dezenas) ?? []) as number[], acumulado: !!r.acumulado, extra: J(r.extra) }));
+}
