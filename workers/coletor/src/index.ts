@@ -56,7 +56,7 @@ async function registrar(env: Env, msg: string) {
 }
 
 /** Busca o último concurso de cada loteria e completa o histórico (até `historicoMax` concursos por execução). */
-async function executar(env: Env, historicoMax = 15) {
+async function executar(env: Env, historicoMax = 30) {
   usados = 0;
   const log: Record<string, unknown> = {};
   const ultimos: Record<string, number> = {};
@@ -76,12 +76,15 @@ async function executar(env: Env, historicoMax = 15) {
   try {
     const { results } = await env.DB.prepare('SELECT loteria, numero FROM concursos').all<{ loteria: string; numero: number }>();
     const tem = new Set(results.map((r) => r.loteria + ':' + r.numero));
-    const faltando: [string, number][] = [];
+    // até 6 faltantes por loteria, intercalados (rodízio) para todas avançarem juntas
+    const porLoteria: [string, number][][] = [];
     for (const [api, topo] of Object.entries(ultimos)) {
-      let k = 0;
-      for (let n = topo; n >= 1 && k < 5; n--) if (!tem.has(api + ':' + n)) { faltando.push([api, n]); k++; }
+      const f: [string, number][] = [];
+      for (let n = topo; n >= 1 && f.length < 6; n--) if (!tem.has(api + ':' + n)) f.push([api, n]);
+      porLoteria.push(f);
     }
-    faltando.sort((a, b) => b[1] - a[1]);
+    const faltando: [string, number][] = [];
+    for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
     for (const [api, n] of faltando.slice(0, historicoMax)) {
       if (usados >= LIMITE_SUBREQ) break;
       const c = await buscar(api, n);
@@ -134,7 +137,7 @@ export default {
     }
     if (url.pathname === '/run') {
       if (!env.RUN_TOKEN || url.searchParams.get('token') !== env.RUN_TOKEN) return new Response('não autorizado', { status: 401 });
-      return Response.json(await executar(env, Number(url.searchParams.get('historico')) || 15));
+      return Response.json(await executar(env, Number(url.searchParams.get('historico')) || 30));
     }
     return new Response('Rio de Prêmios — coletor de resultados', { status: 200 });
   },

@@ -331,7 +331,7 @@ async function registrar(env, msg) {
   }
 }
 __name(registrar, "registrar");
-async function executar(env, historicoMax = 15) {
+async function executar(env, historicoMax = 30) {
   usados = 0;
   const log = {};
   const ultimos = {};
@@ -352,15 +352,14 @@ async function executar(env, historicoMax = 15) {
   try {
     const { results } = await env.DB.prepare("SELECT loteria, numero FROM concursos").all();
     const tem = new Set(results.map((r) => r.loteria + ":" + r.numero));
-    const faltando = [];
+    const porLoteria = [];
     for (const [api, topo] of Object.entries(ultimos)) {
-      let k = 0;
-      for (let n2 = topo; n2 >= 1 && k < 5; n2--) if (!tem.has(api + ":" + n2)) {
-        faltando.push([api, n2]);
-        k++;
-      }
+      const f = [];
+      for (let n2 = topo; n2 >= 1 && f.length < 6; n2--) if (!tem.has(api + ":" + n2)) f.push([api, n2]);
+      porLoteria.push(f);
     }
-    faltando.sort((a, b) => b[1] - a[1]);
+    const faltando = [];
+    for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
     for (const [api, n2] of faltando.slice(0, historicoMax)) {
       if (usados >= LIMITE_SUBREQ) break;
       const c = await buscar(api, n2);
@@ -426,7 +425,7 @@ var index_default = {
     }
     if (url.pathname === "/run") {
       if (!env.RUN_TOKEN || url.searchParams.get("token") !== env.RUN_TOKEN) return new Response("n\xE3o autorizado", { status: 401 });
-      return Response.json(await executar(env, Number(url.searchParams.get("historico")) || 15));
+      return Response.json(await executar(env, Number(url.searchParams.get("historico")) || 30));
     }
     return new Response("Rio de Pr\xEAmios \u2014 coletor de resultados", { status: 200 });
   }
