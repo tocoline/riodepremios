@@ -12,7 +12,11 @@ export const SITE = {
   },
 };
 
+// IDs públicos (aparecem no HTML de qualquer site com anúncios). Podem ser trocados por variáveis de ambiente no Pages.
 export const adsense = {
-  client: (import.meta.env.PUBLIC_ADSENSE_CLIENT as string | undefined) || '',
-  slot: (import.meta.env.PUBLIC_ADSENSE_SLOT as string | undefined) || '',
+  client: (import.meta.env.PUBLIC_ADSENSE_CLIENT as string | undefined) || 'ca-pub-7489608946923439',
+  slot: (import.meta.env.PUBLIC_ADSENSE_SLOT as string | undefined) || '5634434194',
 };
+
+// Google Analytics 4 (mesma propriedade do site antigo, para manter o histórico)
+export const analytics = (import.meta.env.PUBLIC_GA_ID as string | undefined) || 'G-XRPG9WRVKV';
