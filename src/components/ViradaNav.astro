@@ -1,0 +1,21 @@
+---
+const itens = [
+  ['/mega-da-virada/', 'Guia'], ['/mega-da-virada/resultados/', 'Resultados'], ['/mega-da-virada/estatisticas/', 'Estatísticas'],
+  ['/mega-da-virada/calculadora-de-bolao/', 'Bolão'], ['/mega-da-virada/simulador/', 'Simulador'], ['/mega-da-virada/gerador/', 'Gerador'],
+  ['/mega-da-virada/premio-liquido/', 'Prêmio líquido'], ['/mega-da-virada/como-apostar/', 'Como apostar'],
+];
+const atual = Astro.url.pathname;
+---
+<nav class="vnav" aria-label="Seção Mega da Virada">
+  <div class="wrap vnav-in">
+    {itens.map(([h, t]) => <a href={h} aria-current={atual === h ? 'page' : undefined}>{t}</a>)}
+  </div>
+</nav>
+<style>
+  .vnav { position: sticky; top: 68px; z-index: 40; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  .vnav-in { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+  .vnav-in::-webkit-scrollbar { display: none; }
+  .vnav a { flex: none; padding: 8px 14px; border-radius: 999px; font-size: .88rem; font-weight: 600; text-decoration: none; color: var(--muted); }
+  .vnav a:hover { color: var(--text); background: var(--surface2); }
+  .vnav a[aria-current="page"] { color: #1c1400; background: linear-gradient(120deg, #f6d36b, #e3a92c); }
+</style>

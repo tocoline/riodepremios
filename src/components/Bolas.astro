@@ -1,0 +1,10 @@
+---
+import { pad } from '../lib/format';
+interface Props { dezenas: number[]; cor: string; tam?: 'sm' | 'lg' | ''; acertos?: number[]; digitos?: number }
+const { dezenas, cor, tam = '', acertos = [], digitos = 2 } = Astro.props;
+---
+<div class="balls" role="list">
+  {dezenas.map((d) => (
+    <span role="listitem" class:list={['ball', tam, acertos.includes(d) && 'hit']} style={`--c:${cor}`}>{pad(d, digitos)}</span>
+  ))}
+</div>

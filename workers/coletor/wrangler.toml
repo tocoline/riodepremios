@@ -1,0 +1,15 @@
+# Worker coletor: busca os resultados automaticamente e grava no D1
+name = "riodepremios-coletor"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[triggers]
+# a cada 10 minutos: atualiza o último concurso de cada loteria e completa o histórico aos poucos
+crons = ["*/10 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "riodepremios"
+database_id = "COLOQUE_AQUI_O_ID_DO_D1"
+
+# Defina o token do endpoint manual com: wrangler secret put RUN_TOKEN -c workers/coletor/wrangler.toml

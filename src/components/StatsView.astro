@@ -1,0 +1,72 @@
+---
+import type { Loteria } from '../lib/loterias';
+import { calcular } from '../lib/estatisticas';
+import { pad, numero } from '../lib/format';
+interface Props { l: Loteria; s: ReturnType<typeof calcular>; rotulo?: string }
+const { l, s, rotulo = 'concursos' } = Astro.props;
+const esperado = s.total ? (s.total * l.sorteadas * (l.slug === 'dupla-sena' ? 2 : 1)) / (l.max - l.min + 1) : 0;
+---
+{s.total === 0 ? (
+  <div class="card"><p class="muted" style="margin:0">As estatísticas aparecem assim que o histórico for sincronizado (o coletor completa o banco automaticamente).</p></div>
+) : (
+  <div class="sv" style={`--c:${l.cor}`}>
+    <div class="grid g4">
+      <div class="card stat"><span class="stat-v">{numero(s.total)}</span><span class="stat-l">{rotulo} analisados</span></div>
+      <div class="card stat"><span class="stat-v">{pad(s.mais[0].dezena)}</span><span class="stat-l">mais sorteada ({s.mais[0].vezes}×)</span></div>
+      <div class="card stat"><span class="stat-v">{pad(s.atrasadas[0].dezena)}</span><span class="stat-l">mais atrasada ({s.atrasadas[0].atraso} {rotulo})</span></div>
+      <div class="card stat"><span class="stat-v">{s.somaMedia}</span><span class="stat-l">soma média das dezenas</span></div>
+    </div>
+
+    <h3>Mapa de frequência</h3>
+    <p class="small muted">Quanto mais intensa a cor, mais vezes a dezena saiu. Frequência esperada pelo acaso: ~{esperado.toFixed(1)} vezes por dezena.</p>
+    <div class="heat" style={`grid-template-columns:repeat(${l.max - l.min + 1 > 60 ? 10 : 10}, 1fr)`}>
+      {s.stats.map((x) => (
+        <div class="hc" style={`--a:${(0.12 + 0.88 * (x.vezes / s.maxVezes)).toFixed(2)}`} title={`Dezena ${pad(x.dezena)}: ${x.vezes} vezes, atraso ${x.atraso}`}>
+          <b>{pad(x.dezena)}</b><span>{x.vezes}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="grid g3 lists">
+      <div class="card">
+        <h3>🔥 Mais sorteadas</h3>
+        {s.mais.map((x) => <div class="li"><span class="ball sm" style={`--c:${l.cor}`}>{pad(x.dezena)}</span><div class="bar"><i style={`width:${(x.vezes / s.maxVezes) * 100}%;--c:${l.cor}`}></i></div><span class="small">{x.vezes}×</span></div>)}
+      </div>
+      <div class="card">
+        <h3>❄️ Menos sorteadas</h3>
+        {s.menos.map((x) => <div class="li"><span class="ball sm ghost">{pad(x.dezena)}</span><div class="bar"><i style={`width:${(x.vezes / s.maxVezes) * 100}%`}></i></div><span class="small">{x.vezes}×</span></div>)}
+      </div>
+      <div class="card">
+        <h3>⏳ Mais atrasadas</h3>
+        {s.atrasadas.map((x) => <div class="li"><span class="ball sm gold">{pad(x.dezena)}</span><span class="small grow">sem sair há</span><strong class="small">{x.atraso}</strong></div>)}
+      </div>
+    </div>
+
+    <div class="card pi">
+      <h3>Combinações de pares e ímpares mais comuns</h3>
+      <div class="pi-g">
+        {s.paresImpares.map(([k, v]) => {
+          const tot = s.paresImpares.reduce((a, b) => a + b[1], 0);
+          return <div><div class="small"><strong>{k.replace('p/', ' pares / ').replace('i', ' ímpares')}</strong> · {((v / tot) * 100).toFixed(1)}%</div><div class="bar"><i style={`width:${(v / s.paresImpares[0][1]) * 100}%`}></i></div></div>;
+        })}
+      </div>
+    </div>
+    <p class="small faint">Importante: cada sorteio é independente. Estatísticas descrevem o passado e <strong>não aumentam a chance</strong> de nenhuma dezena sair no futuro.</p>
+  </div>
+)}
+<style>
+  .sv h3 { margin-top: 28px; }
+  .heat { display: grid; gap: 6px; margin-bottom: 8px; }
+  .hc { aspect-ratio: 1.15; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) calc(var(--a) * 100%), var(--surface2)); border: 1px solid var(--line); color: var(--text); }
+  .hc b { font: 700 clamp(.75rem, 1.6vw, 1rem) var(--display); }
+  .hc span { font-size: .65rem; opacity: .75; }
+  .lists { margin-top: 28px; }
+  .lists h3 { margin-top: 0; }
+  .li { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .li .bar { flex: 1; }
+  .grow { flex: 1; color: var(--muted); }
+  .pi { margin: 22px 0 14px; }
+  .pi h3 { margin-top: 0; }
+  .pi-g { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .pi .bar { margin-top: 4px; }
+</style>

@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import { LOTERIAS } from '../../lib/loterias';
+---
+<Base title="Estatísticas das loterias: dezenas mais sorteadas e atrasadas" description="Estatísticas de todas as loterias da Caixa: dezenas que mais saem, mais atrasadas, mapas de frequência e padrões de pares e ímpares.">
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: 'Estatísticas' }]} />
+    <h1>Estatísticas das loterias</h1>
+    <p class="lead">Frequência das dezenas em todo o histórico de cada modalidade, recalculada automaticamente a cada sorteio.</p>
+  </div>
+  <section class="wrap grid g3">
+    {LOTERIAS.filter((l) => l.tipo !== 'colunas').map((l) => (
+      <a class="card card-link es" href={`/${l.slug}/estatisticas/`} style={`--c:${l.cor}`}>
+        <span class="dot"></span><h2>{l.nome}</h2><p class="small muted">Mais sorteadas, atrasadas e mapa de calor</p>
+      </a>
+    ))}
+    <a class="card card-link es" href="/mega-da-virada/estatisticas/" style="--c:#d9a521"><span class="dot"></span><h2>Mega da Virada</h2><p class="small muted">Somente os concursos de 31/12</p></a>
+  </section>
+  <section class="wrap section-sm"><p class="small faint">Lembre-se: sorteios são independentes. Estatísticas descrevem o passado e não preveem resultados futuros.</p></section>
+</Base>
+<style> .es h2 { font-size: 1.2rem; margin: 12px 0 4px; } .es p { margin: 0; } </style>

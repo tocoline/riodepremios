@@ -1,0 +1,33 @@
+---
+interface Props { premioPadrao?: number }
+const { premioPadrao = 100000000 } = Astro.props;
+---
+<form class="tool-ui card premio-liq" onsubmit="return false">
+  <div class="row">
+    <div class="field"><label>Valor do prêmio bruto (R$)</label><input name="premio" type="number" min="0" step="1000" value={premioPadrao} inputmode="decimal" /></div>
+    <div class="field"><label>Dividido entre (ganhadores ou cotas)</label><input name="div" type="number" min="1" value="1" inputmode="numeric" /></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Alíquota de IR (%)</label><input name="ir" type="number" min="0" max="100" step="0.5" value="30" inputmode="decimal" /></div>
+    <div class="field"><label>Rendimento mensal da aplicação (%)</label><input name="taxa" type="number" min="0" max="5" step="0.01" value="0.80" inputmode="decimal" /></div>
+    <div class="field"><label>IR sobre o rendimento (%)</label><input name="irr" type="number" min="0" max="30" step="0.5" value="15" inputmode="decimal" /></div>
+  </div>
+  <div class="out grid g4"></div>
+  <p class="small faint">Valores de exemplo: ajuste a taxa mensal para a rentabilidade atual da aplicação escolhida (poupança, CDB, Tesouro). Pela legislação, prêmios de loteria acima do limite de isenção têm 30% de IR retido na fonte. Isto é uma simulação, não recomendação de investimento.</p>
+</form>
+<script>
+  import { $, brl } from '../../lib/ui';
+  document.querySelectorAll<HTMLFormElement>('.premio-liq').forEach((f) => {
+    const calc = () => {
+      const v = (k: string) => Number((f.elements.namedItem(k) as HTMLInputElement).value) || 0;
+      const bruto = v('premio') / Math.max(1, v('div'));
+      const liq = bruto * (1 - v('ir') / 100);
+      const mes = liq * (v('taxa') / 100) * (1 - v('irr') / 100);
+      $(f, '.out').innerHTML = [
+        ['Prêmio bruto por pessoa', brl(bruto)], ['Imposto retido', brl(bruto - liq)],
+        ['Você recebe (líquido)', brl(liq)], ['Renda mensal estimada', brl(mes)],
+      ].map(([a, b], i) => `<div class="stat res ${i === 2 ? 'hl' : ''}"><span class="stat-l">${a}</span><span class="stat-v">${b}</span></div>`).join('');
+    };
+    f.addEventListener('input', calc); calc();
+  });
+</script>

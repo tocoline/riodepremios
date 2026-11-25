@@ -1,0 +1,9 @@
+---
+// Bloco "resposta direta" — ajuda snippets do Google e respostas de IAs (GEO).
+interface Props { titulo?: string }
+const { titulo = 'Resposta rápida' } = Astro.props;
+---
+<div class="answer">
+  <div class="answer-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>{titulo}</div>
+  <slot />
+</div>

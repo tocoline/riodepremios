@@ -1,0 +1,9 @@
+---
+import Ferramenta from '../../layouts/Ferramenta.astro';
+import CalcBolao from '../../components/tools/CalcBolao.astro';
+---
+<Ferramenta nome="Bolão" titulo="Calculadora de bolão: custo, cotas e prêmio por participante" h1="Calculadora de bolão"
+  desc="Calcule o custo de um bolão em qualquer loteria, o valor de cada cota, a chance do grupo e quanto cada participante recebe."
+  resposta="Custo do bolão = preço de cada jogo × número de jogos. Valor da cota = custo ÷ número de cotas (mais a tarifa da lotérica, se houver). Se o grupo ganhar, cada cota recebe a mesma fração do prêmio.">
+  <CalcBolao premioPadrao={10000000} />
+</Ferramenta>

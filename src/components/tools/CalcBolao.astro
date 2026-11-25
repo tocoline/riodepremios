@@ -1,0 +1,54 @@
+---
+import SelLoteria from './SelLoteria.astro';
+interface Props { fixa?: string; premioPadrao?: number }
+const { fixa, premioPadrao = 100000000 } = Astro.props;
+---
+<form class="tool-ui card calc-bolao" onsubmit="return false">
+  <SelLoteria fixa={fixa} excluir={['super-sete']} />
+  <div class="row">
+    <div class="field"><label>Números por jogo</label><select name="n"></select></div>
+    <div class="field"><label>Quantidade de jogos</label><input name="jogos" type="number" min="1" max="500" value="5" inputmode="numeric" /></div>
+    <div class="field"><label>Número de cotas (participantes)</label><input name="cotas" type="number" min="1" max="1000" value="10" inputmode="numeric" /></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Tarifa de serviço da lotérica (%)</label><input name="tarifa" type="number" min="0" max="35" step="1" value="0" inputmode="decimal" /></div>
+    <div class="field"><label>Prêmio hipotético (R$)</label><input name="premio" type="number" min="0" step="1000000" value={premioPadrao} inputmode="decimal" /></div>
+    <div class="field"><label class="chk"><input type="checkbox" name="ir" checked /> Descontar IR de 30%</label></div>
+  </div>
+  <div class="out grid g4"></div>
+  <p class="nota small faint"></p>
+</form>
+<script>
+  import { POR_SLUG } from '../../lib/loterias';
+  import { custo, probabilidade } from '../../lib/math';
+  import { $, brl, int } from '../../lib/ui';
+  document.querySelectorAll<HTMLFormElement>('.calc-bolao').forEach((f) => {
+    const sel = () => POR_SLUG[(f.elements.namedItem('loteria') as HTMLInputElement).value];
+    const nSel = $<HTMLSelectElement>(f, '[name=n]');
+    const fillN = () => {
+      const l = sel(); nSel.innerHTML = '';
+      for (let n = l.escolhaMin; n <= l.escolhaMax; n++) nSel.add(new Option(String(n), String(n)));
+      nSel.disabled = l.escolhaMin === l.escolhaMax;
+    };
+    const calc = () => {
+      const l = sel(); const v = (k: string) => Number((f.elements.namedItem(k) as HTMLInputElement).value) || 0;
+      const n = v('n') || l.escolhaMin, jogos = Math.max(1, v('jogos')), cotas = Math.max(1, v('cotas'));
+      const tarifa = v('tarifa') / 100, premio = v('premio');
+      const ir = (f.elements.namedItem('ir') as HTMLInputElement).checked;
+      const total = custo(l, n) * jogos;
+      const porCota = (total / cotas) * (1 + tarifa);
+      const p = l.tipo === 'trevos' ? probabilidade(l, 6, n, 2, 2) : probabilidade(l, l.faixas[0].acertos, n);
+      const pGrupo = 1 - (1 - p) ** jogos;
+      const liquido = premio * (ir ? 0.7 : 1);
+      $(f, '.out').innerHTML = [
+        ['Custo total do bolão', brl(total)],
+        ['Valor de cada cota', brl(porCota)],
+        ['Chance do grupo (faixa principal)', `1 em ${int(1 / pGrupo)}`],
+        ['Prêmio por cota' + (ir ? ' (líquido)' : ''), brl(liquido / cotas)],
+      ].map(([a, b]) => `<div class="stat res"><span class="stat-l">${a}</span><span class="stat-v">${b}</span></div>`).join('');
+      $(f, '.nota').textContent = `Cada jogo de ${n} números equivale a ${int(custo(l, n) / l.preco)} apostas simples. A chance do grupo considera ${jogos} jogo(s) diferentes. Se houver outros ganhadores, o prêmio é dividido entre todos.`;
+    };
+    f.addEventListener('input', (e) => { if ((e.target as HTMLElement).getAttribute('name') === 'loteria') fillN(); calc(); });
+    fillN(); calc();
+  });
+</script>

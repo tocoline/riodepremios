@@ -1,0 +1,21 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import { GUIAS } from '../../lib/guias';
+import { LOTERIAS } from '../../lib/loterias';
+---
+<Base title="Guias de loterias: regras, chances, bolão e prêmios" description="Guias completos sobre as loterias da Caixa: como jogar, chances de ganhar, bolão, imposto de renda e como resgatar prêmios.">
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: 'Guias' }]} />
+    <h1>Guias</h1>
+    <p class="lead">Explicações diretas, com dados verificáveis, para você entender cada detalhe das loterias.</p>
+  </div>
+  <section class="wrap grid g2">
+    {GUIAS.map((g) => <a class="card card-link gd" href={`/guias/${g.slug}/`}><h2>{g.titulo}</h2><p class="muted small">{g.desc}</p></a>)}
+  </section>
+  <section class="wrap section-sm">
+    <h2>Como jogar em cada loteria</h2>
+    <div class="grid g4">{LOTERIAS.map((l) => <a class="card card-link" href={`/${l.slug}/como-jogar/`} style={`--c:${l.cor}`}><span class="dot"></span> <strong>{l.nome}</strong></a>)}</div>
+  </section>
+</Base>
+<style> .gd h2 { font-size: 1.25rem; } .gd p { margin: 0; } </style>

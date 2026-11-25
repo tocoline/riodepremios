@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import TabelasLoteria from '../../components/TabelasLoteria.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Autor from '../../components/Autor.astro';
+import { LOTERIAS, diasTexto, type Loteria } from '../../lib/loterias';
+import { comoJogar, faqLoteria, chancePrincipal } from '../../lib/conteudo';
+import { reais, numero } from '../../lib/format';
+
+export function getStaticPaths() { return LOTERIAS.map((l) => ({ params: { loteria: l.slug }, props: { l } })); }
+const { l } = Astro.props as { l: Loteria };
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'HowTo', name: `Como jogar na ${l.nome}`,
+  estimatedCost: { '@type': 'MonetaryAmount', currency: 'BRL', value: l.preco },
+  step: comoJogar(l).map((t, i) => ({ '@type': 'HowToStep', position: i + 1, text: t })),
+}];
+---
+<Base title={`Como jogar na ${l.nome}: regras, preços e chances`} description={`Guia completo da ${l.nome}: como apostar, quanto custa, dias de sorteio, faixas de prêmio e a probabilidade exata de ganhar.`} schema={schema} type="article">
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Como jogar' }]} />
+    <h1>Como jogar na {l.nome}</h1>
+    <p class="lead">{l.resumo}</p>
+    <Autor />
+  </div>
+  <section class="wrap">
+    <Resposta>
+      <p>Na {l.nome}, a aposta mínima custa <strong>{reais(l.preco)}</strong> e os sorteios acontecem às <strong>{diasTexto(l)}, às 20h</strong>. A chance de ganhar a faixa principal com a aposta mínima é de <strong>1 em {numero(chancePrincipal(l))}</strong>.</p>
+    </Resposta>
+    <div class="prose" style="max-width:820px;margin-top:28px">
+      <h2>Passo a passo</h2>
+      <ol>{comoJogar(l).map((p) => <li>{p}</li>)}</ol>
+      <h2>Onde apostar</h2>
+      <p>As apostas podem ser feitas nas casas lotéricas, no aplicativo <strong>Loterias Caixa</strong>, no portal Loterias Online da Caixa e pelo internet banking de bancos credenciados. Apostas pela internet exigem maioridade e cadastro.</p>
+      <h2>Dicas importantes</h2>
+      <ul>{l.dicas.map((d) => <li>{d}</li>)}<li>Guarde o comprovante: ele é o único documento que garante o prêmio. O prazo para resgate é de 90 dias após o sorteio.</li></ul>
+    </div>
+    <Ad />
+    <h2>Prêmios e probabilidades</h2>
+    <TabelasLoteria l={l} />
+  </section>
+  <section class="section-sm"><div class="narrow"><Faq itens={faqLoteria(l)} /></div></section>
+</Base>

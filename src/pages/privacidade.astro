@@ -1,0 +1,16 @@
+---
+import Pagina from '../layouts/Pagina.astro';
+import { SITE } from '../lib/site';
+---
+<Pagina nome="Política de privacidade" titulo="Política de privacidade" desc="Como o Rio de Prêmios trata dados pessoais, cookies e publicidade, conforme a LGPD.">
+  <p>Esta política explica como o Rio de Prêmios ({SITE.url}) trata informações dos visitantes, em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+  <h2>Dados que coletamos</h2>
+  <p>Não exigimos cadastro. As ferramentas (conferidor, gerador, calculadoras) funcionam no seu navegador e os números digitados não são armazenados em nossos servidores. Registramos dados técnicos anônimos de acesso (como páginas visitadas e tipo de navegador) para segurança e estatísticas.</p>
+  <h2>Cookies e publicidade</h2>
+  <p>Utilizamos o <strong>Google AdSense</strong> para exibir anúncios. O Google e seus parceiros podem usar cookies para exibir anúncios com base em visitas anteriores a este e a outros sites. Você pode desativar a publicidade personalizada nas <a href="https://adssettings.google.com" rel="nofollow noopener" target="_blank">Configurações de anúncios do Google</a>. Saiba mais em <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener" target="_blank">como o Google usa dados</a>.</p>
+  <p>Também guardamos no seu navegador a preferência de tema (claro/escuro).</p>
+  <h2>Seus direitos</h2>
+  <p>Você pode solicitar informações, correção ou exclusão de dados pessoais pelo e-mail <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+  <h2>Alterações</h2>
+  <p>Esta política pode ser atualizada; a data da última revisão aparece no topo da página.</p>
+</Pagina>

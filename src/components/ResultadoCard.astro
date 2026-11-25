@@ -1,0 +1,53 @@
+---
+import Bolas from './Bolas.astro';
+import type { Loteria } from '../lib/loterias';
+import type { Concurso } from '../lib/db';
+import { dataBR, reaisCurto } from '../lib/format';
+interface Props { l: Loteria; c?: Concurso | null; destaque?: boolean; link?: boolean }
+const { l, c, destaque = false, link = true } = Astro.props;
+const digitos = l.tipo === 'colunas' ? 1 : 2;
+---
+<article class:list={['rc card', destaque && 'rc-big']} style={`--c:${l.cor};--c2:${l.cor2}`}>
+  <div class="rc-top">
+    <div>
+      <p class="rc-nome"><span class="dot"></span>{l.nome}</p>
+      {c ? <p class="rc-meta">Concurso <strong>{c.numero}</strong> · {dataBR(c.data)}</p> : <p class="rc-meta">Aguardando primeira sincronização</p>}
+    </div>
+    {c && (c.acumulado ? <span class="pill hot">Acumulou!</span> : <span class="pill ok">Teve ganhador</span>)}
+  </div>
+
+  {c ? (
+    <>
+      <Bolas dezenas={c.dezenas} cor={l.cor} tam={destaque ? 'lg' : ''} digitos={digitos} />
+      {c.dezenas2 && (<><p class="rc-sub">2º sorteio</p><Bolas dezenas={c.dezenas2} cor={l.cor2} tam={destaque ? 'lg' : ''} /></>)}
+      {c.extra?.trevos && (<><p class="rc-sub">Trevos</p><Bolas dezenas={c.extra.trevos} cor="#d9a521" digitos={1} /></>)}
+      {c.extra?.time && <p class="rc-extra">⚽ Time do Coração: <strong>{c.extra.time}</strong></p>}
+      {c.extra?.mes && <p class="rc-extra">📅 Mês da Sorte: <strong>{c.extra.mes}</strong></p>}
+      {c.proximo_estimativa ? (
+        <div class="rc-prox">
+          <span class="faint small">Próximo concurso{c.proximo_data && ` · ${dataBR(c.proximo_data)}`}</span>
+          <span class="rc-valor">{reaisCurto(c.proximo_estimativa)}</span>
+        </div>
+      ) : null}
+    </>
+  ) : (
+    <div class="balls">{Array.from({ length: Math.min(l.sorteadas, 7) }).map(() => <span class="ball ghost">··</span>)}</div>
+  )}
+  {link && <a class="rc-link" href={c ? `/${l.slug}/concurso/${c.numero}/` : `/${l.slug}/`}>Ver resultado completo <span aria-hidden="true">→</span></a>}
+</article>
+<style>
+  .rc { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  .rc::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--c), var(--c2)); }
+  .rc::after { content: ''; position: absolute; width: 220px; height: 220px; right: -90px; top: -110px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%); pointer-events: none; }
+  .rc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .rc-nome { font: 700 1.1rem var(--display); display: flex; align-items: center; gap: 10px; margin: 0 0 2px; }
+  .rc-big .rc-nome { font-size: 1.5rem; }
+  .rc-meta { margin: 0; font-size: .85rem; color: var(--muted); }
+  .rc-sub { margin: 2px 0 -4px; font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); font-weight: 700; }
+  .rc-extra { margin: 0; font-size: .92rem; color: var(--muted); }
+  .rc-prox { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--line); }
+  .rc-valor { font: 700 1.25rem var(--display); color: var(--gold); letter-spacing: -.02em; }
+  .rc-link { margin-top: auto; font-weight: 600; font-size: .9rem; text-decoration: none; color: var(--c); filter: brightness(1.25); }
+  :global(:root[data-theme="light"]) .rc-link { filter: none; }
+  .rc-link::after { content: ''; position: absolute; inset: 0; }
+</style>

@@ -1,0 +1,34 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import StatsView from '../../components/StatsView.astro';
+import Resposta from '../../components/Resposta.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG } from '../../lib/loterias';
+import { getDB, historicoDezenas } from '../../lib/db';
+import { calcular } from '../../lib/estatisticas';
+import { pad } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
+cachear(Astro, 1800);
+const s = calcular(l, await historicoDezenas(getDB(Astro.locals), l));
+---
+<Base title={`Estatísticas da ${l.nome}: dezenas mais sorteadas e atrasadas`} description={`Estatísticas completas da ${l.nome}: dezenas que mais saem, mais atrasadas, mapa de frequência e combinações de pares e ímpares, atualizadas a cada concurso.`}>
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas' }]} />
+    <h1>Estatísticas da {l.nome}</h1>
+    <p class="lead">Frequência de todas as dezenas{s.total ? `, com base em ${s.total.toLocaleString('pt-BR')} concursos` : ''}. Atualizado automaticamente a cada sorteio.</p>
+  </div>
+  <section class="wrap">
+    {s.total > 0 && (
+      <Resposta>
+        <p>Os números que mais saíram na {l.nome} são <strong>{s.mais.slice(0, 6).map((x) => pad(x.dezena)).join(', ')}</strong>. A dezena mais atrasada é a <strong>{pad(s.atrasadas[0].dezena)}</strong>, que não sai há {s.atrasadas[0].atraso} concursos.</p>
+      </Resposta>
+    )}
+    <div style="margin-top:22px"><StatsView l={l} s={s} /></div>
+    <Ad />
+  </section>
+</Base>

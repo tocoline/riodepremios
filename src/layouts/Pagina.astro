@@ -1,0 +1,14 @@
+---
+import Base from './Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+interface Props { titulo: string; desc: string; nome: string; schema?: object[]; atualizado?: string }
+const { titulo, desc, nome, schema = [], atualizado = '25 de novembro de 2026' } = Astro.props;
+---
+<Base title={titulo} description={desc} schema={schema}>
+  <div class="narrow phero">
+    <Crumbs itens={[{ nome }]} />
+    <h1>{nome}</h1>
+    <p class="small faint">Última atualização: {atualizado}</p>
+  </div>
+  <article class="narrow prose"><slot /></article>
+</Base>

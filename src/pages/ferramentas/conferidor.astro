@@ -1,0 +1,10 @@
+---
+import Ferramenta from '../../layouts/Ferramenta.astro';
+import Conferidor from '../../components/tools/Conferidor.astro';
+---
+<Ferramenta nome="Conferidor" titulo="Conferidor de apostas: confira seus jogos de todas as loterias" h1="Conferidor de apostas"
+  desc="Digite seus jogos e confira na hora contra o último resultado ou qualquer concurso anterior — Mega-Sena, Lotofácil, Quina e todas as outras."
+  resposta="Escolha a loteria, deixe o concurso em branco para usar o último sorteio e digite um jogo por linha. Os acertos ficam destacados em dourado e o conferidor indica se a aposta foi premiada."
+  faq={[{ q: 'O conferidor substitui a conferência oficial?', a: 'Não. É uma ferramenta informativa. Para resgatar prêmios, valide o bilhete em uma lotérica ou no app Loterias Caixa.' }, { q: 'Posso conferir concursos antigos?', a: 'Sim. Digite o número do concurso no campo correspondente.' }]}>
+  <Conferidor />
+</Ferramenta>

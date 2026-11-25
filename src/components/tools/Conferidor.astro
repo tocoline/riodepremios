@@ -1,0 +1,70 @@
+---
+import SelLoteria from './SelLoteria.astro';
+interface Props { fixa?: string }
+const { fixa } = Astro.props;
+---
+<form class="tool-ui card conferidor" onsubmit="return false">
+  <div class="row">
+    <SelLoteria fixa={fixa} />
+    <div class="field"><label>Concurso (vazio = último)</label><input name="concurso" type="number" min="1" placeholder="Último" inputmode="numeric" /></div>
+  </div>
+  <div class="field">
+    <label>Seus jogos — um por linha</label>
+    <textarea name="jogos" rows="4" placeholder="05 12 23 34 45 56&#10;01 02 03 04 05 06"></textarea>
+    <span class="small faint dica">Separe os números por espaço, vírgula ou traço. Na +Milionária, escreva os trevos depois de uma barra: <code>1 2 3 4 5 6 | 2 5</code></span>
+  </div>
+  <button class="btn btn-primary" type="button" data-conf>Conferir agora</button>
+  <div class="saida" aria-live="polite"></div>
+</form>
+<script>
+  import { POR_SLUG } from '../../lib/loterias';
+  import { $, bolas, p2 } from '../../lib/ui';
+  const parse = (s: string) => s.split(/[^0-9]+/).filter(Boolean).map(Number);
+  document.querySelectorAll<HTMLFormElement>('.conferidor').forEach((f) => {
+    const q = new URLSearchParams(location.search);
+    const selEl = f.elements.namedItem('loteria') as HTMLSelectElement;
+    if (q.get('loteria') && selEl.tagName === 'SELECT') selEl.value = q.get('loteria')!;
+    if (q.get('concurso')) (f.elements.namedItem('concurso') as HTMLInputElement).value = q.get('concurso')!;
+    $(f, '[data-conf]').addEventListener('click', async () => {
+      const l = POR_SLUG[selEl.value];
+      const ref = (f.elements.namedItem('concurso') as HTMLInputElement).value || 'ultimo';
+      const out = $(f, '.saida');
+      out.innerHTML = '<p class="muted">Buscando resultado…</p>';
+      let c: any;
+      try { const r = await fetch(`/api/resultado.json?loteria=${l.slug}&concurso=${ref}`); if (!r.ok) throw 0; c = await r.json(); }
+      catch { out.innerHTML = '<p class="muted">Não encontramos esse concurso. Confira o número e tente de novo.</p>'; return; }
+      const linhas = (f.elements.namedItem('jogos') as HTMLTextAreaElement).value.split('\n').map((x) => x.trim()).filter(Boolean);
+      const dig = l.tipo === 'colunas' ? 1 : 2;
+      let html = `<div class="conf-res"><p><strong>${l.nome} — concurso ${c.numero}</strong> (${c.data.split('-').reverse().join('/')})</p>${bolas(c.dezenas, l.cor, [], dig, 'sm')}`;
+      if (c.dezenas2) html += `<p class="small faint">2º sorteio</p>${bolas(c.dezenas2, l.cor2, [], 2, 'sm')}`;
+      if (c.extra?.trevos) html += `<p class="small faint">Trevos: ${c.extra.trevos.join(' e ')}</p>`;
+      html += '</div>';
+      if (!linhas.length) { out.innerHTML = html + '<p class="muted">Digite pelo menos um jogo para conferir.</p>'; return; }
+      const faixasNum = l.faixas.map((x) => x.acertos);
+      linhas.forEach((ln, i) => {
+        const [a, b] = ln.split('|');
+        const jogo = parse(a);
+        let hits: number[] = [], txt = '';
+        if (l.tipo === 'colunas') {
+          const n = jogo.filter((d, idx) => d === c.dezenas[idx]).length;
+          hits = []; txt = `${n} coluna(s) certa(s)`;
+          txt += faixasNum.includes(n) ? ' — <strong class="win">premiado!</strong>' : '';
+        } else {
+          hits = jogo.filter((d) => c.dezenas.includes(d));
+          txt = `${hits.length} acerto(s)`;
+          let premiado = faixasNum.includes(hits.length);
+          if (c.dezenas2) { const h2 = jogo.filter((d) => c.dezenas2.includes(d)).length; txt += ` no 1º sorteio · ${h2} no 2º`; premiado = premiado || faixasNum.includes(h2); }
+          if (l.tipo === 'trevos') {
+            const tv = parse(b ?? '').filter((t) => c.extra?.trevos?.includes(t)).length; txt += ` + ${tv} trevo(s)`;
+            premiado = l.faixas.some((fx) => fx.acertos === hits.length && (fx.trevos === 2 ? tv === 2 : fx.acertos >= 4 ? tv <= 1 : tv === 1));
+          }
+          if (premiado) txt += ' — <strong class="win">premiado! 🎉</strong>';
+        }
+        html += `<div class="jogo"><span class="jn">Jogo ${i + 1}</span>${bolas(jogo, l.cor, hits, dig, 'sm')}<span class="small">${txt}</span></div>`;
+      });
+      html += '<p class="small faint">Conferência informativa. Para resgatar prêmios, valide o bilhete em uma lotérica ou no app oficial da Caixa.</p>';
+      out.innerHTML = html;
+      void p2;
+    });
+  });
+</script>

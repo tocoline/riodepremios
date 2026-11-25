@@ -1,0 +1,54 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Bolas from '../../../components/Bolas.astro';
+import Ad from '../../../components/Ad.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { getDB, lista } from '../../../lib/db';
+import { dataBR, reaisCurto } from '../../../lib/format';
+import { cachear, naoEncontrado } from '../../../lib/cache';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l) return naoEncontrado(Astro);
+cachear(Astro);
+const pagina = Math.max(1, Number(Astro.url.searchParams.get('pagina')) || 1);
+const POR = 30;
+const { itens, total } = await lista(getDB(Astro.locals), l, pagina, POR);
+const paginas = Math.max(1, Math.ceil(total / POR));
+const sufixo = pagina > 1 ? ` — página ${pagina}` : '';
+---
+<Base title={`Todos os resultados da ${l.nome}${sufixo}`} description={`Histórico completo de resultados da ${l.nome}: todos os concursos com dezenas sorteadas, datas e prêmios.`} noindex={pagina > 1}>
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Todos os resultados' }]} />
+    <h1>Todos os resultados da {l.nome}</h1>
+    <p class="lead">{total ? `${total.toLocaleString('pt-BR')} concursos no nosso banco de dados, do mais recente ao mais antigo.` : 'O histórico está sendo sincronizado automaticamente.'}</p>
+  </div>
+  <section class="wrap">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concurso</th><th>Data</th><th>Dezenas</th><th>Situação</th><th class="num">Prêmio principal</th></tr></thead>
+        <tbody>
+          {itens.map((c) => (
+            <tr>
+              <td><a href={`/${l.slug}/concurso/${c.numero}/`}><strong>{c.numero}</strong></a></td>
+              <td>{dataBR(c.data)}</td>
+              <td><Bolas dezenas={c.dezenas} cor={l.cor} tam="sm" digitos={l.tipo === 'colunas' ? 1 : 2} /></td>
+              <td>{c.acumulado ? <span class="pill hot">Acumulou</span> : <span class="pill ok">Ganhador</span>}</td>
+              <td class="num">{c.premiacoes[0]?.ganhadores ? reaisCurto(c.premiacoes[0].premio) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {paginas > 1 && (
+      <nav class="pg" aria-label="Paginação">
+        {pagina > 1 && <a class="btn btn-sm" href={`?pagina=${pagina - 1}`} rel="prev">← Mais recentes</a>}
+        <span class="small faint">Página {pagina} de {paginas}</span>
+        {pagina < paginas && <a class="btn btn-sm" href={`?pagina=${pagina + 1}`} rel="next">Mais antigos →</a>}
+      </nav>
+    )}
+    <Ad />
+  </section>
+</Base>
+<style> .pg { display: flex; gap: 12px; justify-content: center; align-items: center; margin: 22px 0; } td .balls { flex-wrap: nowrap; } </style>

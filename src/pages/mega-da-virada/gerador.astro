@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Gerador from '../../components/tools/Gerador.astro';
+import Ad from '../../components/Ad.astro';
+---
+<Base title="Gerador de números para a Mega da Virada" description="Gere jogos aleatórios para a Mega da Virada com filtros: números fixos, exclusões, equilíbrio entre pares e ímpares e sem sequências.">
+  <ViradaHero titulo="Gerador de jogos da Mega da Virada" crumb="Gerador" sub="Jogos 100% aleatórios, com filtros que evitam as combinações mais populares — aquelas que dividem o prêmio." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <Gerador fixa="mega-sena" jogosPadrao={6} />
+    <Ad />
+    <div class="prose">
+      <h2>Por que usar números aleatórios?</h2>
+      <p>Todas as combinações têm a mesma chance de sair. Mas pessoas tendem a escolher datas (números até 31), sequências e padrões no volante. Quando uma combinação popular é sorteada, o prêmio é dividido entre muitos ganhadores. Jogos aleatórios, com bom espalhamento entre 1 e 60, reduzem esse risco.</p>
+    </div>
+  </section>
+</Base>

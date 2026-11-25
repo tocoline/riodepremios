@@ -1,0 +1,117 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Bolas from '../../../components/Bolas.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Ad from '../../../components/Ad.astro';
+import Autor from '../../../components/Autor.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { getDB, concurso, vizinhos } from '../../../lib/db';
+import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
+import { cachear, naoEncontrado } from '../../../lib/cache';
+import { SITE } from '../../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+const n = Number(Astro.params.numero);
+if (!l || !Number.isInteger(n) || n < 1) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const c = await concurso(db, l, n);
+if (!c) { Astro.response.status = 404; }
+const viz = c ? await vizinhos(db, l, n) : { anterior: null, proximo: null };
+// concursos antigos mudam pouco: cache mais longo no CDN
+cachear(Astro, c && Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300);
+const dig = l.tipo === 'colunas' ? 1 : 2;
+const dz = c?.dezenas.map((d) => pad(d, dig)).join(' - ') ?? '';
+const titulo = c ? `Resultado ${l.nome} ${c.numero} — ${dataBR(c.data)}${c.especial ? ' (Mega da Virada)' : ''}` : `${l.nome} concurso ${n}`;
+const desc = c ? `${l.nome} concurso ${c.numero} de ${dataBR(c.data)}: ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação completa, ganhadores por cidade e próximo concurso.` : `Resultado da ${l.nome} concurso ${n}.`;
+const totalGanhadores = c?.premiacoes.reduce((a, p) => a + p.ganhadores, 0) ?? 0;
+const totalPago = c?.premiacoes.reduce((a, p) => a + p.ganhadores * p.premio, 0) ?? 0;
+const schema = c ? [{
+  '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR',
+  url: `${SITE.url}/${l.slug}/concurso/${c.numero}/`, datePublished: c.data, dateModified: c.atualizado_em,
+  isPartOf: { '@id': `${SITE.url}/#site` },
+}] : [];
+---
+<Base title={titulo} description={desc} schema={schema} noindex={!c} modificado={c?.atualizado_em}>
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, { nome: `Concurso ${n}` }]} />
+    {c?.especial && <span class="pill hot">✦ Concurso especial</span>}
+    <h1>{l.nome} — concurso {n}</h1>
+    {c && <p class="lead">Sorteio realizado em {dataBR(c.data, true)}{c.local ? `, em ${c.local}` : ''}.</p>}
+    {c && <Autor atualizado={c.atualizado_em} />}
+  </div>
+
+  {!c ? (
+    <section class="wrap"><div class="card"><h2>Concurso ainda não disponível</h2><p class="muted">Este concurso ainda não foi sorteado ou está sendo sincronizado. Veja o <a href={`/${l.slug}/`}>último resultado da {l.nome}</a>.</p></div></section>
+  ) : (
+    <>
+      <section class="wrap cgrid">
+        <div class="card big" style={`--c:${l.cor}`}>
+          <p class="lbl">Dezenas sorteadas</p>
+          <Bolas dezenas={c.dezenas} cor={l.cor} tam="lg" digitos={dig} />
+          {c.dezenas2 && (<><p class="lbl">2º sorteio</p><Bolas dezenas={c.dezenas2} cor={l.cor2} tam="lg" /></>)}
+          {c.extra?.trevos && (<><p class="lbl">Trevos</p><Bolas dezenas={c.extra.trevos} cor="#d9a521" digitos={1} tam="lg" /></>)}
+          {c.extra?.time && <p class="ext">⚽ Time do Coração: <strong>{c.extra.time}</strong></p>}
+          {c.extra?.mes && <p class="ext">📅 Mês da Sorte: <strong>{c.extra.mes}</strong></p>}
+          {c.dezenas_ordem && l.tipo !== 'colunas' && <p class="small faint">Ordem do sorteio: {c.dezenas_ordem.map((d) => pad(d, dig)).join(' · ')}</p>}
+          <div class="acts">
+            <a class="btn btn-primary btn-sm" href={`/ferramentas/conferidor/?loteria=${l.slug}&concurso=${c.numero}`}>Conferir minha aposta</a>
+            {c.acumulado ? <span class="pill hot">Acumulou!</span> : <span class="pill ok">Teve ganhador na faixa principal</span>}
+          </div>
+        </div>
+        <div class="side">
+          <Resposta>
+            <p>O resultado da <strong>{l.nome} {c.numero}</strong> ({dataBR(c.data)}) foi <strong>{dz}</strong>{c.dezenas2 ? ` no 1º sorteio e ${c.dezenas2.map((d) => pad(d)).join(' - ')} no 2º sorteio` : ''}.
+            {c.acumulado ? ' Ninguém acertou a faixa principal.' : ` ${c.premiacoes[0]?.ganhadores ?? ''} aposta(s) acertaram a faixa principal${c.premiacoes[0]?.premio ? `, levando ${reais(c.premiacoes[0].premio)} cada` : ''}.`}</p>
+          </Resposta>
+          <div class="card stats">
+            <div class="stat"><span class="stat-v">{numero(totalGanhadores)}</span><span class="stat-l">apostas premiadas</span></div>
+            <div class="stat"><span class="stat-v">{reaisCurto(totalPago)}</span><span class="stat-l">total em prêmios</span></div>
+            {c.arrecadacao ? <div class="stat"><span class="stat-v">{reaisCurto(c.arrecadacao)}</span><span class="stat-l">arrecadação</span></div> : null}
+            {c.proximo_estimativa ? <div class="stat"><span class="stat-v" style="color:var(--gold)">{reaisCurto(c.proximo_estimativa)}</span><span class="stat-l">estimativa do concurso {c.proximo_numero}{c.proximo_data && ` (${dataBR(c.proximo_data)})`}</span></div> : null}
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap section-sm">
+        <h2>Premiação</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Faixa</th><th class="num">Ganhadores</th><th class="num">Prêmio por ganhador</th></tr></thead>
+            <tbody>{c.premiacoes.map((p) => <tr><td>{p.descricao}</td><td class="num">{numero(p.ganhadores)}</td><td class="num">{p.ganhadores ? reais(p.premio) : '—'}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+
+      {c.cidades_ganhadoras && (
+        <section class="wrap section-sm">
+          <h2>Onde saíram os prêmios principais</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Cidade</th><th>UF</th><th class="num">Ganhadores</th></tr></thead>
+            <tbody>{c.cidades_ganhadoras.map((g) => <tr><td>{g.cidade || 'Canal eletrônico'}</td><td>{g.uf}</td><td class="num">{g.ganhadores}</td></tr>)}</tbody>
+          </table></div>
+        </section>
+      )}
+
+      <div class="wrap"><Ad /></div>
+    </>
+  )}
+
+  <nav class="wrap pager" aria-label="Concursos vizinhos">
+    {viz.anterior ? <a class="btn" href={`/${l.slug}/concurso/${viz.anterior}/`} rel="prev">← Concurso {viz.anterior}</a> : <span></span>}
+    <a class="btn" href={`/${l.slug}/`}>Último resultado</a>
+    {viz.proximo ? <a class="btn" href={`/${l.slug}/concurso/${viz.proximo}/`} rel="next">Concurso {viz.proximo} →</a> : <span></span>}
+  </nav>
+</Base>
+<style>
+  .cgrid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; align-items: start; }
+  .big { display: flex; flex-direction: column; gap: 14px; border-top: 3px solid var(--c); }
+  .lbl { margin: 0; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); font-weight: 700; }
+  .ext { margin: 0; color: var(--muted); }
+  .acts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .side { display: grid; gap: 16px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pager { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+  @media (max-width: 900px) { .cgrid { grid-template-columns: 1fr; } }
+</style>

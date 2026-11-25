@@ -1,0 +1,9 @@
+---
+import Ferramenta from '../../layouts/Ferramenta.astro';
+import CalcProb from '../../components/tools/CalcProb.astro';
+---
+<Ferramenta nome="Probabilidades" titulo="Calculadora de probabilidades das loterias" h1="Calculadora de probabilidades"
+  desc="Veja a chance exata de ganhar em cada faixa de prêmio de qualquer loteria, para qualquer quantidade de números marcados."
+  resposta="A probabilidade é calculada pela fórmula hipergeométrica: combinações favoráveis divididas pelo total de combinações possíveis. Exemplo: na Mega-Sena há 50.063.860 combinações de 6 números, então uma aposta simples tem 1 chance em 50.063.860 de acertar a sena.">
+  <CalcProb />
+</Ferramenta>

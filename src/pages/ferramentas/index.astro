@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+const t = [
+  ['/ferramentas/conferidor/', '✓', 'Conferidor de apostas', 'Confira vários jogos de uma vez contra qualquer concurso de qualquer loteria.'],
+  ['/ferramentas/gerador-de-numeros/', '🎲', 'Gerador de números', 'Jogos aleatórios com números fixos, exclusões e filtros de equilíbrio.'],
+  ['/ferramentas/calculadora-de-probabilidades/', '%', 'Calculadora de probabilidades', 'A chance exata em todas as faixas, para qualquer quantidade de números.'],
+  ['/ferramentas/calculadora-de-bolao/', '👥', 'Calculadora de bolão', 'Custo total, valor da cota, chance do grupo e prêmio por participante.'],
+  ['/ferramentas/premio-liquido/', 'R$', 'Calculadora de prêmio líquido', 'Desconto do Imposto de Renda e rendimento mensal do prêmio.'],
+  ['/mega-da-virada/simulador/', '🎰', 'Simulador da Mega', 'Simule até 500 mil sorteios e veja a probabilidade na prática.'],
+];
+---
+<Base title="Ferramentas para loterias: conferidor, gerador e calculadoras" description="Ferramentas gratuitas para loterias: conferidor de apostas, gerador de números, calculadora de probabilidades, de bolão e de prêmio líquido.">
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: 'Ferramentas' }]} />
+    <h1>Ferramentas gratuitas</h1>
+    <p class="lead">Calculadoras precisas e utilitários para apostar com informação — sem cadastro, direto no navegador.</p>
+  </div>
+  <section class="wrap grid g3">
+    {t.map(([h, i, n, d]) => <a class="card card-link ft" href={h}><span class="ft-i" aria-hidden="true">{i}</span><h2>{n}</h2><p class="muted small">{d}</p></a>)}
+  </section>
+</Base>
+<style>
+  .ft h2 { font-size: 1.2rem; margin: 14px 0 6px; }
+  .ft p { margin: 0; }
+  .ft-i { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+</style>

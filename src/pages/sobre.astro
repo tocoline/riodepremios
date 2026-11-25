@@ -1,0 +1,23 @@
+---
+import Pagina from '../layouts/Pagina.astro';
+import { SITE } from '../lib/site';
+const schema = [{ '@context': 'https://schema.org', '@type': 'AboutPage', name: 'Sobre o Rio de Prêmios', mainEntity: { '@id': `${SITE.url}/#org` } }];
+---
+<Pagina nome="Sobre o Rio de Prêmios" titulo="Sobre nós" desc="Conheça o Rio de Prêmios: quem somos, como trabalhamos e nosso compromisso com dados oficiais e jogo responsável." schema={schema}>
+  <p class="lead">O Rio de Prêmios nasceu para ser o jeito mais rápido, claro e confiável de acompanhar as loterias brasileiras.</p>
+  <h2>O que fazemos</h2>
+  <p>Publicamos automaticamente os resultados de todas as modalidades da Caixa minutos depois de cada sorteio, mantemos o histórico completo de concursos e transformamos esses dados em estatísticas, calculadoras e guias fáceis de entender.</p>
+  <h2>Nossos princípios</h2>
+  <ul>
+    <li><strong>Dados oficiais, sem edição manual.</strong> Os resultados vêm da API pública da Caixa e são exibidos como foram publicados. Veja a <a href="/metodologia/">metodologia</a>.</li>
+    <li><strong>Matemática honesta.</strong> Probabilidades calculadas por análise combinatória exata. Não vendemos palpites nem prometemos "jogos certeiros".</li>
+    <li><strong>Independência.</strong> Não temos vínculo com a Caixa Econômica Federal e não vendemos apostas.</li>
+    <li><strong>Jogo responsável.</strong> Loteria é entretenimento. Mantemos um <a href="/jogo-responsavel/">guia de jogo responsável</a> e não direcionamos conteúdo a menores de 18 anos.</li>
+  </ul>
+  <h2 id="equipe">Equipe editorial</h2>
+  <p><strong>{SITE.editor.nome}</strong> — {SITE.editor.cargo}. {SITE.editor.bio}</p>
+  <h2>Como somos financiados</h2>
+  <p>O site é gratuito e mantido por publicidade (Google AdSense). Anunciantes não influenciam o conteúdo editorial, os resultados ou as estatísticas.</p>
+  <h2>Fale conosco</h2>
+  <p>Encontrou um erro? Escreva para <a href={`mailto:${SITE.email}`}>{SITE.email}</a> — corrigimos o mais rápido possível.</p>
+</Pagina>

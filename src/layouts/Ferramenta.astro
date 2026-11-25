@@ -1,0 +1,24 @@
+---
+import Base from './Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import Resposta from '../components/Resposta.astro';
+import Ad from '../components/Ad.astro';
+import Faq from '../components/Faq.astro';
+interface Props { titulo: string; h1: string; desc: string; nome: string; resposta: string; faq?: { q: string; a: string }[] }
+const { titulo, h1, desc, nome, resposta, faq = [] } = Astro.props;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebApplication', name: h1, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Qualquer navegador', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, inLanguage: 'pt-BR' }];
+---
+<Base title={titulo} description={desc} schema={schema}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: 'Ferramentas', url: '/ferramentas/' }, { nome }]} />
+    <h1>{h1}</h1>
+    <p class="lead">{desc}</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p set:html={resposta} /></Resposta>
+    <div style="margin-top:20px"><slot /></div>
+    <Ad />
+    <slot name="depois" />
+    {faq.length > 0 && <Faq itens={faq} />}
+  </section>
+</Base>

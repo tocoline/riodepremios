@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Simulador from '../../components/tools/Simulador.astro';
+import Resposta from '../../components/Resposta.astro';
+import Ad from '../../components/Ad.astro';
+---
+<Base title="Simulador de chances da Mega da Virada" description="Descubra sua chance real de ganhar a Mega da Virada para apostas de 6 a 20 números e simule até 500 mil sorteios para ver a probabilidade na prática.">
+  <ViradaHero titulo="Simulador de chances da Mega da Virada" crumb="Simulador" sub="Quanto mais números, maior a chance — e o preço. Veja exatamente quanto, e sinta a probabilidade simulando milhares de sorteios." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Com 6 números a chance da sena é de 1 em 50.063.860. Cada número extra multiplica a chance e o preço na mesma proporção: com 7 números são 7 combinações (1 em 7.151.980, por R$ 42,00); com 10 números, 210 combinações (1 em 238.399, por R$ 1.260,00).</p></Resposta>
+    <div style="margin-top:20px"><Simulador /></div>
+    <Ad />
+  </section>
+</Base>

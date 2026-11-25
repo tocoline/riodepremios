@@ -1,0 +1,50 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Autor from '../../components/Autor.astro';
+const passos = [
+  ['Escolha onde apostar', 'Lotéricas, app Loterias Caixa, portal Loterias Online ou internet banking de bancos credenciados. Apostas online exigem cadastro e ser maior de 18 anos.'],
+  ['Marque de 6 a 20 números', 'Entre 1 e 60. Ou use a Surpresinha para o sistema escolher por você.'],
+  ['Confira o valor', 'A aposta simples custa R$ 6,00. Com mais números, o preço cresce pelas combinações: 7 números = R$ 42,00; 8 = R$ 168,00; 9 = R$ 504,00.'],
+  ['Pague e guarde o comprovante', 'O bilhete (ou o comprovante digital) é o único documento que garante o prêmio. Fotografe e guarde em local seguro.'],
+  ['Acompanhe o sorteio', 'Dia 31/12, às 20h. O resultado aparece aqui automaticamente minutos depois — use o conferidor para checar seus jogos.'],
+];
+const schema = [{ '@context': 'https://schema.org', '@type': 'HowTo', name: 'Como apostar na Mega da Virada', estimatedCost: { '@type': 'MonetaryAmount', currency: 'BRL', value: 6 }, step: passos.map(([n, t], i) => ({ '@type': 'HowToStep', position: i + 1, name: n, text: t })) }];
+---
+<Base title="Como apostar na Mega da Virada: passo a passo" description="Passo a passo para apostar na Mega da Virada: onde jogar, quantos números marcar, preços, bolão e como guardar o comprovante." schema={schema} type="article">
+  <ViradaHero titulo="Como apostar na Mega da Virada" crumb="Como apostar" sub="Do volante ao comprovante, tudo o que você precisa saber para fazer sua aposta com segurança." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:900px">
+    <Resposta><p>Para apostar na Mega da Virada, escolha de 6 a 20 números entre 1 e 60 em uma lotérica, no app Loterias Caixa ou no internet banking. A aposta simples custa R$ 6,00. Guarde o comprovante: ele é obrigatório para receber o prêmio.</p></Resposta>
+    <Autor />
+    <ol class="steps">
+      {passos.map(([n, t], i) => <li class="card"><span class="sn">{i + 1}</span><div><h3>{n}</h3><p class="muted">{t}</p></div></li>)}
+    </ol>
+    <Ad />
+    <div class="prose">
+      <h2>Vale mais a pena jogar sozinho ou no bolão?</h2>
+      <p>Depende do orçamento. Sozinho, todo o prêmio é seu, mas apostas com muitos números ficam caras. No bolão, o grupo divide o custo de jogos maiores e a chance coletiva aumenta — em troca, o prêmio é dividido. Simule na <a href="/mega-da-virada/calculadora-de-bolao/">calculadora de bolão</a>.</p>
+      <h2>Cuidados com golpes</h2>
+      <ul>
+        <li>Aposte apenas em canais oficiais da Caixa ou em lotéricas credenciadas.</li>
+        <li>Desconfie de sites e perfis que vendem "jogos premiados", "números garantidos" ou cobram para "liberar prêmios".</li>
+        <li>Em bolões informais entre amigos, registre por escrito quem pagou cada cota e compartilhe foto do comprovante com todos.</li>
+      </ul>
+    </div>
+    <Faq itens={[
+      { q: 'Posso apostar na Mega da Virada pela internet?', a: 'Sim, pelo app Loterias Caixa, pelo portal Loterias Online e pelo internet banking de bancos credenciados, com cadastro e maioridade.' },
+      { q: 'Qual o valor mínimo para apostar online?', a: 'Os canais digitais da Caixa costumam exigir um valor mínimo por compra (carrinho). Confira a regra vigente no app ou no portal oficial.' },
+    ]} />
+  </section>
+</Base>
+<style>
+  .steps { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 12px; }
+  .steps li { display: flex; gap: 18px; align-items: flex-start; }
+  .steps h3 { margin: 4px 0 4px; }
+  .steps p { margin: 0; }
+  .sn { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 700 1.1rem var(--display); color: #1c1400; background: linear-gradient(120deg, #f6d36b, #e3a92c); }
+</style>

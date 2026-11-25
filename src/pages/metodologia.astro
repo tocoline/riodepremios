@@ -1,0 +1,17 @@
+---
+import Pagina from '../layouts/Pagina.astro';
+---
+<Pagina nome="Fontes e metodologia" titulo="Fontes e metodologia dos dados" desc="De onde vêm os resultados do Rio de Prêmios, com que frequência são atualizados e como calculamos probabilidades e estatísticas.">
+  <h2>Fonte dos resultados</h2>
+  <p>Os resultados são obtidos da <strong>API pública de resultados das Loterias Caixa</strong>, a mesma que alimenta o portal oficial. Se a fonte principal estiver temporariamente indisponível, usamos uma fonte pública secundária que replica os dados oficiais, e registramos a origem de cada concurso no nosso banco de dados.</p>
+  <h2>Frequência de atualização</h2>
+  <p>Um robô automático verifica novos resultados <strong>a cada 10 minutos</strong>, 24 horas por dia. Como os sorteios acontecem por volta das 20h (horário de Brasília), o resultado costuma aparecer no site poucos minutos depois. Informações de rateio (ganhadores e prêmios) podem ser complementadas pela Caixa algumas horas após o sorteio — nosso robô atualiza o concurso automaticamente quando isso acontece.</p>
+  <h2>Probabilidades</h2>
+  <p>Todas as chances são calculadas por <strong>análise combinatória</strong> (distribuição hipergeométrica): o número de combinações favoráveis dividido pelo total de combinações possíveis. Exemplo: na Mega-Sena existem C(60,6) = 50.063.860 combinações de seis números.</p>
+  <h2>Estatísticas</h2>
+  <p>As frequências e atrasos são recalculados a partir do histórico completo armazenado. Elas descrevem o passado: <strong>cada sorteio é independente</strong> e nenhuma estatística aumenta a chance de uma dezena sair.</p>
+  <h2>Preços</h2>
+  <p>Os valores de apostas seguem a tabela vigente da Caixa (reajuste de julho de 2025). Sempre confira os valores nos canais oficiais.</p>
+  <h2>Correções</h2>
+  <p>Se identificar qualquer divergência em relação ao resultado oficial, <a href="/contato/">avise-nos</a>. Em caso de conflito, vale sempre a informação oficial da Caixa.</p>
+</Pagina>

@@ -1,0 +1,14 @@
+# Site (Cloudflare Pages)
+name = "riodepremios"
+pages_build_output_dir = "./dist"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "riodepremios"
+database_id = "COLOQUE_AQUI_O_ID_DO_D1"   # wrangler d1 create riodepremios
+migrations_dir = "migrations"
+
+[vars]
+PUBLIC_ADSENSE_CLIENT = ""   # ex.: ca-pub-1234567890123456

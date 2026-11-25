@@ -1,0 +1,115 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import ResultadoCard from '../../components/ResultadoCard.astro';
+import Bolas from '../../components/Bolas.astro';
+import Resposta from '../../components/Resposta.astro';
+import TabelasLoteria from '../../components/TabelasLoteria.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Autor from '../../components/Autor.astro';
+import { POR_SLUG, diasTexto } from '../../lib/loterias';
+import { getDB, ultimos } from '../../lib/db';
+import { comoJogar, faqLoteria, chancePrincipal } from '../../lib/conteudo';
+import { dataBR, reais, reaisCurto, numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l) return naoEncontrado(Astro);
+cachear(Astro);
+const lista = await ultimos(getDB(Astro.locals), l, 11);
+const [c, ...anteriores] = lista;
+const titulo = c ? `Resultado ${l.nome} ${c.numero} de ${dataBR(c.data)} — Último sorteio` : `Resultado da ${l.nome} — Último sorteio`;
+const desc = c
+  ? `Resultado da ${l.nome} concurso ${c.numero} (${dataBR(c.data)}): ${c.dezenas.map((d) => String(d).padStart(2, '0')).join(' - ')}. ${c.acumulado ? 'Acumulou!' : 'Teve ganhador.'} Veja prêmios, ganhadores e próximo concurso.`
+  : `Resultado da ${l.nome} atualizado automaticamente, com prêmios, ganhadores, estatísticas e probabilidades.`;
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR',
+  url: `${SITE.url}/${l.slug}/`, dateModified: c?.atualizado_em, isPartOf: { '@id': `${SITE.url}/#site` },
+  about: { '@type': 'Thing', name: l.nome },
+}];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={c?.atualizado_em}>
+  <div class="wrap phero" style={`--c:${l.cor}`}>
+    <Crumbs itens={[{ nome: l.nome }]} />
+    <span class="eyebrow" style={`color:${l.cor}`}>Sorteios: {diasTexto(l)} às 20h</span>
+    <h1>Resultado da {l.nome}</h1>
+    <p class="lead">{l.resumo}</p>
+    <Autor atualizado={c?.atualizado_em} />
+  </div>
+
+  <section class="wrap lot-top">
+    <ResultadoCard l={l} c={c} destaque link={!!c} />
+    <div class="lot-side">
+      <Resposta>
+        {c ? (
+          <p>O último resultado da {l.nome} é o do <strong>concurso {c.numero}</strong>, sorteado em {dataBR(c.data, true)}: <strong>{c.dezenas.map((d) => String(d).padStart(2, '0')).join(', ')}</strong>.
+          {c.acumulado ? ' Ninguém acertou a faixa principal e o prêmio acumulou.' : ' Houve ganhador na faixa principal.'}
+          {c.proximo_estimativa ? ` O próximo concurso (${c.proximo_numero}) tem prêmio estimado em ${reaisCurto(c.proximo_estimativa)}.` : ''}</p>
+        ) : (
+          <p>A {l.nome} sorteia às {diasTexto(l)}, às 20h. A aposta mínima custa {reais(l.preco)} e a chance da faixa principal é de 1 em {numero(chancePrincipal(l))}.</p>
+        )}
+      </Resposta>
+      <div class="grid quick">
+        <a class="card card-link" href={`/${l.slug}/resultados/`}><strong>Todos os resultados</strong><span class="faint small">Histórico completo</span></a>
+        <a class="card card-link" href={`/${l.slug}/estatisticas/`}><strong>Estatísticas</strong><span class="faint small">Mais sorteadas e atrasadas</span></a>
+        <a class="card card-link" href={`/ferramentas/conferidor/?loteria=${l.slug}`}><strong>Conferir aposta</strong><span class="faint small">Veja quantos acertou</span></a>
+        <a class="card card-link" href={`/${l.slug}/como-jogar/`}><strong>Como jogar</strong><span class="faint small">Regras e prêmios</span></a>
+      </div>
+    </div>
+  </section>
+
+  {c && c.premiacoes.length > 0 && (
+    <section class="wrap section-sm">
+      <h2>Premiação do concurso {c.numero}</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Faixa</th><th class="num">Ganhadores</th><th class="num">Prêmio por ganhador</th></tr></thead>
+          <tbody>{c.premiacoes.map((p) => <tr><td>{p.descricao}</td><td class="num">{numero(p.ganhadores)}</td><td class="num">{p.ganhadores ? reais(p.premio) : '—'}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+  )}
+
+  <div class="wrap"><Ad /></div>
+
+  {anteriores.length > 0 && (
+    <section class="wrap section-sm">
+      <h2>Resultados anteriores da {l.nome}</h2>
+      <div class="ant">
+        {anteriores.map((a) => (
+          <a class="ant-row card card-link" href={`/${l.slug}/concurso/${a.numero}/`}>
+            <div class="ant-meta"><strong>Concurso {a.numero}</strong><span class="faint small">{dataBR(a.data)}</span></div>
+            <Bolas dezenas={a.dezenas} cor={l.cor} tam="sm" digitos={l.tipo === 'colunas' ? 1 : 2} />
+            {a.acumulado ? <span class="pill hot">Acumulou</span> : <span class="pill ok">Ganhador</span>}
+          </a>
+        ))}
+      </div>
+      <p><a class="btn" href={`/${l.slug}/resultados/`}>Ver histórico completo →</a></p>
+    </section>
+  )}
+
+  <section class="wrap section-sm">
+    <h2>Como jogar na {l.nome}</h2>
+    <div class="prose narrow-l"><ol>{comoJogar(l).map((p) => <li>{p}</li>)}</ol>
+    {l.dicas.length > 0 && <ul>{l.dicas.map((d) => <li>{d}</li>)}</ul>}</div>
+    <TabelasLoteria l={l} />
+  </section>
+
+  <div class="wrap"><Ad /></div>
+  <section class="section-sm"><div class="narrow"><Faq itens={faqLoteria(l)} titulo={`Dúvidas sobre a ${l.nome}`} /></div></section>
+</Base>
+<style>
+  .lot-top { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; align-items: start; }
+  .lot-side { display: grid; gap: 16px; }
+  .quick { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .quick .card { padding: 16px; display: flex; flex-direction: column; gap: 2px; }
+  .ant { display: grid; gap: 10px; margin-bottom: 20px; }
+  .ant-row { display: flex; align-items: center; gap: 18px; padding: 14px 18px; flex-wrap: wrap; }
+  .ant-meta { display: flex; flex-direction: column; min-width: 120px; }
+  .ant-row .pill { margin-left: auto; }
+  .narrow-l { max-width: 820px; }
+  @media (max-width: 900px) { .lot-top { grid-template-columns: 1fr; } }
+</style>

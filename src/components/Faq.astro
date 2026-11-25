@@ -1,0 +1,18 @@
+---
+interface Props { itens: { q: string; a: string }[]; titulo?: string }
+const { itens, titulo = 'Perguntas frequentes' } = Astro.props;
+const schema = {
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: itens.map((i) => ({ '@type': 'Question', name: i.q, acceptedAnswer: { '@type': 'Answer', text: i.a.replace(/<[^>]+>/g, '') } })),
+};
+---
+<section class="faq-sec" id="faq">
+  <h2>{titulo}</h2>
+  {itens.map((i, idx) => (
+    <details class="faq" open={idx === 0}>
+      <summary>{i.q}</summary>
+      <div class="faq-a" set:html={i.a} />
+    </details>
+  ))}
+</section>
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

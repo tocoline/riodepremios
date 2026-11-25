@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import CalcBolao from '../../components/tools/CalcBolao.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+const faq = [
+  { q: 'Como funciona o bolão da Mega da Virada?', a: 'Um grupo divide o custo de vários jogos (ou de jogos com mais números). Se algum jogo for premiado, o prêmio é dividido igualmente entre as cotas. O bolão pode ser registrado na lotérica (Bolão Caixa), o que garante o direito de cada cotista.' },
+  { q: 'O bolão aumenta a chance de ganhar?', a: 'Aumenta a chance do grupo, porque há mais combinações em jogo. A chance de cada pessoa por real gasto, porém, é a mesma de uma aposta individual — a vantagem é poder participar de jogos que sozinho seriam caros demais.' },
+  { q: 'A lotérica pode cobrar taxa no bolão?', a: 'Sim. No Bolão Caixa vendido pela lotérica pode haver uma tarifa de serviço somada ao valor da cota. Informe a porcentagem na calculadora para ver o valor final.' },
+];
+---
+<Base title="Calculadora de bolão da Mega da Virada" description="Calcule o custo do bolão da Mega da Virada, o valor de cada cota, a chance do grupo e quanto cada participante recebe, já com desconto do Imposto de Renda.">
+  <ViradaHero titulo="Calculadora de bolão da Mega da Virada" crumb="Calculadora de bolão" sub="Monte o bolão ideal para o seu grupo: custo, cotas, chances e o prêmio de cada participante." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Para calcular um bolão, multiplique o preço de cada jogo pelo número de jogos e divida pelo número de cotas. Um jogo de 6 números custa R$ 6,00; de 7 números, R$ 42,00; de 8 números, R$ 168,00. Ajuste os campos abaixo para o seu grupo.</p></Resposta>
+    <div style="margin-top:20px"><CalcBolao fixa="mega-sena" premioPadrao={500000000} /></div>
+    <Ad />
+    <Faq itens={faq} />
+  </section>
+</Base>

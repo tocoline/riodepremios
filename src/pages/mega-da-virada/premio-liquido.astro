@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import PremioLiquido from '../../components/tools/PremioLiquido.astro';
+import Resposta from '../../components/Resposta.astro';
+import Ad from '../../components/Ad.astro';
+---
+<Base title="Prêmio líquido da Mega da Virada e quanto rende por mês" description="Calcule quanto sobra do prêmio da Mega da Virada depois do Imposto de Renda de 30%, dividido entre ganhadores ou cotas, e quanto ele renderia por mês aplicado.">
+  <ViradaHero titulo="Quanto você recebe — e quanto rende" crumb="Prêmio líquido" sub="Desconte o Imposto de Renda, divida entre ganhadores ou cotas e veja a renda mensal estimada." />
+  <ViradaNav />
+  <section class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Pela legislação, prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Um prêmio bruto de R$ 100 milhões resulta em R$ 70 milhões líquidos. Ajuste os valores abaixo para o seu cenário.</p></Resposta>
+    <div style="margin-top:20px"><PremioLiquido premioPadrao={500000000} /></div>
+    <Ad />
+  </section>
+</Base>

@@ -1,0 +1,51 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Bolas from '../../components/Bolas.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG } from '../../lib/loterias';
+import { getDB, especiais } from '../../lib/db';
+import { premioPrincipal, anoDe } from '../../lib/virada';
+import { reais, reaisCurto, numero, pad } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+
+cachear(Astro, 3600);
+const viradas = await especiais(getDB(Astro.locals), POR_SLUG['mega-sena']);
+const u = viradas[0];
+---
+<Base title="Resultados da Mega da Virada: todos os anos e prêmios" description="Todos os resultados da Mega da Virada, ano a ano: dezenas sorteadas, prêmio total, número de ganhadores e valor pago para cada um.">
+  <ViradaHero titulo="Todos os resultados da Mega da Virada" crumb="Resultados" sub="Histórico completo, edição por edição, com dezenas, ganhadores e prêmios — atualizado automaticamente." />
+  <ViradaNav />
+  <section class="wrap section-sm">
+    {u ? (
+      <Resposta><p>O último resultado da Mega da Virada ({anoDe(u)}, concurso {u.numero}) foi <strong>{u.dezenas.map((d) => pad(d)).join(' - ')}</strong>. Nosso histórico tem {viradas.length} edições.</p></Resposta>
+    ) : (
+      <div class="card"><p class="muted" style="margin:0">O histórico da Mega da Virada está sendo sincronizado automaticamente e aparecerá aqui em breve.</p></div>
+    )}
+    <div class="vlist">
+      {viradas.map((c) => { const p = premioPrincipal(c); return (
+        <a class="card card-link vi" href={`/mega-sena/concurso/${c.numero}/`}>
+          <div class="vi-ano">{anoDe(c)}<span>Concurso {c.numero}</span></div>
+          <Bolas dezenas={c.dezenas} cor="#d9a521" />
+          <div class="vi-p">
+            <strong>{reaisCurto(p.total)}</strong>
+            <span class="small faint">{p.faixa === 'sena' ? `${numero(p.ganhadores)} ganhador(es) da sena · ${reais(p.porGanhador)} cada` : `sem sena · ${numero(p.ganhadores)} ganhadores da quina`}</span>
+          </div>
+        </a>
+      ); })}
+    </div>
+    <Ad />
+  </section>
+</Base>
+<style>
+  .vlist { display: grid; gap: 12px; margin-top: 22px; }
+  .vi { display: grid; grid-template-columns: 120px 1fr auto; gap: 20px; align-items: center; }
+  .vi-ano { font: 700 2rem/1 var(--display); letter-spacing: -.03em; display: flex; flex-direction: column; gap: 6px; }
+  .vi-ano span { font: 500 .78rem var(--font); color: var(--faint); letter-spacing: 0; }
+  .vi-p { text-align: right; display: flex; flex-direction: column; }
+  .vi-p strong { font: 700 1.3rem var(--display); color: var(--gold); }
+  @media (max-width: 760px) { .vi { grid-template-columns: 1fr; } .vi-p { text-align: left; } }
+</style>

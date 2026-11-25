@@ -1,0 +1,15 @@
+---
+import { adsense } from '../lib/site';
+interface Props { formato?: 'auto' | 'fluid' | 'rectangle' | 'horizontal'; slot?: string }
+const { formato = 'auto', slot = adsense.slot } = Astro.props;
+const dev = import.meta.env.DEV;
+---
+{adsense.client && slot ? (
+  <div class="ad">
+    <span class="ad-label">Publicidade</span>
+    <ins class="adsbygoogle" style="display:block" data-ad-client={adsense.client} data-ad-slot={slot} data-ad-format={formato} data-full-width-responsive="true"></ins>
+    <script is:inline>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+) : dev ? (
+  <div class="ad"><span class="ad-label">Publicidade</span><div class="ad-ph">Espaço de anúncio (AdSense)</div></div>
+) : null}

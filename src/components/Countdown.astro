@@ -1,0 +1,29 @@
+---
+interface Props { alvo: string; compacto?: boolean }
+const { alvo, compacto = false } = Astro.props;
+---
+<div class:list={['cd', compacto && 'cd-sm']} data-alvo={alvo} aria-live="off">
+  {[['d', 'dias'], ['h', 'horas'], ['m', 'min'], ['s', 'seg']].map(([k, l]) => (
+    <div class="cd-u"><span class="cd-v" data-k={k}>--</span><span class="cd-l">{l}</span></div>
+  ))}
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('.cd').forEach((el) => {
+    const alvo = new Date(el.dataset.alvo!).getTime();
+    const set = (k: string, v: number) => { const n = el.querySelector(`[data-k="${k}"]`); if (n) n.textContent = String(v).padStart(2, '0'); };
+    const tick = () => {
+      let s = Math.max(0, Math.floor((alvo - Date.now()) / 1000));
+      set('d', Math.floor(s / 86400)); s %= 86400; set('h', Math.floor(s / 3600)); s %= 3600; set('m', Math.floor(s / 60)); set('s', s % 60);
+    };
+    tick(); setInterval(tick, 1000);
+  });
+</script>
+<style>
+  .cd { display: flex; gap: clamp(8px, 1.5vw, 14px); }
+  .cd-u { min-width: clamp(64px, 11vw, 92px); padding: 14px 8px 10px; border-radius: 16px; text-align: center; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); }
+  .cd-v { display: block; font: 700 clamp(1.7rem, 4.5vw, 2.8rem)/1 var(--display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: #fff; }
+  .cd-l { display: block; margin-top: 6px; font-size: .7rem; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.65); }
+  .cd-sm .cd-u { min-width: 54px; padding: 8px 4px 6px; border-radius: 12px; }
+  .cd-sm .cd-v { font-size: 1.35rem; }
+  .cd-sm .cd-l { font-size: .6rem; }
+</style>

@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Ad from '../../components/Ad.astro';
+import { GUIAS, type Guia } from '../../lib/guias';
+import { SITE } from '../../lib/site';
+export function getStaticPaths() { return GUIAS.map((g) => ({ params: { slug: g.slug }, props: { g } })); }
+const { g } = Astro.props as { g: Guia };
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: g.titulo, description: g.desc, inLanguage: 'pt-BR', dateModified: g.atualizado, datePublished: g.atualizado, author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` }, publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/guias/${g.slug}/` }];
+const [a, b] = g.html.split('<h2>').length > 2 ? [g.html.split('<h2>').slice(0, 2).join('<h2>'), '<h2>' + g.html.split('<h2>').slice(2).join('<h2>')] : [g.html, ''];
+---
+<Base title={g.titulo} description={g.desc} schema={schema} type="article" modificado={g.atualizado}>
+  <div class="narrow phero">
+    <Crumbs itens={[{ nome: 'Guias', url: '/guias/' }, { nome: g.titulo }]} />
+    <h1>{g.titulo}</h1>
+    <p class="lead">{g.desc}</p>
+    <Autor atualizado={g.atualizado + 'T12:00:00-03:00'} />
+  </div>
+  <article class="narrow">
+    <Resposta><p set:html={g.resposta} /></Resposta>
+    <div class="prose" style="margin-top:24px" set:html={a} />
+    <Ad />
+    <div class="prose" set:html={b} />
+  </article>
+</Base>

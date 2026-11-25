@@ -1,0 +1,9 @@
+---
+import Ferramenta from '../../layouts/Ferramenta.astro';
+import Gerador from '../../components/tools/Gerador.astro';
+---
+<Ferramenta nome="Gerador de números" titulo="Gerador de números para loterias (Mega-Sena, Lotofácil, Quina...)" h1="Gerador de números da sorte"
+  desc="Gere jogos aleatórios para qualquer loteria da Caixa, com números fixos, exclusões e filtros que evitam combinações populares."
+  resposta="Selecione a loteria, a quantidade de números e de jogos e clique em <strong>Gerar jogos</strong>. Os números usam o gerador criptográfico do navegador — nenhum método aumenta a chance de ganhar, mas jogos bem espalhados reduzem o risco de dividir o prêmio.">
+  <Gerador />
+</Ferramenta>

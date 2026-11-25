@@ -1,0 +1,42 @@
+---
+import SelLoteria from './SelLoteria.astro';
+interface Props { fixa?: string }
+const { fixa } = Astro.props;
+---
+<form class="tool-ui card calc-prob" onsubmit="return false">
+  <div class="row">
+    <SelLoteria fixa={fixa} excluir={['super-sete']} />
+    <div class="field"><label>Números marcados</label><select name="n"></select></div>
+    <div class="field trevos-f" hidden><label>Trevos marcados</label><select name="t">{[2, 3, 4, 5, 6].map((t) => <option>{t}</option>)}</select></div>
+  </div>
+  <div class="resumo grid g3"></div>
+  <div class="table-wrap"><table><thead><tr><th>Faixa</th><th class="num">Probabilidade</th><th class="num">Chance</th></tr></thead><tbody></tbody></table></div>
+</form>
+<script>
+  import { POR_SLUG } from '../../lib/loterias';
+  import { custo, probabilidade } from '../../lib/math';
+  import { $, brl, int } from '../../lib/ui';
+  document.querySelectorAll<HTMLFormElement>('.calc-prob').forEach((f) => {
+    const sel = () => POR_SLUG[(f.elements.namedItem('loteria') as HTMLInputElement).value];
+    const nSel = $<HTMLSelectElement>(f, '[name=n]');
+    const fill = () => {
+      const l = sel(); nSel.innerHTML = '';
+      for (let n = l.escolhaMin; n <= l.escolhaMax; n++) nSel.add(new Option(String(n), String(n)));
+      $(f, '.trevos-f').hidden = l.tipo !== 'trevos';
+    };
+    const calc = () => {
+      const l = sel(); const n = Number(nSel.value) || l.escolhaMin; const t = Number(($(f, '[name=t]') as HTMLSelectElement).value);
+      const linhas = l.faixas.map((fx) => {
+        const p = l.tipo === 'trevos' ? probabilidade(l, fx.acertos, n, t, fx.trevos) : probabilidade(l, fx.acertos, n);
+        return `<tr><td>${fx.label}</td><td class="num">${(p * 100).toPrecision(3)}%</td><td class="num">1 em ${int(1 / p)}</td></tr>`;
+      });
+      $(f, 'tbody').innerHTML = linhas.join('');
+      const c = custo(l, n, t);
+      $(f, '.resumo').innerHTML = `<div class="stat res"><span class="stat-l">Valor da aposta</span><span class="stat-v">${brl(c)}</span></div>
+        <div class="stat res"><span class="stat-l">Equivale a</span><span class="stat-v">${int(c / l.preco)} apostas simples</span></div>
+        <div class="stat res"><span class="stat-l">Dezenas sorteadas</span><span class="stat-v">${l.sorteadas} de ${l.max - l.min + 1}</span></div>`;
+    };
+    f.addEventListener('input', (e) => { if ((e.target as HTMLElement).getAttribute('name') === 'loteria') fill(); calc(); });
+    fill(); calc();
+  });
+</script>

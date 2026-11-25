@@ -1,0 +1,156 @@
+---
+export const prerender = false;
+import Base from '../layouts/Base.astro';
+import ResultadoCard from '../components/ResultadoCard.astro';
+import Countdown from '../components/Countdown.astro';
+import Ad from '../components/Ad.astro';
+import Faq from '../components/Faq.astro';
+import { LOTERIAS, POR_SLUG, VIRADA } from '../lib/loterias';
+import { getDB, ultimosDeTodas } from '../lib/db';
+import { reaisCurto } from '../lib/format';
+import { cachear } from '../lib/cache';
+
+cachear(Astro);
+const ult = await ultimosDeTodas(getDB(Astro.locals));
+const mega = ult['mega-sena'];
+const acumVirada = mega?.acumulado_especial;
+const atualizado = Object.values(ult).map((c) => c.atualizado_em).sort().at(-1);
+
+const ferramentas = [
+  { href: '/ferramentas/conferidor/', t: 'Conferidor de apostas', d: 'Cole seus números e veja na hora quantos acertou.', i: '✓' },
+  { href: '/ferramentas/gerador-de-numeros/', t: 'Gerador de números', d: 'Jogos aleatórios com filtros de pares, soma e sequências.', i: '🎲' },
+  { href: '/ferramentas/calculadora-de-probabilidades/', t: 'Probabilidades', d: 'Sua chance real em todas as faixas, para qualquer aposta.', i: '%' },
+  { href: '/ferramentas/calculadora-de-bolao/', t: 'Calculadora de bolão', d: 'Custo, cotas e quanto cada participante recebe.', i: '👥' },
+  { href: '/ferramentas/premio-liquido/', t: 'Prêmio líquido', d: 'Quanto sobra depois do Imposto de Renda.', i: 'R$' },
+  { href: '/estatisticas/', t: 'Estatísticas', d: 'Dezenas mais sorteadas, atrasadas e padrões.', i: '📊' },
+];
+const faq = [
+  { q: 'Que horas saem os resultados das loterias?', a: 'Os sorteios da Caixa acontecem normalmente às 20h (horário de Brasília). O Rio de Prêmios verifica novos resultados automaticamente a cada 10 minutos, então o resultado costuma aparecer aqui poucos minutos depois do sorteio.' },
+  { q: 'Os resultados do Rio de Prêmios são oficiais?', a: 'Os números são coletados automaticamente da API pública de resultados da Caixa Econômica Federal. O site é independente e informativo; para resgatar prêmios, confira sempre o bilhete nos canais oficiais da Caixa.' },
+  { q: 'Qual loteria tem a maior chance de ganhar?', a: 'Na faixa principal, com a aposta mínima, o Dia de Sorte tem a maior chance (1 em 2.629.575), seguido da Lotofácil (1 em 3.268.760). Na Mega-Sena, a chance da sena com 6 números é de 1 em 50.063.860. Veja o <a href="/guias/qual-loteria-tem-mais-chance-de-ganhar/">ranking completo</a>.' },
+  { q: 'Quando é o sorteio da Mega da Virada?', a: `A Mega da Virada ${VIRADA.ano} é sorteada em 31 de dezembro, às 20h (horário de Brasília). O prêmio não acumula: se ninguém acertar as seis dezenas, o valor é dividido entre os acertadores da quina.` },
+];
+---
+<Base title="Resultados das Loterias Hoje — Mega-Sena, Lotofácil, Quina e mais | Rio de Prêmios"
+  description="Resultados de todas as loterias da Caixa atualizados automaticamente: Mega-Sena, Lotofácil, Quina, Lotomania, +Milionária e mais. Estatísticas, calculadoras e guia da Mega da Virada.">
+
+  <section class="hero">
+    <div class="wrap hero-in">
+      <div class="hero-txt reveal">
+        <span class="eyebrow">Atualização automática a cada 10 min</span>
+        <h1>Resultados das loterias, <span class="grad-text">no instante em que saem.</span></h1>
+        <p class="lead">Todas as modalidades da Caixa em um só lugar, com estatísticas de verdade, calculadoras precisas e o guia mais completo da Mega da Virada.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#resultados">Ver resultados de hoje</a>
+          <a class="btn" href="/mega-da-virada/">Mega da Virada {VIRADA.ano} →</a>
+        </div>
+        <ul class="hero-chips">
+          {LOTERIAS.map((l) => <li><a href={`/${l.slug}/`} style={`--c:${l.cor}`}><span class="dot"></span>{l.nome}</a></li>)}
+        </ul>
+      </div>
+      <div class="hero-card reveal" style="animation-delay:.12s">
+        <ResultadoCard l={POR_SLUG['mega-sena']} c={mega} destaque />
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <a class="virada" href="/mega-da-virada/">
+      <div class="virada-txt">
+        <span class="virada-tag">✦ Concurso especial · 31/12 às 20h</span>
+        <h2>Mega da Virada {VIRADA.ano}</h2>
+        <p>{acumVirada ? <>Já são <strong>{reaisCurto(acumVirada)}</strong> acumulados para o concurso especial — e o prêmio não acumula.</> : <>O maior prêmio do ano, que não acumula. Calculadoras, estatísticas e todos os resultados históricos.</>}</p>
+        <span class="btn btn-sm virada-btn">Abrir o guia completo →</span>
+      </div>
+      <Countdown alvo={VIRADA.data} />
+    </a>
+  </section>
+
+  <section class="section" id="resultados">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <span class="eyebrow">Últimos sorteios</span>
+          <h2>Resultados de todas as loterias</h2>
+        </div>
+        {atualizado && <p class="small faint">Última verificação: {new Date(atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })}</p>}
+      </div>
+      <div class="grid g3">
+        {LOTERIAS.filter((l) => l.slug !== 'mega-sena').map((l) => <ResultadoCard l={l} c={ult[l.slug]} />)}
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><Ad /></div>
+
+  <section class="section">
+    <div class="wrap">
+      <span class="eyebrow">Ferramentas gratuitas</span>
+      <h2>Jogue com informação, não no escuro</h2>
+      <div class="grid g3 tools">
+        {ferramentas.map((f) => (
+          <a class="card card-link tool" href={f.href}>
+            <span class="tool-i" aria-hidden="true">{f.i}</span>
+            <h3>{f.t}</h3>
+            <p class="muted small">{f.d}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="wrap trust card">
+      <div>
+        <span class="eyebrow">Por que confiar</span>
+        <h2>Dados oficiais, processo transparente</h2>
+        <p class="muted">Cada resultado é coletado automaticamente da API pública da Caixa, gravado com data e hora de atualização e exibido sem edição manual. As probabilidades são calculadas por análise combinatória exata — nada de "palpite garantido".</p>
+        <a href="/metodologia/">Conheça nossa metodologia →</a>
+      </div>
+      <div class="trust-stats">
+        <div class="stat"><span class="stat-v grad-text">9</span><span class="stat-l">modalidades acompanhadas</span></div>
+        <div class="stat"><span class="stat-v grad-text">10 min</span><span class="stat-l">intervalo de verificação</span></div>
+        <div class="stat"><span class="stat-v grad-text">100%</span><span class="stat-l">gratuito e sem cadastro</span></div>
+        <div class="stat"><span class="stat-v grad-text">0</span><span class="stat-l">promessas de "jogo certo"</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section"><div class="narrow"><Faq itens={faq} /></div></section>
+</Base>
+
+<style>
+  .hero { padding: clamp(36px, 7vw, 90px) 0 clamp(28px, 4vw, 48px); }
+  .hero-in { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(28px, 5vw, 64px); align-items: center; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin: 26px 0 28px; }
+  .hero-chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .hero-chips a { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-size: .84rem; font-weight: 550; }
+  .hero-chips a:hover { border-color: var(--c); color: var(--text); }
+  @media (max-width: 900px) { .hero-in { grid-template-columns: 1fr; } }
+
+  .virada {
+    position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; gap: 28px; flex-wrap: wrap;
+    padding: clamp(24px, 4vw, 44px); border-radius: var(--r-lg); text-decoration: none; color: #fff;
+    background: radial-gradient(60% 120% at 100% 0%, rgba(242,193,78,.45), transparent 60%), radial-gradient(50% 100% at 0% 100%, rgba(47,220,152,.35), transparent 60%), linear-gradient(135deg, #0b1020, #141a35 60%, #231a08);
+    box-shadow: var(--shadow-lg); border: 1px solid rgba(242,193,78,.3);
+  }
+  .virada::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.5) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(90deg, transparent, #000 70%); opacity: .25; }
+  .virada > * { position: relative; }
+  .virada:hover { color: #fff; }
+  .virada-txt { max-width: 520px; }
+  .virada-tag { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #ffd979; }
+  .virada h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); margin: 8px 0 10px; background: linear-gradient(120deg, #fff, #ffd979); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .virada p { color: rgba(255,255,255,.8); }
+  .virada strong { color: #ffd979; }
+  .virada-btn { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.2); }
+
+  .sec-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .sec-head h2 { margin: 0; }
+  .tools { margin-top: 24px; }
+  .tool h3 { margin: 14px 0 6px; }
+  .tool p { margin: 0; }
+  .tool-i { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+  .trust { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: center; padding: clamp(24px, 4vw, 44px); }
+  .trust-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 800px) { .trust { grid-template-columns: 1fr; } }
+</style>

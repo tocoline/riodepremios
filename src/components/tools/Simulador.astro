@@ -1,0 +1,62 @@
+---
+// Simulador de chances (Mega-Sena / Mega da Virada) + simulação Monte Carlo de sorteios
+---
+<form class="tool-ui card simulador" onsubmit="return false">
+  <div class="row">
+    <div class="field"><label>Quantos números você vai marcar?</label><select name="n">{Array.from({ length: 15 }, (_, i) => i + 6).map((n) => <option value={n}>{n} números</option>)}</select></div>
+    <div class="field"><label>Quantas apostas iguais a essa?</label><input name="qtd" type="number" min="1" max="1000" value="1" inputmode="numeric" /></div>
+  </div>
+  <div class="res-g grid g4"></div>
+  <div class="table-wrap"><table><thead><tr><th>Faixa</th><th class="num">Sua chance</th><th class="num">vs. aposta simples</th></tr></thead><tbody></tbody></table></div>
+
+  <div class="mc">
+    <h3>🎰 Simule milhares de sorteios</h3>
+    <p class="small muted">Sorteamos aleatoriamente e conferimos sua aposta contra cada sorteio — para você sentir na prática o tamanho da probabilidade.</p>
+    <div class="row">
+      <div class="field"><label>Número de sorteios simulados</label><select name="sims"><option value="1000">1.000</option><option value="10000">10.000</option><option value="100000" selected>100.000</option><option value="500000">500.000</option></select></div>
+      <div class="field" style="flex:0"><button class="btn btn-primary" type="button" data-sim>Simular agora</button></div>
+    </div>
+    <div class="mc-out"></div>
+  </div>
+</form>
+<script>
+  import { POR_SLUG } from '../../lib/loterias';
+  import { custo, probabilidade } from '../../lib/math';
+  import { $, brl, int, sortear } from '../../lib/ui';
+  const l = POR_SLUG['mega-sena'];
+  document.querySelectorAll<HTMLFormElement>('.simulador').forEach((f) => {
+    const val = (k: string) => Number((f.elements.namedItem(k) as HTMLInputElement).value);
+    const calc = () => {
+      const n = val('n'), q = Math.max(1, val('qtd') || 1);
+      const c = custo(l, n) * q;
+      const linhas = [6, 5, 4].map((k) => {
+        const p = 1 - (1 - probabilidade(l, k, n)) ** q, p0 = probabilidade(l, k, 6);
+        return { k, p, x: p / p0 };
+      });
+      $(f, '.res-g').innerHTML = `
+        <div class="stat res"><span class="stat-l">Custo total</span><span class="stat-v">${brl(c)}</span></div>
+        <div class="stat res"><span class="stat-l">Combinações de 6</span><span class="stat-v">${int(c / l.preco)}</span></div>
+        <div class="stat res"><span class="stat-l">Chance da sena</span><span class="stat-v">1 em ${int(1 / linhas[0].p)}</span></div>
+        <div class="stat res"><span class="stat-l">Chance da quadra</span><span class="stat-v">1 em ${int(1 / linhas[2].p)}</span></div>`;
+      $(f, 'tbody').innerHTML = linhas.map((r) => `<tr><td>${r.k} acertos</td><td class="num">1 em ${int(1 / r.p)}</td><td class="num">${r.x.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}× maior</td></tr>`).join('');
+    };
+    const simular = () => {
+      const n = val('n'), sims = val('sims');
+      const aposta = new Set(sortear(1, 60, n));
+      const cont = [0, 0, 0, 0, 0, 0, 0];
+      const t0 = performance.now();
+      for (let i = 0; i < sims; i++) { let h = 0; for (const d of sortear(1, 60, 6)) if (aposta.has(d)) h++; cont[h]++; }
+      const ms = Math.round(performance.now() - t0);
+      const anos = sims / (3 * 52);
+      $(f, '.mc-out').innerHTML = `<div class="grid g4">
+        <div class="stat res"><span class="stat-l">Senas (6)</span><span class="stat-v">${int(cont[6])}</span></div>
+        <div class="stat res"><span class="stat-l">Quinas (5)</span><span class="stat-v">${int(cont[5])}</span></div>
+        <div class="stat res"><span class="stat-l">Quadras (4)</span><span class="stat-v">${int(cont[4])}</span></div>
+        <div class="stat res"><span class="stat-l">Sem prêmio</span><span class="stat-v">${int(cont[0] + cont[1] + cont[2] + cont[3])}</span></div></div>
+        <p class="small muted" style="margin-top:12px">${int(sims)} sorteios equivalem a cerca de <strong>${int(anos)} anos</strong> jogando nos 3 sorteios semanais da Mega-Sena, com gasto de <strong>${brl(custo(l, n) * sims)}</strong>. (simulado em ${ms} ms)</p>`;
+    };
+    f.addEventListener('input', calc);
+    $(f, '[data-sim]').addEventListener('click', simular);
+    calc();
+  });
+</script>

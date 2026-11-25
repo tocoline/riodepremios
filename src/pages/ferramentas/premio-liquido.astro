@@ -1,0 +1,9 @@
+---
+import Ferramenta from '../../layouts/Ferramenta.astro';
+import PremioLiquido from '../../components/tools/PremioLiquido.astro';
+---
+<Ferramenta nome="Prêmio líquido" titulo="Calculadora de prêmio líquido da loteria (com IR)" h1="Calculadora de prêmio líquido"
+  desc="Descubra quanto sobra do prêmio depois do Imposto de Renda, dividido entre ganhadores ou cotas, e quanto ele rende por mês."
+  resposta="Prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Ou seja, o valor líquido é 70% do prêmio bruto.">
+  <PremioLiquido premioPadrao={10000000} />
+</Ferramenta>

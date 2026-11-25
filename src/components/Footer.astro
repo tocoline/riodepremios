@@ -1,0 +1,58 @@
+---
+import Logo from './Logo.astro';
+import { LOTERIAS } from '../lib/loterias';
+const ano = new Date().getFullYear();
+---
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="ftr-brand">
+        <Logo />
+        <p class="muted small">Resultados das loterias atualizados automaticamente a partir dos dados oficiais, com estatísticas, calculadoras e guias para você entender cada jogo.</p>
+        <p class="pill">🔞 Proibido para menores de 18 anos</p>
+      </div>
+      <div>
+        <p class="ftr-h">Resultados</p>
+        <ul>{LOTERIAS.map((l) => <li><a href={`/${l.slug}/`}>{l.nome}</a></li>)}</ul>
+      </div>
+      <div>
+        <p class="ftr-h">Mega da Virada</p>
+        <ul>
+          <li><a href="/mega-da-virada/">Guia completo</a></li>
+          <li><a href="/mega-da-virada/resultados/">Todos os resultados</a></li>
+          <li><a href="/mega-da-virada/estatisticas/">Estatísticas</a></li>
+          <li><a href="/mega-da-virada/calculadora-de-bolao/">Calculadora de bolão</a></li>
+          <li><a href="/mega-da-virada/simulador/">Simulador de chances</a></li>
+          <li><a href="/mega-da-virada/gerador/">Gerador de jogos</a></li>
+          <li><a href="/mega-da-virada/premio-liquido/">Prêmio líquido e rendimento</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="ftr-h">Rio de Prêmios</p>
+        <ul>
+          <li><a href="/sobre/">Sobre nós</a></li>
+          <li><a href="/metodologia/">Fontes e metodologia</a></li>
+          <li><a href="/jogo-responsavel/">Jogo responsável</a></li>
+          <li><a href="/contato/">Contato</a></li>
+          <li><a href="/privacidade/">Política de privacidade</a></li>
+          <li><a href="/termos/">Termos de uso</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ftr-legal small faint">
+      <p><strong>Aviso:</strong> o Rio de Prêmios é um site independente e informativo, <strong>sem vínculo com a Caixa Econômica Federal</strong>. Não vendemos apostas. Os resultados são coletados automaticamente de fontes oficiais; sempre confira seu bilhete nos canais oficiais da Caixa antes de qualquer decisão.</p>
+      <p>© {ano} Rio de Prêmios. Jogue com responsabilidade.</p>
+    </div>
+  </div>
+</footer>
+<style>
+  .ftr { margin-top: 60px; border-top: 1px solid var(--line); background: var(--bg2); padding: 56px 0 28px; }
+  .ftr-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  .ftr-brand p { margin-top: 14px; max-width: 34ch; }
+  .ftr-h { font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+  .ftr ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: .92rem; }
+  .ftr ul a { color: var(--muted); text-decoration: none; }
+  .ftr ul a:hover { color: var(--brand); }
+  .ftr-legal { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 22px; }
+  @media (max-width: 860px) { .ftr-grid { grid-template-columns: 1fr 1fr; } .ftr-brand { grid-column: 1 / -1; } }
+</style>

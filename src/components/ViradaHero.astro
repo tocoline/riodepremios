@@ -1,0 +1,37 @@
+---
+import Countdown from './Countdown.astro';
+import Crumbs from './Crumbs.astro';
+import { VIRADA } from '../lib/loterias';
+interface Props { titulo: string; sub?: string; crumb?: string; grande?: boolean }
+const { titulo, sub, crumb, grande = false } = Astro.props;
+---
+<section class:list={['vh', grande && 'vh-big']}>
+  <div class="vh-fx" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="wrap vh-in">
+    <div class="vh-crumbs"><Crumbs itens={crumb ? [{ nome: 'Mega da Virada', url: '/mega-da-virada/' }, { nome: crumb }] : [{ nome: 'Mega da Virada' }]} /></div>
+    <span class="vh-tag">✦ Mega da Virada {VIRADA.ano} · 31 de dezembro, 20h</span>
+    <h1 set:html={titulo} />
+    {sub && <p class="vh-sub">{sub}</p>}
+    <slot />
+    <div class="vh-cd"><Countdown alvo={VIRADA.data} compacto={!grande} /></div>
+  </div>
+</section>
+<style>
+  .vh { position: relative; overflow: hidden; color: #fff; padding: clamp(28px, 5vw, 56px) 0 clamp(28px, 5vw, 52px);
+    background: radial-gradient(70% 90% at 85% 0%, rgba(242,193,78,.42), transparent 60%), radial-gradient(60% 80% at 0% 100%, rgba(47,220,152,.28), transparent 60%), linear-gradient(160deg, #070b18 0%, #10162e 55%, #1d1606 100%); }
+  .vh-big { padding: clamp(36px, 7vw, 90px) 0 clamp(36px, 6vw, 72px); }
+  .vh::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.55) 1px, transparent 1px); background-size: 26px 26px; mask-image: radial-gradient(70% 70% at 70% 30%, #000, transparent); opacity: .22; }
+  .vh-fx span { position: absolute; border-radius: 50%; filter: blur(2px); background: radial-gradient(circle at 30% 30%, #ffe7a3, #d9a521 45%, #6b4b05); opacity: .9; animation: float 9s ease-in-out infinite; }
+  .vh-fx span:nth-child(1) { width: 120px; height: 120px; right: 8%; top: 18%; }
+  .vh-fx span:nth-child(2) { width: 64px; height: 64px; right: 24%; top: 62%; animation-delay: -3s; background: radial-gradient(circle at 30% 30%, #b8ffe0, #1fa774 45%, #0b4d33); }
+  .vh-fx span:nth-child(3) { width: 38px; height: 38px; right: 4%; top: 70%; animation-delay: -6s; }
+  @keyframes float { 50% { transform: translateY(-16px) rotate(8deg); } }
+  .vh-in { position: relative; }
+  .vh-crumbs :global(.crumbs), .vh-crumbs :global(.crumbs a) { color: rgba(255,255,255,.6); }
+  .vh-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #ffd979; margin-bottom: 10px; }
+  .vh h1 { max-width: 16ch; background: linear-gradient(120deg, #fff 30%, #ffd979); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .vh:not(.vh-big) h1 { font-size: clamp(1.9rem, 4.2vw, 2.9rem); max-width: 24ch; }
+  .vh-sub { color: rgba(255,255,255,.78); font-size: clamp(1rem, 1.6vw, 1.18rem); max-width: 60ch; }
+  .vh-cd { margin-top: 22px; }
+  @media (max-width: 700px) { .vh-fx { display: none; } }
+</style>

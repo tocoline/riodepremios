@@ -1,0 +1,33 @@
+---
+import type { Loteria } from '../lib/loterias';
+import { tabelaChances, tabelaCusto } from '../lib/conteudo';
+import { numero, reais } from '../lib/format';
+interface Props { l: Loteria }
+const { l } = Astro.props;
+const chances = tabelaChances(l);
+const custos = tabelaCusto(l);
+---
+<div class="grid g2 tl">
+  <div>
+    <h3>Probabilidades por faixa <span class="faint small">(aposta mínima)</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Faixa</th><th class="num">Chance</th></tr></thead>
+        <tbody>{chances.map((c) => <tr><td>{c.label}</td><td class="num">1 em {numero(c.chance)}</td></tr>)}</tbody>
+      </table>
+    </div>
+  </div>
+  {custos.length > 0 && (
+    <div>
+      <h3>Preço e chance por quantidade de números</h3>
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Números</th><th class="num">Valor</th><th class="num">Chance (faixa principal)</th></tr></thead>
+          <tbody>{custos.map((c) => <tr><td>{c.n}</td><td class="num">{reais(c.custo)}</td><td class="num">1 em {numero(c.chance)}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </div>
+  )}
+</div>
+<p class="small faint">Probabilidades calculadas por análise combinatória. Preços conforme tabela vigente da Caixa (reajuste de julho/2025); confira valores atualizados nos canais oficiais.</p>
+<style> .tl h3 { font-size: 1.02rem; } </style>

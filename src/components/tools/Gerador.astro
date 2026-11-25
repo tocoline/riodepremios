@@ -1,0 +1,77 @@
+---
+import SelLoteria from './SelLoteria.astro';
+interface Props { fixa?: string; jogosPadrao?: number }
+const { fixa, jogosPadrao = 5 } = Astro.props;
+---
+<form class="tool-ui card gerador" onsubmit="return false">
+  <div class="row">
+    <SelLoteria fixa={fixa} />
+    <div class="field"><label>Números por jogo</label><select name="n"></select></div>
+    <div class="field"><label>Quantidade de jogos</label><input name="jogos" type="number" min="1" max="50" value={jogosPadrao} inputmode="numeric" /></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Números fixos (opcional)</label><input name="fixos" placeholder="ex.: 7, 13, 42" /></div>
+    <div class="field"><label>Excluir números (opcional)</label><input name="excluir" placeholder="ex.: 1, 2, 3" /></div>
+  </div>
+  <div class="opts">
+    <label class="chk"><input type="checkbox" name="equilibrar" checked /> Equilibrar pares e ímpares</label>
+    <label class="chk"><input type="checkbox" name="seq" checked /> Evitar sequências de 3+ números</label>
+  </div>
+  <div class="acts"><button class="btn btn-primary" type="button" data-gerar>🎲 Gerar jogos</button><button class="btn" type="button" data-copiar>Copiar</button></div>
+  <div class="saida"></div>
+  <p class="small faint">Números gerados com o gerador criptográfico do seu navegador. Nenhum método aumenta a chance de ganhar — os filtros só evitam combinações que muita gente joga (e que dividem o prêmio).</p>
+</form>
+<script>
+  import { POR_SLUG, MESES } from '../../lib/loterias';
+  import { $, bolas, sortear, cryptoRnd, p2 } from '../../lib/ui';
+  const parse = (s: string) => s.split(/[^0-9]+/).filter(Boolean).map(Number);
+  document.querySelectorAll<HTMLFormElement>('.gerador').forEach((f) => {
+    const sel = () => POR_SLUG[(f.elements.namedItem('loteria') as HTMLInputElement).value];
+    const nSel = $<HTMLSelectElement>(f, '[name=n]');
+    let texto = '';
+    const fill = () => {
+      const l = sel(); nSel.innerHTML = '';
+      const max = l.tipo === 'colunas' ? 7 : l.escolhaMax;
+      for (let n = l.escolhaMin; n <= max; n++) nSel.add(new Option(String(n), String(n)));
+      nSel.disabled = l.escolhaMin === max;
+    };
+    const ok = (ds: number[], eq: boolean, seq: boolean) => {
+      if (eq) { const p = ds.filter((d) => d % 2 === 0).length; const r = p / ds.length; if (r < 0.34 || r > 0.66) return false; }
+      if (seq) { let run = 1; for (let i = 1; i < ds.length; i++) { run = ds[i] === ds[i - 1] + 1 ? run + 1 : 1; if (run >= 3) return false; } }
+      return true;
+    };
+    const gerar = () => {
+      const l = sel(); const v = (k: string) => (f.elements.namedItem(k) as HTMLInputElement);
+      const n = Number(nSel.value) || l.escolhaMin, jogos = Math.min(50, Math.max(1, Number(v('jogos').value) || 1));
+      const fixos = parse(v('fixos').value).filter((d) => d >= l.min && d <= l.max).slice(0, n);
+      const excl = new Set(parse(v('excluir').value));
+      const eq = v('equilibrar').checked && l.tipo !== 'colunas', seq = v('seq').checked && l.tipo !== 'colunas';
+      const out: string[] = []; const txt: string[] = [];
+      for (let j = 0; j < jogos; j++) {
+        let ds: number[] = [];
+        if (l.tipo === 'colunas') { ds = Array.from({ length: 7 }, () => Math.floor(cryptoRnd() * 10)); }
+        else {
+          const pool = Array.from({ length: l.max - l.min + 1 }, (_, i) => i + l.min).filter((d) => !excl.has(d) && !fixos.includes(d));
+          for (let t = 0; t < 400; t++) {
+            const idx = sortear(0, pool.length - 1, Math.min(n - fixos.length, pool.length), cryptoRnd);
+            ds = [...fixos, ...idx.map((i) => pool[i])].sort((a, b) => a - b);
+            if (ok(ds, eq, seq)) break;
+          }
+        }
+        let extra = '';
+        if (l.tipo === 'trevos') { const tv = sortear(1, 6, 2, cryptoRnd); extra = `<div class="ex"><span class="faint small">Trevos</span>${bolas(tv, '#d9a521', [], 1, 'sm gold')}</div>`; txt.push(ds.map((d) => p2(d)).join(' ') + ' | trevos ' + tv.join(' ')); }
+        else if (l.slug === 'dia-de-sorte') { const m = MESES[Math.floor(cryptoRnd() * 12)]; extra = `<span class="pill">📅 ${m}</span>`; txt.push(ds.map((d) => p2(d)).join(' ') + ' | ' + m); }
+        else txt.push(ds.map((d) => p2(d, l.tipo === 'colunas' ? 1 : 2)).join(' '));
+        out.push(`<div class="jogo"><span class="jn">Jogo ${j + 1}</span>${bolas(ds, l.cor, fixos, l.tipo === 'colunas' ? 1 : 2, 'sm')}${extra}</div>`);
+      }
+      texto = txt.join('\n');
+      $(f, '.saida').innerHTML = out.join('');
+    };
+    f.addEventListener('input', (e) => { if ((e.target as HTMLElement).getAttribute('name') === 'loteria') fill(); });
+    $(f, '[data-gerar]').addEventListener('click', gerar);
+    $(f, '[data-copiar]').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(texto); (e.target as HTMLElement).textContent = 'Copiado ✓'; setTimeout(() => ((e.target as HTMLElement).textContent = 'Copiar'), 1500); } catch {}
+    });
+    fill(); gerar();
+  });
+</script>

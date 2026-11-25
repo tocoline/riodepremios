@@ -1,0 +1,13 @@
+---
+import { LOTERIAS } from '../../lib/loterias';
+interface Props { fixa?: string; excluir?: string[]; nome?: string }
+const { fixa, excluir = [], nome = 'loteria' } = Astro.props;
+---
+{fixa ? <input type="hidden" name={nome} value={fixa} /> : (
+  <div class="field">
+    <label for={`f-${nome}`}>Loteria</label>
+    <select id={`f-${nome}`} name={nome}>
+      {LOTERIAS.filter((l) => !excluir.includes(l.slug)).map((l) => <option value={l.slug}>{l.nome}</option>)}
+    </select>
+  </div>
+)}
