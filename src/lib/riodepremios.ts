@@ -1,5 +1,5 @@
 // Rio de Prêmios — loteria oficial do Estado do Rio de Janeiro (LOTERJ).
-// Não há API pública: os resultados são cadastrados em /admin/rio-de-premios/.
+// Não há API pública: cada edição ganha um artigo automático (domingos, em sequência a partir da base).
 // Ajuste aqui os dados que mudam. Confirme sempre no regulamento oficial.
 export const RP = {
   nome: 'Rio de Prêmios',
@@ -32,5 +32,8 @@ export function proximaEdicao(agora = Date.now()) {
   return n;
 }
 
-export interface Sorteio { nome: string; premio?: string; dezenas: number[]; ganhadores?: string[] }
-export interface Edicao { edicao: number; data: string; sorteios: Sorteio[]; observacoes?: string | null; atualizado_em: string }
+/** Edições com página: da edição base até a próxima + futuras. */
+export function edicoesPublicadas(agora = Date.now()) {
+  const fim = proximaEdicao(agora) + RP.edicoesFuturas - 1;
+  return Array.from({ length: fim - RP.baseEdicao + 1 }, (_, i) => RP.baseEdicao + i);
+}

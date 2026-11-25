@@ -76,26 +76,3 @@ export async function anteriores(db: DB, l: Loteria, antesDe: number, limite = 1
   const rows = await all(db, 'SELECT numero, data, dezenas, acumulado, extra FROM concursos WHERE loteria=? AND numero<? ORDER BY numero DESC LIMIT ?', l.api, antesDe, limite);
   return rows.reverse().map((r) => ({ numero: r.numero as number, data: r.data as string, dezenas: (J(r.dezenas) ?? []) as number[], acumulado: !!r.acumulado, extra: J(r.extra) }));
 }
-
-// ---------- Rio de Prêmios (resultados cadastrados manualmente) ----------
-import type { Edicao } from './riodepremios';
-const RP_TABLE = `CREATE TABLE IF NOT EXISTS rp_edicoes (edicao INTEGER PRIMARY KEY, data TEXT NOT NULL, sorteios TEXT NOT NULL, observacoes TEXT, atualizado_em TEXT NOT NULL)`;
-async function rpTabela(db: DB) { try { await db!.prepare(RP_TABLE).run(); } catch {} }
-const rpParse = (r: any): Edicao => ({ edicao: r.edicao, data: r.data, sorteios: J(r.sorteios) ?? [], observacoes: r.observacoes, atualizado_em: r.atualizado_em });
-
-export async function rpEdicao(db: DB, n: number): Promise<Edicao | null> {
-  if (!db) return null; await rpTabela(db);
-  const r = await all(db, 'SELECT * FROM rp_edicoes WHERE edicao=?', n);
-  return r[0] ? rpParse(r[0]) : null;
-}
-export async function rpLista(db: DB, limite = 60): Promise<Edicao[]> {
-  if (!db) return []; await rpTabela(db);
-  return (await all(db, 'SELECT * FROM rp_edicoes ORDER BY edicao DESC LIMIT ?', limite)).map(rpParse);
-}
-export async function rpSalvar(db: DB, e: Omit<Edicao, 'atualizado_em'>) {
-  await rpTabela(db);
-  await db!.prepare(`INSERT INTO rp_edicoes (edicao, data, sorteios, observacoes, atualizado_em) VALUES (?1,?2,?3,?4,?5)
-    ON CONFLICT(edicao) DO UPDATE SET data=excluded.data, sorteios=excluded.sorteios, observacoes=excluded.observacoes, atualizado_em=excluded.atualizado_em`)
-    .bind(e.edicao, e.data, JSON.stringify(e.sorteios), e.observacoes ?? null, new Date().toISOString()).run();
-}
-export async function rpExcluir(db: DB, n: number) { await rpTabela(db); await db!.prepare('DELETE FROM rp_edicoes WHERE edicao=?').bind(n).run(); }

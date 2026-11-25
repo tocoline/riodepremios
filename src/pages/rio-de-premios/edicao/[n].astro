@@ -4,111 +4,136 @@ import Base from '../../../layouts/Base.astro';
 import RpHero from '../../../components/RpHero.astro';
 import RpNav from '../../../components/RpNav.astro';
 import RpAviso from '../../../components/RpAviso.astro';
-import RpSorteios from '../../../components/RpSorteios.astro';
 import Resposta from '../../../components/Resposta.astro';
 import Faq from '../../../components/Faq.astro';
 import Ad from '../../../components/Ad.astro';
 import Autor from '../../../components/Autor.astro';
 import { RP, proximaEdicao, dataEdicao, isoSorteio } from '../../../lib/riodepremios';
-import { getDB, rpEdicao, rpLista } from '../../../lib/db';
 import { dataBR } from '../../../lib/format';
 import { cachear, naoEncontrado } from '../../../lib/cache';
 import { SITE } from '../../../lib/site';
 
 const n = Number(Astro.params.n);
-if (!Number.isInteger(n) || n < 1) return naoEncontrado(Astro);
-const db = getDB(Astro.locals);
-const e = await rpEdicao(db, n);
 const prox = proximaEdicao();
-const futura = !e && n >= prox && n < prox + RP.edicoesFuturas;
-const aguardando = !e && !futura && n < prox && n >= prox - 2; // sorteada há pouco, resultado ainda não cadastrado
-if (!e && !futura && !aguardando) return naoEncontrado(Astro);
-cachear(Astro, 300);
+const ultimaPublicada = prox + RP.edicoesFuturas - 1;
+if (!Number.isInteger(n) || n < RP.baseEdicao || n > ultimaPublicada) return naoEncontrado(Astro);
+cachear(Astro, 1800);
 
-const data = e?.data ?? dataEdicao(n);
+const realizada = n < prox;
+const data = dataEdicao(n);
 const dataLonga = dataBR(data, true).replace(/^[^,]+, /, '');
-const recentes = e ? [] : (await rpLista(db, 3));
-const temAnterior = n > 1 && (n - 1 >= prox - 2 || !!(await rpEdicao(db, n - 1)));
-const imagem = `/imagem-concurso.png?l=rio-de-premios&n=${n}${e ? '&r=1' : ''}`;
-const totalGanhadores = e?.sorteios.reduce((a, s) => a + (s.ganhadores?.length ?? 0), 0) ?? 0;
-const titulo = e ? `Resultado Rio de Prêmios ${n} (${dataBR(data)}): sorteios e ganhadores` : `Resultado Rio de Prêmios ${n} — domingo, ${dataBR(data)}`;
-const desc = e
-  ? `Resultado do Rio de Prêmios edição ${n}, de ${dataBR(data)}: ${e.sorteios.length} sorteio(s)${totalGanhadores ? ` e ${totalGanhadores} ganhador(es)` : ''}. Confira as dezenas de cada sorteio.`
-  : `Rio de Prêmios edição ${n}: sorteio no domingo, ${dataLonga}. Veja como participar, cadastrar o bilhete e acompanhe o resultado nesta página.`;
+const imagem = `/imagem-concurso.png?l=rio-de-premios&n=${n}${realizada ? '&r=1' : ''}`;
+const oficial = `<a href="${RP.siteOficial}" rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>`;
+
+// Dicas que variam por edição (evita páginas idênticas)
+const DICAS = [
+  ['Cadastre o bilhete logo após a compra', 'O registro no site oficial vincula o bilhete aos seus dados e facilita a identificação em caso de prêmio.'],
+  ['Fotografe frente e verso', 'Uma foto nítida ajuda se o bilhete original for perdido ou danificado.'],
+  ['Compre só em canais oficiais', 'Evite vendedores informais e perfis não oficiais nas redes sociais.'],
+  ['Não compartilhe o código do bilhete', 'Quem tem o código pode tentar usá-lo indevidamente. Guarde-o como uma senha.'],
+  ['Confira o resultado no site oficial', 'O resultado oficial é sempre o publicado pelo Rio de Prêmios/LOTERJ.'],
+  ['Desconfie de taxas para liberar prêmio', 'Nenhum prêmio exige pagamento antecipado. Mensagens assim são golpe.'],
+  ['Defina um limite de gastos', 'Loteria é entretenimento. Decida antes quanto pretende gastar por mês.'],
+  ['Leia o regulamento da edição', 'Prêmios, prazos de resgate e regras de cada sorteio estão no regulamento oficial.'],
+];
+const dicas = Array.from({ length: 4 }, (_, i) => DICAS[(n * 3 + i * 5) % DICAS.length]).filter((d, i, a) => a.indexOf(d) === i);
+
+const titulo = realizada
+  ? `Resultado Rio de Prêmios ${n} (${dataBR(data)}): como conferir`
+  : `Resultado Rio de Prêmios ${n} — domingo, ${dataBR(data)}`;
+const desc = realizada
+  ? `Rio de Prêmios edição ${n}, sorteada no domingo ${dataBR(data)}: veja onde conferir o resultado oficial, como resgatar o prêmio e a próxima edição (${prox}).`
+  : `Rio de Prêmios edição ${n}: sorteio no domingo, ${dataLonga}. Como participar, cadastrar o bilhete e onde conferir o resultado.`;
+const publicado = new Date(Date.parse(isoSorteio(n)) - 14 * 864e5).toISOString();
+const modificado = realizada ? new Date(Date.parse(isoSorteio(n)) + 6 * 3600e3).toISOString() : new Date().toISOString().slice(0, 10) + 'T06:00:00-03:00';
 const schema = [{
   '@context': 'https://schema.org', '@type': 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
-  image: [new URL(imagem, SITE.url).href], datePublished: e ? `${data}T12:00:00-03:00` : new Date(Date.parse(isoSorteio(n)) - 7 * 864e5).toISOString(),
-  dateModified: e?.atualizado_em ?? new Date().toISOString().slice(0, 10) + 'T06:00:00-03:00', mainEntityOfPage: `${SITE.url}/rio-de-premios/edicao/${n}/`,
+  image: [new URL(imagem, SITE.url).href], datePublished: publicado, dateModified: modificado,
+  mainEntityOfPage: `${SITE.url}/rio-de-premios/edicao/${n}/`,
   author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` },
   publisher: { '@type': 'Organization', name: SITE.nome, logo: { '@type': 'ImageObject', url: `${SITE.url}/icon-512.png` } },
 }];
 const faq = [
-  { q: `Quando é o sorteio do Rio de Prêmios ${n}?`, a: `A edição ${n} do Rio de Prêmios é sorteada no domingo, ${dataLonga}. Confira o horário e a transmissão na divulgação oficial.` },
-  { q: `Onde ver o resultado do Rio de Prêmios ${n}?`, a: `Nesta página, assim que o resultado for divulgado, e no site oficial <a href="${RP.siteOficial}" rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>.` },
-  { q: 'Ainda dá tempo de comprar o bilhete?', a: 'As vendas da edição se encerram antes do sorteio. Compre e cadastre seu bilhete com antecedência pelo site oficial e guarde o comprovante.' },
-  { q: 'Meu bilhete foi premiado. E agora?', a: 'Confira o resultado oficial e siga as orientações de resgate do regulamento. Veja nosso guia <a href="/rio-de-premios/como-resgatar/">como resgatar o prêmio</a>.' },
+  { q: `Quando é o sorteio do Rio de Prêmios ${n}?`, a: `A edição ${n} do Rio de Prêmios ${realizada ? 'foi sorteada' : 'será sorteada'} no domingo, ${dataLonga}. Confira o horário e a transmissão na divulgação oficial.` },
+  { q: `Onde ver o resultado do Rio de Prêmios ${n}?`, a: `O resultado oficial é publicado no site ${oficial} e divulgado na transmissão do sorteio.` },
+  realizada
+    ? { q: 'Qual é a próxima edição?', a: `A próxima é a <a href="/rio-de-premios/edicao/${prox}/">edição ${prox}</a>, no domingo, ${dataBR(dataEdicao(prox))}.` }
+    : { q: 'Até quando posso comprar o bilhete?', a: 'As vendas da edição se encerram antes do sorteio. Compre e cadastre seu bilhete com antecedência pelo site oficial.' },
+  { q: 'Meu bilhete foi premiado. E agora?', a: 'Confirme no resultado oficial e siga as orientações de resgate do regulamento. Veja o guia <a href="/rio-de-premios/como-resgatar/">como resgatar o prêmio</a>.' },
 ];
 ---
-<Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={e?.atualizado_em}>
-  <RpHero titulo={`Rio de Prêmios ${n}`} sub={e ? `Resultado do sorteio de domingo, ${dataLonga}.` : `Sorteio no domingo, ${dataLonga}. O resultado aparece nesta página assim que for divulgado.`}
-    crumbs={[{ nome: 'Rio de Prêmios', url: '/rio-de-premios/' }, { nome: `Edição ${n}` }]} alvo={futura ? isoSorteio(n) : undefined} tag={e ? 'Resultado' : futura ? 'Próximo sorteio' : 'Aguardando resultado'} />
+<Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado}>
+  <RpHero titulo={`Rio de Prêmios ${n}`} sub={realizada ? `Sorteio realizado no domingo, ${dataLonga}.` : `Sorteio no domingo, ${dataLonga}.`}
+    crumbs={[{ nome: 'Rio de Prêmios', url: '/rio-de-premios/' }, { nome: `Edição ${n}` }]} alvo={realizada ? undefined : isoSorteio(n)} tag={realizada ? 'Sorteio realizado' : n === prox ? 'Próximo sorteio' : 'Em breve'} />
   <RpNav />
 
   <section class="wrap section-sm rpe">
-    <div class="rpe-main">
+    <div>
       <Resposta>
-        {e ? (
-          <p>O <strong>Rio de Prêmios {n}</strong> foi sorteado no domingo, <strong>{dataBR(data)}</strong>, com <strong>{e.sorteios.length} sorteio(s)</strong>{totalGanhadores ? <> e <strong>{totalGanhadores} ganhador(es)</strong> listados</> : ''}. Confira abaixo as dezenas de cada sorteio.</p>
-        ) : futura ? (
-          <p>A <strong>edição {n} do Rio de Prêmios</strong> será sorteada no <strong>domingo, {dataBR(data)}</strong>. Para participar, compre e cadastre seu bilhete no site oficial antes do encerramento das vendas. O resultado será publicado nesta página.</p>
+        {realizada ? (
+          <p>A <strong>edição {n} do Rio de Prêmios</strong> foi sorteada no <strong>domingo, {dataBR(data)}</strong>. O resultado oficial, com os números e os ganhadores de cada sorteio, está no site <a href={RP.siteOficial} rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>. A próxima edição é a <a href={`/rio-de-premios/edicao/${prox}/`}>{prox}</a>, em {dataBR(dataEdicao(prox))}.</p>
         ) : (
-          <p>A edição {n} foi sorteada no domingo, {dataBR(data)}. O resultado está sendo conferido e será publicado nesta página em breve. Enquanto isso, consulte o site oficial.</p>
+          <p>A <strong>edição {n} do Rio de Prêmios</strong> será sorteada no <strong>domingo, {dataBR(data)}</strong>. Para participar, compre e cadastre o bilhete no site oficial antes do encerramento das vendas. O resultado oficial será publicado em <a href={RP.siteOficial} rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>.</p>
         )}
       </Resposta>
-      <Autor atualizado={e?.atualizado_em} />
+      <Autor atualizado={modificado} revisado={false} />
       <RpAviso />
+      {realizada && <p><a class="btn btn-primary" href={RP.siteOficial} rel="noopener nofollow" target="_blank">Ver resultado oficial da edição {n} ↗</a></p>}
     </div>
     <figure class="rpe-img"><img src={imagem} alt={`Rio de Prêmios edição ${n} — ${dataBR(data)}`} width="1200" height="675" loading="eager" /></figure>
   </section>
 
-  {e ? (
-    <section class="wrap section-sm">
-      <h2>Sorteios da edição {n}</h2>
-      <RpSorteios sorteios={e.sorteios} />
-      {e.observacoes && <div class="prose" style="margin-top:16px"><p>{e.observacoes}</p></div>}
-      <p class="small faint">Resultado transcrito da divulgação oficial. Em caso de divergência, vale o resultado publicado pelo Rio de Prêmios/LOTERJ.</p>
-    </section>
-  ) : (
-    <section class="wrap section-sm">
-      <h2>Como participar da edição {n}</h2>
-      <ol class="steps">
-        <li class="card"><span class="sn">1</span><div><h3>Compre o bilhete</h3><p class="muted">Pelo site oficial do Rio de Prêmios. Desconfie de vendedores não autorizados.</p></div></li>
-        <li class="card"><span class="sn">2</span><div><h3>Cadastre o bilhete</h3><p class="muted">Registre o bilhete com seus dados no site oficial. É o cadastro que vincula o prêmio a você. <a href="/rio-de-premios/bilhete-e-cadastro/">Veja o passo a passo</a>.</p></div></li>
-        <li class="card"><span class="sn">3</span><div><h3>Guarde o comprovante</h3><p class="muted">Fotografe o bilhete e guarde o original até a conferência e o eventual resgate.</p></div></li>
-        <li class="card"><span class="sn">4</span><div><h3>Acompanhe o sorteio</h3><p class="muted">Domingo, {dataBR(data)}. O resultado aparece aqui assim que for divulgado.</p></div></li>
-      </ol>
-      {recentes.length > 0 && (
-        <>
-          <h2>Resultados anteriores</h2>
-          <div class="grid g3">{recentes.map((r) => <a class="card card-link" href={`/rio-de-premios/edicao/${r.edicao}/`}><strong>Edição {r.edicao}</strong><p class="small muted" style="margin:4px 0 0">{dataBR(r.data)} · {r.sorteios.length} sorteio(s)</p></a>)}</div>
-        </>
-      )}
-    </section>
-  )}
+  <section class="wrap section-sm">
+    {realizada ? (
+      <>
+        <h2>Como conferir o resultado da edição {n}</h2>
+        <ol class="steps">
+          <li class="card"><span class="sn">1</span><div><h3>Acesse o site oficial</h3><p class="muted">O resultado de cada sorteio da edição {n} é publicado em riodepremiosoficial.com.br.</p></div></li>
+          <li class="card"><span class="sn">2</span><div><h3>Tenha o bilhete em mãos</h3><p class="muted">Compare os números do seu bilhete com os de cada sorteio da edição.</p></div></li>
+          <li class="card"><span class="sn">3</span><div><h3>Foi premiado? Siga o regulamento</h3><p class="muted">Confira prazos e documentos no regulamento e veja nosso guia <a href="/rio-de-premios/como-resgatar/">como resgatar</a>.</p></div></li>
+        </ol>
+      </>
+    ) : (
+      <>
+        <h2>Como participar da edição {n}</h2>
+        <ol class="steps">
+          <li class="card"><span class="sn">1</span><div><h3>Compre o bilhete</h3><p class="muted">Pelo site oficial do Rio de Prêmios ou em canais autorizados indicados por ele.</p></div></li>
+          <li class="card"><span class="sn">2</span><div><h3>Cadastre o bilhete</h3><p class="muted">Registre o bilhete com seus dados no site oficial. <a href="/rio-de-premios/bilhete-e-cadastro/">Veja o passo a passo</a>.</p></div></li>
+          <li class="card"><span class="sn">3</span><div><h3>Guarde o comprovante</h3><p class="muted">Fotografe o bilhete e guarde o original até a conferência do resultado.</p></div></li>
+          <li class="card"><span class="sn">4</span><div><h3>Acompanhe o sorteio</h3><p class="muted">Domingo, {dataBR(data)}. Depois, confira o resultado no site oficial.</p></div></li>
+        </ol>
+      </>
+    )}
+  </section>
 
   <div class="wrap"><Ad /></div>
+
+  <section class="wrap section-sm">
+    <h2>Dicas para a edição {n}</h2>
+    <div class="grid g2">{dicas.map(([t, d]) => <div class="card"><h3 style="margin:0 0 6px">{t}</h3><p class="muted small" style="margin:0">{d}</p></div>)}</div>
+  </section>
+
+  <section class="wrap section-sm">
+    <h2>Outras edições</h2>
+    <div class="grid g3">
+      {[n - 1, n + 1, n + 2].filter((x) => x >= RP.baseEdicao && x <= ultimaPublicada).map((x) => (
+        <a class="card card-link" href={`/rio-de-premios/edicao/${x}/`}><strong>Rio de Prêmios {x}</strong><p class="small muted" style="margin:4px 0 0">Domingo, {dataBR(dataEdicao(x))}{x < prox ? ' · realizado' : x === prox ? ' · próximo sorteio' : ''}</p></a>
+      ))}
+    </div>
+  </section>
+
   <section class="section-sm"><div class="narrow"><Faq itens={faq} titulo={`Dúvidas sobre o Rio de Prêmios ${n}`} /></div></section>
   <nav class="wrap pager" aria-label="Edições vizinhas">
-    {temAnterior ? <a class="btn" href={`/rio-de-premios/edicao/${n - 1}/`} rel="prev">← Edição {n - 1}</a> : <span></span>}
+    {n > RP.baseEdicao ? <a class="btn" href={`/rio-de-premios/edicao/${n - 1}/`} rel="prev">← Edição {n - 1}</a> : <span></span>}
     <a class="btn" href="/rio-de-premios/">Rio de Prêmios</a>
-    {n + 1 < prox + RP.edicoesFuturas ? <a class="btn" href={`/rio-de-premios/edicao/${n + 1}/`} rel="next">Edição {n + 1} →</a> : <span></span>}
+    {n < ultimaPublicada ? <a class="btn" href={`/rio-de-premios/edicao/${n + 1}/`} rel="next">Edição {n + 1} →</a> : <span></span>}
   </nav>
 </Base>
 <style>
   .rpe { display: grid; grid-template-columns: 1.3fr 1fr; gap: 22px; align-items: start; }
   .rpe-img { margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
   .rpe-img img { width: 100%; height: auto; display: block; }
-  .steps { list-style: none; padding: 0; margin: 16px 0 28px; display: grid; gap: 12px; }
+  .steps { list-style: none; padding: 0; margin: 16px 0 8px; display: grid; gap: 12px; }
   .steps li { display: flex; gap: 18px; align-items: flex-start; }
   .steps h3 { margin: 4px 0; }
   .steps p { margin: 0; }

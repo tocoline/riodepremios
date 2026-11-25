@@ -18,13 +18,13 @@ const prox = proximaEdicao();
   <p>Cada bilhete traz uma combinação de números. Na edição, são realizados vários sorteios, e o bilhete concorre em todos eles — por isso o nome "múltiplas chances". Os prêmios variam conforme a edição e o sorteio, e as regras exatas (quantidade de números, como se define o ganhador em cada sorteio, valores e prêmios) estão no <strong>regulamento oficial</strong> de cada edição.</p>
   {RP.preco && <p>O valor de referência do bilhete é de {reais(RP.preco)}, podendo variar conforme a edição.</p>}
   <h2>Quando são os sorteios</h2>
-  <p>Os sorteios acontecem <strong>aos domingos</strong>, com uma nova edição a cada semana. Aqui no portal, a página de cada edição é publicada com antecedência e passa a mostrar o resultado assim que ele é divulgado.</p>
+  <p>Os sorteios acontecem <strong>aos domingos</strong>, com uma nova edição a cada semana. Aqui no portal, cada edição ganha uma página publicada com antecedência, com data, como participar e como conferir o resultado oficial.</p>
   <ul>
     <li><a href={`/rio-de-premios/edicao/${prox}/`}>Edição {prox}</a> — domingo, {dataBR(dataEdicao(prox))}</li>
     <li><a href={`/rio-de-premios/edicao/${prox + 1}/`}>Edição {prox + 1}</a> — domingo, {dataBR(dataEdicao(prox + 1))}</li>
   </ul>
   <h2>Como conferir o resultado</h2>
-  <p>Consulte a <a href="/rio-de-premios/resultados/">página de resultados</a> do portal, a página da edição ou o site oficial. Para qualquer resgate, vale sempre o resultado oficial.</p>
+  <p>O resultado oficial de cada edição é publicado no site oficial do Rio de Prêmios e divulgado na transmissão do sorteio. Na <a href="/rio-de-premios/resultados/">lista de edições</a> do portal você encontra a data e a página de cada uma.</p>
   <h2>Diferença para as loterias da Caixa</h2>
   <p>A Mega-Sena, a Lotofácil e as demais são loterias federais operadas pela Caixa, com apostas escolhidas pelo jogador. O Rio de Prêmios é uma loteria estadual do RJ, regulada pela LOTERJ, em que o bilhete já vem com sua combinação e concorre em vários sorteios na mesma edição. Veja também os <a href="/">resultados das loterias da Caixa</a>.</p>
 </RpGuia>
