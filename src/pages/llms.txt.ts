@@ -24,6 +24,9 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)
 - [Simulador de chances](${u}/mega-da-virada/simulador/)
 
+## Estatísticas
+${LOTERIAS.filter((l) => l.tipo !== 'colunas').map((l) => `- [Estatísticas da ${l.nome}](${u}/${l.slug}/estatisticas/): dezenas mais sorteadas, atrasadas e frequência`).join('\n')}
+
 ## Guias
 ${GUIAS.map((g) => `- [${g.titulo}](${u}/guias/${g.slug}/): ${g.desc}`).join('\n')}
 

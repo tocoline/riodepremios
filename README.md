@@ -8,6 +8,14 @@ Site de resultados de loterias 100% no Cloudflare (sem custo de hospedagem):
 | Banco de resultados | Cloudflare **D1** | `migrations/` |
 | Coleta automática (a cada 10 min) | Cloudflare **Worker** com Cron Trigger | `workers/coletor/` |
 
+## Situação atual (produção)
+
+- Site: https://riodepremios.pages.dev (deploy automático a cada push na `main`)
+- Coletor: https://riodepremios-coletor.evandroline.workers.dev — `/status` (banco e últimas execuções), `/diag` (fontes), `/teste`
+- Banco D1 `riodepremios` (id `6d6262fc-bbe1-4fa2-91a7-bda343cc1070`)
+- O Worker coletor foi publicado colando `deploy/coletor.js` no editor do Cloudflare. Ao mudar `workers/coletor/src`,
+  gere o arquivo de novo (`npx wrangler deploy -c workers/coletor/wrangler.toml --dry-run --outdir /tmp/wk`) ou publique com `npm run coletor:deploy`.
+
 ## Como funciona
 
 1. O Worker `riodepremios-coletor` roda a cada 10 minutos, busca o último concurso de cada loteria na API pública da Caixa
