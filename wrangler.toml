@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "riodepremios"
-database_id = "COLOQUE_AQUI_O_ID_DO_D1"   # wrangler d1 create riodepremios
+database_id = "6d6262fc-bbe1-4fa2-91a7-bda343cc1070"
 migrations_dir = "migrations"
 
 [vars]
