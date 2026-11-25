@@ -317,57 +317,82 @@ function stmt(db, c) {
   );
 }
 __name(stmt, "stmt");
-async function executar(env) {
+async function gravar(env, c) {
+  await stmt(env.DB, c).run();
+}
+__name(gravar, "gravar");
+async function registrar(env, msg) {
+  try {
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS coletor_log (quando TEXT, mensagem TEXT)").run();
+    await env.DB.prepare("INSERT INTO coletor_log VALUES (?1, ?2)").bind((/* @__PURE__ */ new Date()).toISOString(), msg.slice(0, 2e3)).run();
+    await env.DB.prepare("DELETE FROM coletor_log WHERE rowid NOT IN (SELECT rowid FROM coletor_log ORDER BY quando DESC LIMIT 50)").run();
+  } catch (e) {
+    console.error("log", String(e));
+  }
+}
+__name(registrar, "registrar");
+async function executar(env, historicoMax = 15) {
   usados = 0;
   const log = {};
-  const novos = [];
   const ultimos = {};
+  const erros = [];
   for (const l of LOTERIAS) {
-    const c = await buscar(l.api);
-    if (c) {
-      novos.push(c);
-      ultimos[l.api] = c.numero;
+    try {
+      const c = await buscar(l.api);
+      if (c) {
+        await gravar(env, c);
+        ultimos[l.api] = c.numero;
+      } else erros.push(`${l.api}: nenhuma fonte respondeu`);
+    } catch (e) {
+      erros.push(`${l.api}: ${String(e)}`);
     }
   }
-  if (novos.length) await env.DB.batch(novos.map((c) => stmt(env.DB, c)));
   log.ultimos = ultimos;
-  const faltando = {};
-  for (const l of LOTERIAS) {
-    const topo = ultimos[l.api];
-    if (!topo) continue;
-    const { results } = await env.DB.prepare("SELECT numero FROM concursos WHERE loteria=?").bind(l.api).all();
-    const tem = new Set(results.map((r) => r.numero));
-    const f = [];
-    for (let n2 = topo; n2 >= 1 && f.length < 40; n2--) if (!tem.has(n2)) f.push(n2);
-    if (f.length) faltando[l.api] = f;
-  }
-  const historico = [];
-  let rodada = 0;
-  while (usados < LIMITE_SUBREQ && Object.values(faltando).some((f) => f.length > rodada)) {
-    for (const [api, f] of Object.entries(faltando)) {
-      if (usados >= LIMITE_SUBREQ) break;
-      const n2 = f[rodada];
-      if (n2 === void 0) continue;
-      const c = await buscar(api, n2);
-      if (c) historico.push(c);
+  let gravados = 0;
+  try {
+    const { results } = await env.DB.prepare("SELECT loteria, numero FROM concursos").all();
+    const tem = new Set(results.map((r) => r.loteria + ":" + r.numero));
+    const faltando = [];
+    for (const [api, topo] of Object.entries(ultimos)) {
+      let k = 0;
+      for (let n2 = topo; n2 >= 1 && k < 5; n2--) if (!tem.has(api + ":" + n2)) {
+        faltando.push([api, n2]);
+        k++;
+      }
     }
-    rodada++;
+    faltando.sort((a, b) => b[1] - a[1]);
+    for (const [api, n2] of faltando.slice(0, historicoMax)) {
+      if (usados >= LIMITE_SUBREQ) break;
+      const c = await buscar(api, n2);
+      if (c) {
+        await gravar(env, c);
+        gravados++;
+      }
+    }
+  } catch (e) {
+    erros.push("historico: " + String(e));
   }
-  if (historico.length) await env.DB.batch(historico.map((c) => stmt(env.DB, c)));
-  log.historico = historico.length;
+  log.historico = gravados;
   log.requisicoes = usados;
+  if (erros.length) log.erros = erros;
+  await registrar(env, JSON.stringify(log));
   return log;
 }
 __name(executar, "executar");
 var index_default = {
   async scheduled(_e, env, ctx) {
-    ctx.waitUntil(executar(env).then((l) => console.log(JSON.stringify(l))));
+    ctx.waitUntil(executar(env).catch((e) => registrar(env, "falha: " + String(e))));
   },
   async fetch(req, env) {
     const url = new URL(req.url);
     if (url.pathname === "/status") {
       const { results } = await env.DB.prepare("SELECT loteria, COUNT(*) total, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos GROUP BY loteria").all();
-      return Response.json(results);
+      let execucoes = [];
+      try {
+        execucoes = (await env.DB.prepare("SELECT * FROM coletor_log ORDER BY quando DESC LIMIT 10").all()).results;
+      } catch {
+      }
+      return Response.json({ loterias: results, execucoes });
     }
     if (url.pathname === "/diag") {
       const out = [];
@@ -388,9 +413,20 @@ var index_default = {
       }
       return Response.json(out);
     }
+    if (url.pathname === "/teste") {
+      usados = 0;
+      try {
+        const c = await buscar("megasena");
+        if (!c) return Response.json({ ok: false, erro: "nenhuma fonte respondeu" });
+        await gravar(env, c);
+        return Response.json({ ok: true, gravado: { numero: c.numero, data: c.data, dezenas: c.dezenas, fonte: c.fonte } });
+      } catch (e) {
+        return Response.json({ ok: false, erro: String(e) }, { status: 500 });
+      }
+    }
     if (url.pathname === "/run") {
       if (!env.RUN_TOKEN || url.searchParams.get("token") !== env.RUN_TOKEN) return new Response("n\xE3o autorizado", { status: 401 });
-      return Response.json(await executar(env));
+      return Response.json(await executar(env, Number(url.searchParams.get("historico")) || 15));
     }
     return new Response("Rio de Pr\xEAmios \u2014 coletor de resultados", { status: 200 });
   }

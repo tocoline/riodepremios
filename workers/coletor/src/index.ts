@@ -45,58 +45,67 @@ function stmt(db: D1Database, c: ConcursoRow) {
     c.acumulado_especial, c.local, js(c.cidades_ganhadoras), c.especial ? 1 : 0, c.fonte, new Date().toISOString());
 }
 
-async function executar(env: Env) {
+async function gravar(env: Env, c: ConcursoRow) { await stmt(env.DB, c).run(); }
+
+async function registrar(env: Env, msg: string) {
+  try {
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS coletor_log (quando TEXT, mensagem TEXT)').run();
+    await env.DB.prepare('INSERT INTO coletor_log VALUES (?1, ?2)').bind(new Date().toISOString(), msg.slice(0, 2000)).run();
+    await env.DB.prepare('DELETE FROM coletor_log WHERE rowid NOT IN (SELECT rowid FROM coletor_log ORDER BY quando DESC LIMIT 50)').run();
+  } catch (e) { console.error('log', String(e)); }
+}
+
+/** Busca o último concurso de cada loteria e completa o histórico (até `historicoMax` concursos por execução). */
+async function executar(env: Env, historicoMax = 15) {
   usados = 0;
   const log: Record<string, unknown> = {};
-  const novos: ConcursoRow[] = [];
   const ultimos: Record<string, number> = {};
+  const erros: string[] = [];
 
-  // 1) último concurso de cada loteria
+  // 1) último concurso de cada loteria — grava um a um
   for (const l of LOTERIAS) {
-    const c = await buscar(l.api);
-    if (c) { novos.push(c); ultimos[l.api] = c.numero; }
+    try {
+      const c = await buscar(l.api);
+      if (c) { await gravar(env, c); ultimos[l.api] = c.numero; } else erros.push(`${l.api}: nenhuma fonte respondeu`);
+    } catch (e) { erros.push(`${l.api}: ${String(e)}`); }
   }
-  if (novos.length) await env.DB.batch(novos.map((c) => stmt(env.DB, c)));
   log.ultimos = ultimos;
 
-  // 2) completa o histórico (do mais recente para o mais antigo), dentro do limite de requisições
-  const faltando: Record<string, number[]> = {};
-  for (const l of LOTERIAS) {
-    const topo = ultimos[l.api];
-    if (!topo) continue;
-    const { results } = await env.DB.prepare('SELECT numero FROM concursos WHERE loteria=?').bind(l.api).all<{ numero: number }>();
-    const tem = new Set(results.map((r) => r.numero));
-    const f: number[] = [];
-    for (let n = topo; n >= 1 && f.length < 40; n--) if (!tem.has(n)) f.push(n);
-    if (f.length) faltando[l.api] = f;
-  }
-  const historico: ConcursoRow[] = [];
-  let rodada = 0;
-  while (usados < LIMITE_SUBREQ && Object.values(faltando).some((f) => f.length > rodada)) {
-    for (const [api, f] of Object.entries(faltando)) {
-      if (usados >= LIMITE_SUBREQ) break;
-      const n = f[rodada];
-      if (n === undefined) continue;
-      const c = await buscar(api, n);
-      if (c) historico.push(c);
+  // 2) completa o histórico (do mais recente para o mais antigo)
+  let gravados = 0;
+  try {
+    const { results } = await env.DB.prepare('SELECT loteria, numero FROM concursos').all<{ loteria: string; numero: number }>();
+    const tem = new Set(results.map((r) => r.loteria + ':' + r.numero));
+    const faltando: [string, number][] = [];
+    for (const [api, topo] of Object.entries(ultimos)) {
+      let k = 0;
+      for (let n = topo; n >= 1 && k < 5; n--) if (!tem.has(api + ':' + n)) { faltando.push([api, n]); k++; }
     }
-    rodada++;
-  }
-  if (historico.length) await env.DB.batch(historico.map((c) => stmt(env.DB, c)));
-  log.historico = historico.length;
+    faltando.sort((a, b) => b[1] - a[1]);
+    for (const [api, n] of faltando.slice(0, historicoMax)) {
+      if (usados >= LIMITE_SUBREQ) break;
+      const c = await buscar(api, n);
+      if (c) { await gravar(env, c); gravados++; }
+    }
+  } catch (e) { erros.push('historico: ' + String(e)); }
+  log.historico = gravados;
   log.requisicoes = usados;
+  if (erros.length) log.erros = erros;
+  await registrar(env, JSON.stringify(log));
   return log;
 }
 
 export default {
   async scheduled(_e: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(executar(env).then((l) => console.log(JSON.stringify(l))));
+    ctx.waitUntil(executar(env).catch((e) => registrar(env, 'falha: ' + String(e))));
   },
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);
     if (url.pathname === '/status') {
       const { results } = await env.DB.prepare('SELECT loteria, COUNT(*) total, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos GROUP BY loteria').all();
-      return Response.json(results);
+      let execucoes: unknown[] = [];
+      try { execucoes = (await env.DB.prepare('SELECT * FROM coletor_log ORDER BY quando DESC LIMIT 10').all()).results; } catch {}
+      return Response.json({ loterias: results, execucoes });
     }
     if (url.pathname === '/diag') {
       // diagnóstico: o que cada fonte responde para a Mega-Sena
@@ -113,9 +122,19 @@ export default {
       }
       return Response.json(out);
     }
+    if (url.pathname === '/teste') {
+      // teste público e inofensivo: busca e grava só o último concurso da Mega-Sena
+      usados = 0;
+      try {
+        const c = await buscar('megasena');
+        if (!c) return Response.json({ ok: false, erro: 'nenhuma fonte respondeu' });
+        await gravar(env, c);
+        return Response.json({ ok: true, gravado: { numero: c.numero, data: c.data, dezenas: c.dezenas, fonte: c.fonte } });
+      } catch (e) { return Response.json({ ok: false, erro: String(e) }, { status: 500 }); }
+    }
     if (url.pathname === '/run') {
       if (!env.RUN_TOKEN || url.searchParams.get('token') !== env.RUN_TOKEN) return new Response('não autorizado', { status: 401 });
-      return Response.json(await executar(env));
+      return Response.json(await executar(env, Number(url.searchParams.get('historico')) || 15));
     }
     return new Response('Rio de Prêmios — coletor de resultados', { status: 200 });
   },
