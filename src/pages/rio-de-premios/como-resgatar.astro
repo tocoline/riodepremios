@@ -1,0 +1,21 @@
+---
+import RpGuia from '../../layouts/RpGuia.astro';
+import { RP } from '../../lib/riodepremios';
+---
+<RpGuia titulo="Como resgatar o prêmio do Rio de Prêmios" h1="Como resgatar o prêmio do Rio de Prêmios" crumb="Como resgatar"
+  desc="O que fazer se o seu bilhete do Rio de Prêmios for premiado: conferência, documentos, prazos e impostos."
+  resposta={`Se o seu bilhete foi premiado, confira o resultado no site oficial e siga as instruções de resgate do <strong>regulamento da edição</strong>. Tenha em mãos o bilhete original e um documento com CPF. Prazos e locais de pagamento são definidos pelo regulamento oficial.`}
+  faq={[
+    { q: 'Existe prazo para resgatar?', a: 'Sim, prêmios de loteria têm prazo de resgate definido em regulamento. Não deixe para depois: confira o prazo da sua edição no site oficial.' },
+    { q: 'Tem imposto sobre o prêmio?', a: 'Prêmios de loteria podem ter Imposto de Renda retido na fonte, conforme a legislação. Veja como funciona no nosso guia de <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">Imposto de Renda sobre prêmios</a>.' },
+    { q: 'Alguém pode resgatar por mim?', a: 'Em geral o prêmio é pago ao titular do cadastro. Representação por terceiros costuma exigir procuração; consulte o regulamento.' },
+  ]}>
+  <h2>1. Confira o resultado oficial</h2>
+  <p>Veja a <a href="/rio-de-premios/resultados/">página de resultados</a> e confirme no <a href={RP.siteOficial} rel="noopener nofollow" target="_blank">site oficial</a>. Vale sempre o resultado oficial.</p>
+  <h2>2. Separe os documentos</h2>
+  <ul><li>Bilhete original, sem rasuras.</li><li>Documento oficial com foto e CPF.</li><li>Dados do cadastro do bilhete no site oficial.</li></ul>
+  <h2>3. Siga o procedimento do regulamento</h2>
+  <p>O regulamento de cada edição informa como, onde e em quanto tempo os prêmios são pagos. Prêmios em bens (como carros ou imóveis) podem ter procedimentos próprios de entrega e documentação.</p>
+  <h2>4. Proteja-se</h2>
+  <ul><li>Não divulgue o bilhete premiado nas redes sociais.</li><li>Ninguém cobra taxa para liberar prêmios: isso é golpe.</li><li>Use apenas os canais oficiais de atendimento.</li></ul>
+</RpGuia>

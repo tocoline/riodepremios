@@ -1,0 +1,26 @@
+---
+import Countdown from './Countdown.astro';
+import Crumbs from './Crumbs.astro';
+interface Props { titulo: string; sub?: string; crumbs: { nome: string; url?: string }[]; alvo?: string; tag?: string }
+const { titulo, sub, crumbs, alvo, tag = 'Loteria oficial do Estado do Rio de Janeiro' } = Astro.props;
+---
+<section class="rph">
+  <div class="wrap rph-in">
+    <div class="rph-c"><Crumbs itens={crumbs} /></div>
+    <span class="rph-tag">✦ {tag}</span>
+    <h1 set:html={titulo} />
+    {sub && <p class="rph-sub">{sub}</p>}
+    <slot />
+    {alvo && <div style="margin-top:20px"><Countdown alvo={alvo} /></div>}
+  </div>
+</section>
+<style>
+  .rph { position: relative; overflow: hidden; color: #fff; padding: clamp(28px, 5vw, 60px) 0;
+    background: radial-gradient(60% 90% at 90% 0%, rgba(45,212,191,.40), transparent 60%), radial-gradient(50% 80% at 0% 100%, rgba(242,193,78,.30), transparent 60%), linear-gradient(160deg, #04121a 0%, #0a2230 55%, #1b1606 100%); }
+  .rph::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.5) 1px, transparent 1px); background-size: 24px 24px; mask-image: radial-gradient(70% 70% at 70% 30%, #000, transparent); opacity: .2; }
+  .rph-in { position: relative; }
+  .rph-c :global(.crumbs), .rph-c :global(.crumbs a) { color: rgba(255,255,255,.6); }
+  .rph-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5eead4; margin-bottom: 10px; }
+  .rph h1 { max-width: 22ch; background: linear-gradient(120deg, #fff 35%, #ffd979); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .rph-sub { color: rgba(255,255,255,.8); font-size: clamp(1rem, 1.6vw, 1.15rem); max-width: 62ch; }
+</style>

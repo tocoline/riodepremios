@@ -16,6 +16,16 @@ const ano = new Date().getFullYear();
         <ul>{LOTERIAS.map((l) => <li><a href={`/${l.slug}/`}>{l.nome}</a></li>)}</ul>
       </div>
       <div>
+        <p class="ftr-h">Rio de Prêmios (RJ)</p>
+        <ul>
+          <li><a href="/rio-de-premios/">Resultado de hoje</a></li>
+          <li><a href="/rio-de-premios/resultados/">Todos os resultados</a></li>
+          <li><a href="/rio-de-premios/como-funciona/">Como funciona</a></li>
+          <li><a href="/rio-de-premios/bilhete-e-cadastro/">Bilhete e cadastro</a></li>
+          <li><a href="/rio-de-premios/como-resgatar/">Como resgatar</a></li>
+        </ul>
+      </div>
+      <div>
         <p class="ftr-h">Mega da Virada</p>
         <ul>
           <li><a href="/mega-da-virada/">Guia completo</a></li>
@@ -40,14 +50,14 @@ const ano = new Date().getFullYear();
       </div>
     </div>
     <div class="ftr-legal small faint">
-      <p><strong>Aviso:</strong> o Rio de Prêmios é um site independente e informativo, <strong>sem vínculo com a Caixa Econômica Federal</strong>. Não vendemos apostas. Os resultados são coletados automaticamente de fontes oficiais; sempre confira seu bilhete nos canais oficiais da Caixa antes de qualquer decisão.</p>
+      <p><strong>Aviso:</strong> o Rio de Prêmios é um site independente e informativo, <strong>sem vínculo com a Caixa Econômica Federal, a LOTERJ ou o Rio de Prêmios oficial</strong> (riodepremiosoficial.com.br). Não vendemos apostas. Os resultados são coletados automaticamente de fontes oficiais; sempre confira seu bilhete nos canais oficiais da Caixa antes de qualquer decisão.</p>
       <p>© {ano} Rio de Prêmios. Jogue com responsabilidade.</p>
     </div>
   </div>
 </footer>
 <style>
   .ftr { margin-top: 60px; border-top: 1px solid var(--line); background: var(--bg2); padding: 56px 0 28px; }
-  .ftr-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  .ftr-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 32px; }
   .ftr-brand p { margin-top: 14px; max-width: 34ch; }
   .ftr-h { font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
   .ftr ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: .92rem; }

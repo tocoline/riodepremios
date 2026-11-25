@@ -1,0 +1,26 @@
+---
+import Base from './Base.astro';
+import RpHero from '../components/RpHero.astro';
+import RpNav from '../components/RpNav.astro';
+import RpAviso from '../components/RpAviso.astro';
+import Resposta from '../components/Resposta.astro';
+import Autor from '../components/Autor.astro';
+import Ad from '../components/Ad.astro';
+import Faq from '../components/Faq.astro';
+import { SITE } from '../lib/site';
+interface Props { titulo: string; h1: string; desc: string; crumb: string; resposta: string; faq?: { q: string; a: string }[] }
+const { titulo, h1, desc, crumb, resposta, faq = [] } = Astro.props;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: h1, description: desc, inLanguage: 'pt-BR', dateModified: '2026-11-25', author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` }, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <RpHero titulo={h1} sub={desc} crumbs={[{ nome: 'Rio de Prêmios', url: '/rio-de-premios/' }, { nome: crumb }]} />
+  <RpNav />
+  <article class="narrow section-sm">
+    <Resposta><p set:html={resposta} /></Resposta>
+    <Autor atualizado="2026-11-25T12:00:00-03:00" />
+    <RpAviso />
+    <div class="prose"><slot /></div>
+    <Ad />
+    {faq.length > 0 && <Faq itens={faq} />}
+  </article>
+</Base>

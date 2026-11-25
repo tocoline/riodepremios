@@ -1,0 +1,31 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import RpHero from '../../components/RpHero.astro';
+import RpNav from '../../components/RpNav.astro';
+import RpAviso from '../../components/RpAviso.astro';
+import Ad from '../../components/Ad.astro';
+import { getDB, rpLista } from '../../lib/db';
+import { proximaEdicao, dataEdicao } from '../../lib/riodepremios';
+import { dataBR } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+cachear(Astro);
+const lista = await rpLista(getDB(Astro.locals), 200);
+const prox = proximaEdicao();
+---
+<Base title="Resultados do Rio de Prêmios: todas as edições" description="Todos os resultados do Rio de Prêmios, a loteria oficial do RJ: edições, datas, sorteios e ganhadores.">
+  <RpHero titulo="Resultados do Rio de Prêmios" sub="Todas as edições publicadas no portal, da mais recente para a mais antiga." crumbs={[{ nome: 'Rio de Prêmios', url: '/rio-de-premios/' }, { nome: 'Resultados' }]} />
+  <RpNav />
+  <section class="wrap section-sm">
+    <a class="card card-link nxt" href={`/rio-de-premios/edicao/${prox}/`}><span class="pill hot">Próximo sorteio</span><strong>Edição {prox} · domingo, {dataBR(dataEdicao(prox))}</strong><span>→</span></a>
+    {lista.length ? (
+      <div class="table-wrap" style="margin-top:18px"><table>
+        <thead><tr><th>Edição</th><th>Data</th><th class="num">Sorteios</th><th class="num">Ganhadores listados</th></tr></thead>
+        <tbody>{lista.map((e) => <tr><td><a href={`/rio-de-premios/edicao/${e.edicao}/`}><strong>{e.edicao}</strong></a></td><td>{dataBR(e.data)}</td><td class="num">{e.sorteios.length}</td><td class="num">{e.sorteios.reduce((a, s) => a + (s.ganhadores?.length ?? 0), 0)}</td></tr>)}</tbody>
+      </table></div>
+    ) : <div class="card" style="margin-top:18px"><p class="muted" style="margin:0">Os resultados aparecem aqui assim que forem publicados.</p></div>}
+    <RpAviso />
+    <Ad />
+  </section>
+</Base>
+<style> .nxt { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; } .nxt span:last-child { margin-left: auto; } </style>

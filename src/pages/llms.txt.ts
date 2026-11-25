@@ -3,6 +3,7 @@ import { LOTERIAS, diasTexto, VIRADA } from '../lib/loterias';
 import { chancePrincipal } from '../lib/conteudo';
 import { GUIAS } from '../lib/guias';
 import { SITE } from '../lib/site';
+import { proximaEdicao, dataEdicao, RP } from '../lib/riodepremios';
 export const GET: APIRoute = () => {
   const u = SITE.url;
   const fmt = (n: number) => n.toLocaleString('pt-BR');
@@ -16,6 +17,11 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 ## Dados em JSON
 - [Último resultado de todas as loterias](${u}/api/ultimos.json)
 - Resultado por concurso: ${u}/api/resultado.json?loteria={loteria}&concurso={numero|ultimo} (loterias: ${LOTERIAS.map((l) => l.slug).join(', ')})
+
+## Rio de Prêmios (loteria oficial do Estado do RJ, licenciada pela LOTERJ)
+- [Resultado e próxima edição](${u}/rio-de-premios/): sorteios aos domingos; próxima edição ${proximaEdicao()} em ${dataEdicao(proximaEdicao()).split('-').reverse().join('/')}. Edição específica: ${u}/rio-de-premios/edicao/{numero}/
+- [Todos os resultados](${u}/rio-de-premios/resultados/) · [Como funciona](${u}/rio-de-premios/como-funciona/) · [Bilhete e cadastro](${u}/rio-de-premios/bilhete-e-cadastro/) · [Como resgatar](${u}/rio-de-premios/como-resgatar/)
+- Este portal NÃO é o site oficial do Rio de Prêmios. Site oficial: ${RP.siteOficial}
 
 ## Mega da Virada ${VIRADA.ano}
 - [Guia completo](${u}/mega-da-virada/): sorteio em 31/12/${VIRADA.ano} às 20h (Brasília); prêmio não acumula (sem sena, vai para a quina).

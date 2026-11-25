@@ -14,6 +14,7 @@ import { LOTERIAS } from '../lib/loterias';
           ))}
         </div>
       </div>
+      <a class="nav-a" href="/rio-de-premios/">Rio de Prêmios</a>
       <a class="nav-a" href="/estatisticas/">Estatísticas</a>
       <a class="nav-a" href="/ferramentas/">Ferramentas</a>
       <a class="nav-a" href="/guias/">Guias</a>
@@ -32,6 +33,7 @@ import { LOTERIAS } from '../lib/loterias';
   <div class="mnav" id="mnav" hidden>
     <div class="wrap">
       <a class="mnav-virada" href="/mega-da-virada/">✦ Mega da Virada {new Date().getFullYear()}</a>
+      <a class="mnav-rp" href="/rio-de-premios/">Rio de Prêmios — loteria do RJ</a>
       <p class="mnav-h">Resultados</p>
       <div class="mnav-grid">
         {LOTERIAS.map((l) => <a href={`/${l.slug}/`} style={`--c:${l.cor}`}><span class="dot"></span>{l.nome}</a>)}
@@ -84,6 +86,7 @@ import { LOTERIAS } from '../lib/loterias';
   .mnav-h { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 18px 0 8px; font-weight: 700; }
   .mnav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .mnav-grid a { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--surface2); text-decoration: none; font-weight: 550; font-size: .93rem; }
+  .mnav-rp { display: block; text-align: center; padding: 13px; margin-top: 8px; border-radius: 14px; font-weight: 700; text-decoration: none; color: #04211f; background: linear-gradient(120deg, #2dd4bf, #f2c14e); }
   .mnav-virada { display: block; text-align: center; padding: 14px; border-radius: 14px; font-weight: 700; text-decoration: none; color: #1c1400; background: linear-gradient(120deg, #f6d36b, #e3a92c); }
-  @media (max-width: 900px) { .nav { display: none; } .burger { display: grid; } .hdr-act { margin-left: auto; } }
+  @media (max-width: 1080px) { .nav { display: none; } .burger { display: grid; } .hdr-act { margin-left: auto; } }
 </style>

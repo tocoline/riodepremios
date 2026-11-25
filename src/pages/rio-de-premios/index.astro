@@ -1,0 +1,75 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import RpHero from '../../components/RpHero.astro';
+import RpNav from '../../components/RpNav.astro';
+import RpAviso from '../../components/RpAviso.astro';
+import RpSorteios from '../../components/RpSorteios.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { RP, proximaEdicao, dataEdicao, isoSorteio } from '../../lib/riodepremios';
+import { getDB, rpLista } from '../../lib/db';
+import { dataBR } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+
+cachear(Astro);
+const prox = proximaEdicao();
+const lista = await rpLista(getDB(Astro.locals), 12);
+const ultima = lista[0];
+const futuras = Array.from({ length: RP.edicoesFuturas }, (_, i) => prox + i);
+const faq = [
+  { q: 'O que é o Rio de Prêmios?', a: 'É a loteria oficial do Estado do Rio de Janeiro, licenciada pela LOTERJ na modalidade de prognóstico numérico de "múltiplas chances". O bilhete concorre em vários sorteios na mesma edição.' },
+  { q: 'Quando é o sorteio do Rio de Prêmios?', a: `Os sorteios acontecem aos domingos. A próxima edição é a ${prox}, em ${dataBR(dataEdicao(prox), true)}. Confira sempre o horário na divulgação oficial.` },
+  { q: 'Onde comprar e cadastrar o bilhete?', a: `A compra e o registro do bilhete são feitos pelo site oficial, <a href="${RP.siteOficial}" rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>, conforme informa a LOTERJ. Veja o guia de <a href="/rio-de-premios/bilhete-e-cadastro/">bilhete e cadastro</a>.` },
+  { q: 'Onde vejo o resultado?', a: `Nesta página e na página de cada edição, aqui no portal, além do site oficial e da transmissão do sorteio. A página da edição ${prox} já está no ar e mostra o resultado assim que ele é publicado.` },
+  { q: 'Este é o site oficial do Rio de Prêmios?', a: 'Não. O riodepremios.com.br é um portal informativo independente. O site oficial é o riodepremiosoficial.com.br.' },
+];
+---
+<Base title={`Rio de Prêmios: resultado de hoje, edição ${prox} e como participar`} description={`Rio de Prêmios, a loteria oficial do RJ: resultado da edição ${prox} (${dataBR(dataEdicao(prox))}), resultados anteriores, como funciona, bilhete, cadastro e resgate de prêmios.`}>
+  <RpHero titulo={`Rio de Prêmios <span style="color:#5eead4;-webkit-text-fill-color:#5eead4">edição ${prox}</span>`} sub={`Sorteio no domingo, ${dataBR(dataEdicao(prox), true).replace(/^[^,]+, /, '')}. Resultados, guias de bilhete e cadastro e tudo sobre a loteria oficial do Estado do Rio de Janeiro.`} crumbs={[{ nome: 'Rio de Prêmios' }]} alvo={isoSorteio(prox)}>
+    <p style="margin-top:14px"><a class="btn btn-primary" href={`/rio-de-premios/edicao/${prox}/`}>Edição {prox}: resultado e informações →</a></p>
+  </RpHero>
+  <RpNav />
+  <section class="wrap section-sm">
+    <Resposta><p>O <strong>Rio de Prêmios</strong> é a loteria oficial do Estado do Rio de Janeiro, licenciada pela LOTERJ. A próxima edição é a <strong>{prox}</strong>, sorteada no <strong>domingo, {dataBR(dataEdicao(prox))}</strong>. O bilhete é comprado e cadastrado no site oficial, e o resultado aparece aqui na página da edição.</p></Resposta>
+    <RpAviso />
+  </section>
+
+  <section class="wrap section-sm">
+    <h2>Próximas edições</h2>
+    <div class="grid g2">
+      {futuras.map((n) => (
+        <a class="card card-link rpf" href={`/rio-de-premios/edicao/${n}/`}>
+          <span class="pill">{n === prox ? 'Próximo sorteio' : 'Em seguida'}</span>
+          <h3>Rio de Prêmios {n}</h3>
+          <p class="muted">Domingo, {dataBR(dataEdicao(n))}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap section-sm">
+    <h2>{ultima ? `Último resultado: edição ${ultima.edicao}` : 'Últimos resultados'}</h2>
+    {ultima ? (
+      <>
+        <p class="muted">Sorteio de {dataBR(ultima.data, true)}. <a href={`/rio-de-premios/edicao/${ultima.edicao}/`}>Ver página completa da edição →</a></p>
+        <RpSorteios sorteios={ultima.sorteios.slice(0, 4)} />
+        <p><a class="btn" href="/rio-de-premios/resultados/">Todos os resultados →</a></p>
+      </>
+    ) : <div class="card"><p class="muted" style="margin:0">Os resultados aparecem aqui assim que forem publicados.</p></div>}
+  </section>
+
+  <div class="wrap"><Ad /></div>
+
+  <section class="wrap section-sm">
+    <h2>Guias do Rio de Prêmios</h2>
+    <div class="grid g3">
+      <a class="card card-link" href="/rio-de-premios/como-funciona/"><h3>Como funciona</h3><p class="small muted">A loteria de múltiplas chances do RJ, explicada.</p></a>
+      <a class="card card-link" href="/rio-de-premios/bilhete-e-cadastro/"><h3>Bilhete e cadastro</h3><p class="small muted">Como comprar, registrar e guardar seu bilhete com segurança.</p></a>
+      <a class="card card-link" href="/rio-de-premios/como-resgatar/"><h3>Como resgatar</h3><p class="small muted">O que fazer se o seu bilhete for premiado.</p></a>
+    </div>
+  </section>
+  <section class="section-sm"><div class="narrow"><Faq itens={faq} titulo="Perguntas frequentes sobre o Rio de Prêmios" /></div></section>
+</Base>
+<style> .rpf h3 { margin: 10px 0 2px; } .rpf p { margin: 0; } </style>

@@ -1,0 +1,32 @@
+---
+import RpGuia from '../../layouts/RpGuia.astro';
+import { RP } from '../../lib/riodepremios';
+---
+<RpGuia titulo="Bilhete e cadastro do Rio de Prêmios: como comprar e registrar" h1="Bilhete e cadastro do Rio de Prêmios" crumb="Bilhete e cadastro"
+  desc="Como comprar o bilhete do Rio de Prêmios, por que cadastrar, quais dados ter em mãos e como evitar golpes."
+  resposta={`O bilhete do Rio de Prêmios é comprado e <strong>registrado (cadastrado) no site oficial</strong>, <a href="${RP.siteOficial}" rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>, conforme orientação da LOTERJ. O cadastro vincula o bilhete aos seus dados e é importante para o resgate de prêmios.`}
+  faq={[
+    { q: 'Preciso cadastrar o bilhete?', a: 'O registro do bilhete no site oficial é o caminho indicado pela LOTERJ. Ele vincula o bilhete a você e facilita a identificação em caso de prêmio. Confira no regulamento se o cadastro é obrigatório para cada tipo de prêmio.' },
+    { q: 'Quais dados vou precisar?', a: 'Normalmente, dados pessoais como nome e CPF, além do número ou código do bilhete. Use sempre seus dados verdadeiros: o prêmio é pago ao titular identificado.' },
+    { q: 'Perdi meu bilhete. E agora?', a: 'Entre em contato com o atendimento oficial do Rio de Prêmios informando os dados do cadastro. Por isso é tão importante cadastrar e fotografar o bilhete logo após a compra.' },
+  ]}>
+  <h2>Onde comprar</h2>
+  <p>Compre pelo <a href={RP.siteOficial} rel="noopener nofollow" target="_blank">site oficial</a> ou em canais autorizados indicados por ele. Evite vendedores informais e perfis em redes sociais que não sejam oficiais.</p>
+  <h2>Passo a passo do cadastro</h2>
+  <ol>
+    <li>Acesse o site oficial do Rio de Prêmios.</li>
+    <li>Crie sua conta ou faça login com seus dados pessoais.</li>
+    <li>Informe o número/código do bilhete na área de registro.</li>
+    <li>Confira se o bilhete aparece vinculado à sua conta e guarde o comprovante.</li>
+  </ol>
+  <p class="small faint">As telas e etapas podem mudar; siga sempre as instruções do site oficial.</p>
+  <h2>Boas práticas</h2>
+  <ul>
+    <li><strong>Fotografe o bilhete</strong> (frente e verso) logo após a compra.</li>
+    <li><strong>Guarde o original</strong> em local seguro até a conferência do resultado.</li>
+    <li><strong>Não compartilhe</strong> o código do bilhete nem dados de acesso com ninguém.</li>
+    <li>Confira o resultado da edição na <a href="/rio-de-premios/resultados/">página de resultados</a>.</li>
+  </ul>
+  <h2>Cuidado com golpes</h2>
+  <p>Ninguém precisa pagar taxa para "liberar" prêmio. Desconfie de mensagens, ligações ou perfis que pedem pagamento, senha ou código do bilhete. Na dúvida, procure apenas os canais oficiais.</p>
+</RpGuia>

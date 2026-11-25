@@ -1,0 +1,29 @@
+---
+import Bolas from './Bolas.astro';
+import type { Sorteio } from '../lib/riodepremios';
+import { RP } from '../lib/riodepremios';
+interface Props { sorteios: Sorteio[] }
+const { sorteios } = Astro.props;
+---
+<div class="rps">
+  {sorteios.map((s, i) => (
+    <article class="card rps-i">
+      <div class="rps-top"><h3>{s.nome || `${i + 1}º sorteio`}</h3>{s.premio && <span class="pill hot">{s.premio}</span>}</div>
+      {s.dezenas.length > 0 && <Bolas dezenas={s.dezenas} cor={RP.cor} tam="sm" />}
+      {s.ganhadores && s.ganhadores.length > 0 && (
+        <details class="rps-g" open={s.ganhadores.length <= 5}>
+          <summary>{s.ganhadores.length} ganhador{s.ganhadores.length > 1 ? 'es' : ''}</summary>
+          <ul>{s.ganhadores.map((g) => <li>{g}</li>)}</ul>
+        </details>
+      )}
+    </article>
+  ))}
+</div>
+<style>
+  .rps { display: grid; gap: 12px; }
+  .rps-i { display: flex; flex-direction: column; gap: 12px; }
+  .rps-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rps-top h3 { margin: 0; font-size: 1.1rem; }
+  .rps-g summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--muted); }
+  .rps-g ul { margin: 8px 0 0; padding-left: 1.2em; font-size: .92rem; color: var(--muted); columns: 2 260px; }
+</style>

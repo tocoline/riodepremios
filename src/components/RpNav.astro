@@ -1,0 +1,12 @@
+---
+const itens = [['/rio-de-premios/', 'Início'], ['/rio-de-premios/resultados/', 'Resultados'], ['/rio-de-premios/como-funciona/', 'Como funciona'], ['/rio-de-premios/bilhete-e-cadastro/', 'Bilhete e cadastro'], ['/rio-de-premios/como-resgatar/', 'Como resgatar']];
+const atual = Astro.url.pathname;
+---
+<nav class="rpnav" aria-label="Seção Rio de Prêmios"><div class="wrap rpnav-in">{itens.map(([h, t]) => <a href={h} aria-current={atual === h ? 'page' : undefined}>{t}</a>)}</div></nav>
+<style>
+  .rpnav { position: sticky; top: 68px; z-index: 40; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  .rpnav-in { display: flex; gap: 4px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+  .rpnav a { flex: none; padding: 8px 14px; border-radius: 999px; font-size: .88rem; font-weight: 600; text-decoration: none; color: var(--muted); }
+  .rpnav a:hover { color: var(--text); background: var(--surface2); }
+  .rpnav a[aria-current="page"] { color: #04211f; background: linear-gradient(120deg, #2dd4bf, #f2c14e); }
+</style>

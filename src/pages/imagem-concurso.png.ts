@@ -3,7 +3,8 @@
 import type { APIRoute } from 'astro';
 import { ImageResponse, CustomFont, cache } from '@cf-wasm/og/workerd';
 import { POR_SLUG, DIAS } from '../lib/loterias';
-import { getDB, concurso, ultimos } from '../lib/db';
+import { getDB, concurso, ultimos, rpEdicao } from '../lib/db';
+import { RP, dataEdicao, proximaEdicao } from '../lib/riodepremios';
 import { reaisCurto, pad } from '../lib/format';
 
 export const prerender = false;
@@ -15,11 +16,38 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const env = (locals as any).runtime?.env;
   const ctx = (locals as any).runtime?.ctx;
   if (ctx) cache.setExecutionContext(ctx);
-  const l = POR_SLUG[url.searchParams.get('l') ?? ''];
+  const slug = url.searchParams.get('l') ?? '';
   const n = Number(url.searchParams.get('n'));
+  const db = getDB(locals);
+  if (slug === 'rio-de-premios' && Number.isInteger(n) && n > 0) {
+    // ---- Rio de Prêmios ----
+    const e = await rpEdicao(db, n);
+    if (!e && n < proximaEdicao() - 2) return new Response('edição não encontrada', { status: 404 });
+    const [y, m, d] = (e?.data ?? dataEdicao(n)).split('-').map(Number);
+    const fonte = (f: string) => () => env.ASSETS.fetch(new URL(`/og-fonts/${f}`, url)).then((r: Response) => r.arrayBuffer());
+    const arv = h('div', {
+      width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'space-between', padding: '56px 64px', color: '#fff', fontFamily: 'IN4',
+      backgroundColor: '#04121a', backgroundImage: 'radial-gradient(60% 90% at 100% 0%, #2dd4bf88, transparent 60%), radial-gradient(50% 80% at 0% 100%, #f2c14e55, transparent 60%)',
+    },
+      h('div', { justifyContent: 'space-between', alignItems: 'center' },
+        h('div', { fontSize: 30, fontFamily: 'SG', color: '#c8d0e0' }, 'riodepremios.com.br'),
+        h('div', { fontSize: 26, color: '#c8d0e0', padding: '10px 22px', borderRadius: 40, border: '2px solid #ffffff33' }, e ? 'Resultado' : 'Próximo sorteio'),
+      ),
+      h('div', { flexDirection: 'column', gap: 8 },
+        h('div', { fontSize: 40, color: '#5eead4', fontFamily: 'IN6' }, 'Loteria oficial do RJ'),
+        h('div', { fontSize: 96, fontFamily: 'SG', letterSpacing: -3 }, `${RP.nome} ${n}`),
+        h('div', { fontSize: 38, color: '#ffd979', fontFamily: 'IN6' }, `Domingo, ${pad(d)}/${pad(m)}/${y}`),
+      ),
+      h('div', { fontSize: 32, color: '#eef2fb', fontFamily: 'IN6' }, e ? `${e.sorteios.length} sorteios · confira as dezenas e os ganhadores` : 'Resultado, bilhete e cadastro — tudo nesta página'),
+    );
+    const img = await ImageResponse.async(arv as any, { width: 1200, height: 675, format: 'png',
+      fonts: [new CustomFont('SG', fonte('sg700.woff'), { weight: 700 }), new CustomFont('IN4', fonte('in400.woff'), { weight: 400 }), new CustomFont('IN6', fonte('in600.woff'), { weight: 600 })] });
+    const hh = new Headers(img.headers); hh.set('Cache-Control', e ? 'public, max-age=86400, s-maxage=604800' : 'public, max-age=600, s-maxage=1800');
+    return new Response(img.body, { status: 200, headers: hh });
+  }
+  const l = POR_SLUG[slug];
   if (!l || !Number.isInteger(n) || n < 1) return new Response('parâmetros inválidos', { status: 400 });
 
-  const db = getDB(locals);
   const c = await concurso(db, l, n);
   const [ult] = c ? [null] : await ultimos(db, l, 1);
   const prox = !c && ult && ult.proximo_numero === n ? ult : null;

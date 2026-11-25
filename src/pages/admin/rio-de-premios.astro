@@ -1,0 +1,79 @@
+---
+import Base from '../../layouts/Base.astro';
+import { proximaEdicao, dataEdicao } from '../../lib/riodepremios';
+const ultima = proximaEdicao() - 1;
+---
+<Base title="Admin — Rio de Prêmios" description="Cadastro de resultados" noindex>
+  <section class="narrow section-sm">
+    <h1>Cadastrar resultado do Rio de Prêmios</h1>
+    <p class="muted">Área restrita. Cole o resultado da edição no formato abaixo, confira a prévia e salve. A página da edição é atualizada na hora.</p>
+    <form class="card adm" onsubmit="return false">
+      <div class="row">
+        <div class="field"><label>Senha de administração</label><input name="token" type="password" autocomplete="current-password" /></div>
+        <div class="field"><label>Edição</label><input name="edicao" type="number" min="1" value={ultima} /></div>
+        <div class="field"><label>Data do sorteio</label><input name="data" type="date" value={dataEdicao(ultima)} /></div>
+      </div>
+      <div class="field">
+        <label>Sorteios</label>
+        <textarea name="texto" rows="14" placeholder={`## 1º Sorteio | Casa\ndezenas: 03 07 12 18 25 33 41 48\nMaria S. — Bangu (RJ)\n\n## Giro da Sorte | R$ 1.000\ndezenas: 05 09 22\nJoão P. — Niterói (RJ)\nAna L. — Duque de Caxias (RJ)`}></textarea>
+        <span class="small faint">Cada sorteio começa com <code>## Nome | Prêmio</code>. Linha com <code>dezenas:</code> traz os números. As demais linhas são ganhadores (opcional).</span>
+      </div>
+      <div class="field"><label>Observações (opcional)</label><textarea name="obs" rows="3"></textarea></div>
+      <div class="acts">
+        <button class="btn" type="button" data-carregar>Carregar edição</button>
+        <button class="btn btn-primary" type="button" data-salvar>Salvar resultado</button>
+        <button class="btn" type="button" data-excluir>Excluir edição</button>
+      </div>
+      <div class="msg" aria-live="polite"></div>
+      <h3>Prévia</h3>
+      <div class="prev"></div>
+    </form>
+  </section>
+</Base>
+<script>
+  const f = document.querySelector<HTMLFormElement>('.adm')!;
+  const el = (n: string) => f.elements.namedItem(n) as HTMLInputElement;
+  const msg = (t: string, ok = false) => { const m = f.querySelector('.msg')!; m.textContent = t; (m as HTMLElement).style.color = ok ? 'var(--brand)' : 'var(--gold)'; };
+  try { el('token').value = sessionStorage.getItem('rp-token') ?? ''; } catch {}
+  type S = { nome: string; premio?: string; dezenas: number[]; ganhadores: string[] };
+  const parse = (t: string): S[] => {
+    const out: S[] = []; let cur: S | null = null;
+    for (const raw of t.split('\n')) {
+      const l = raw.trim(); if (!l) continue;
+      if (l.startsWith('##')) { const [nome, premio] = l.replace(/^#+/, '').split('|').map((x) => x.trim()); cur = { nome, premio: premio || undefined, dezenas: [], ganhadores: [] }; out.push(cur); continue; }
+      if (!cur) { cur = { nome: `${out.length + 1}º sorteio`, dezenas: [], ganhadores: [] }; out.push(cur); }
+      const m = /^dezenas?\s*:\s*(.*)$/i.exec(l);
+      if (m || /^[\d\s,.;-]+$/.test(l)) { cur.dezenas.push(...(m ? m[1] : l).split(/[^0-9]+/).filter(Boolean).map(Number)); continue; }
+      cur.ganhadores.push(l);
+    }
+    return out;
+  };
+  const toText = (ss: S[]) => ss.map((s) => [`## ${s.nome}${s.premio ? ' | ' + s.premio : ''}`, s.dezenas.length ? 'dezenas: ' + s.dezenas.map((d) => String(d).padStart(2, '0')).join(' ') : '', ...(s.ganhadores ?? [])].filter(Boolean).join('\n')).join('\n\n');
+  const preview = () => {
+    const ss = parse(el('texto').value);
+    f.querySelector('.prev')!.innerHTML = ss.map((s) => `<div class="card" style="margin-bottom:8px;padding:14px"><strong>${s.nome}</strong>${s.premio ? ` · <span class="pill hot">${s.premio}</span>` : ''}<div class="balls" style="margin:8px 0">${s.dezenas.map((d) => `<span class="ball sm" style="--c:#0ea5a4">${String(d).padStart(2, '0')}</span>`).join('')}</div><span class="small muted">${s.ganhadores.length} ganhador(es)</span></div>`).join('') || '<p class="muted">Nada para mostrar ainda.</p>';
+  };
+  const chamar = async (body: object) => {
+    try { sessionStorage.setItem('rp-token', el('token').value); } catch {}
+    const r = await fetch('/api/admin/rio-de-premios.json', { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-token': el('token').value }, body: JSON.stringify(body) });
+    return [r.ok, await r.json().catch(() => ({}))] as const;
+  };
+  f.addEventListener('input', preview);
+  f.querySelector('[data-salvar]')!.addEventListener('click', async () => {
+    const sorteios = parse(el('texto').value);
+    if (!sorteios.length) return msg('Cole pelo menos um sorteio.');
+    const [ok, d] = await chamar({ edicao: Number(el('edicao').value), data: el('data').value, sorteios, observacoes: el('obs').value });
+    ok ? msg(`Salvo! Veja em /rio-de-premios/edicao/${el('edicao').value}/`, true) : msg('Erro: ' + (d.erro ?? 'desconhecido'));
+  });
+  f.querySelector('[data-excluir]')!.addEventListener('click', async () => {
+    if (!confirm(`Excluir a edição ${el('edicao').value}?`)) return;
+    const [ok, d] = await chamar({ edicao: Number(el('edicao').value), excluir: true });
+    ok ? msg('Edição excluída.', true) : msg('Erro: ' + (d.erro ?? 'desconhecido'));
+  });
+  f.querySelector('[data-carregar]')!.addEventListener('click', async () => {
+    const r = await fetch(`/api/admin/rio-de-premios.json?edicao=${el('edicao').value}`);
+    if (!r.ok) return msg('Edição ainda não cadastrada.');
+    const e = await r.json(); el('data').value = e.data; el('texto').value = toText(e.sorteios); el('obs').value = e.observacoes ?? ''; preview(); msg('Edição carregada.', true);
+  });
+  preview();
+</script>
