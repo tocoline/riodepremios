@@ -6,4 +6,4 @@ export function premioPrincipal(c: Concurso) {
   if (quina) return { faixa: 'quina', ganhadores: quina.ganhadores, porGanhador: quina.premio, total: quina.premio * quina.ganhadores };
   return { faixa: '—', ganhadores: 0, porGanhador: 0, total: 0 };
 }
-export const anoDe = (c: Concurso) => Number(c.data.slice(0, 4));
+export const anoDe = (c: Concurso) => Number(c.data.slice(0, 4)) - (c.data.slice(5, 7) === '01' ? 1 : 0);

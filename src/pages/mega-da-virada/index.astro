@@ -23,16 +23,17 @@ const [ultMega] = await ultimos(db, l, 1);
 const viradas = await especiais(db, l);
 const ultima = viradas[0];
 const ultimaJaSorteada = ultima && anoDe(ultima) === VIRADA.ano;
-const acumulado = ultMega?.acumulado_especial;
+const acumulado = VIRADA.premioValor;
 const ranking = [...viradas].map((c) => ({ c, p: premioPrincipal(c) })).sort((a, b) => b.p.total - a.p.total).slice(0, 5);
 const recorde = ranking[0];
 
 const faq = [
-  { q: `Quando é o sorteio da Mega da Virada ${VIRADA.ano}?`, a: `O sorteio acontece em <strong>31 de dezembro de ${VIRADA.ano}, às 20h</strong> (horário de Brasília), com transmissão ao vivo pelos canais da Caixa. O Rio de Prêmios publica o resultado automaticamente minutos depois.` },
+  { q: `Quando é o sorteio da Mega da Virada ${VIRADA.ano}?`, a: `O concurso ${VIRADA.concurso} será sorteado em <strong>${VIRADA.dataTexto}, às ${VIRADA.hora}</strong> (horário de Brasília), no ${VIRADA.local}, com transmissão ao vivo pelos canais da Caixa. O resultado aparece aqui automaticamente minutos depois.` },
+  { q: `Qual o prêmio da Mega da Virada ${VIRADA.ano}?`, a: `A Caixa estima um prêmio de <strong>${VIRADA.premioTexto}</strong>. O valor final é divulgado após o encerramento das vendas.` },
   { q: 'A Mega da Virada acumula?', a: 'Não. Se ninguém acertar as seis dezenas, o prêmio principal é dividido entre os apostadores que acertaram cinco números (quina). Se também não houver acertadores da quina, o valor passa para a quadra.' },
   { q: 'Quanto custa apostar na Mega da Virada?', a: `A aposta simples, com 6 números, custa ${reais(l.preco)} — o mesmo preço de um jogo comum da Mega-Sena. É possível marcar até 20 números; nesse caso a aposta custa ${reais(232560)}.` },
   { q: 'Qual a chance de ganhar a Mega da Virada?', a: 'Com uma aposta simples de 6 números, a chance de acertar as seis dezenas é de 1 em 50.063.860. Com 7 números, sobe para 1 em 7.151.980; com 10 números, 1 em 238.399; com 15 números, 1 em 10.003.' },
-  { q: 'Até que horas posso apostar na Mega da Virada?', a: 'As apostas costumam ser aceitas até algumas horas antes do sorteio do dia 31, nas lotéricas e nos canais digitais da Caixa. O horário exato de encerramento é divulgado pela Caixa — não deixe para a última hora, porque as filas e o tráfego no app aumentam muito.' },
+  { q: 'Até quando posso apostar na Mega da Virada?', a: 'As apostas individuais vão até <strong>31 de dezembro de 2026, às 22h</strong>. Bolões digitais podem ser comprados nos canais da Caixa até <strong>9h de 1º de janeiro de 2027</strong>. Até 15 de dezembro, as vendas acontecem junto com os concursos regulares; de 16 a 31 de dezembro, são exclusivas para a Virada.' },
   { q: 'Como é feita a divisão do prêmio no bolão?', a: 'No bolão oficial da Caixa, cada cota dá direito a uma fração igual do prêmio que o grupo ganhar. Use a nossa <a href="/mega-da-virada/calculadora-de-bolao/">calculadora de bolão</a> para ver custo, valor da cota e quanto cada participante recebe.' },
   { q: 'Quanto de imposto se paga sobre o prêmio?', a: 'Prêmios de loteria acima do limite de isenção têm 30% de Imposto de Renda retido na fonte. Veja o valor líquido na nossa <a href="/mega-da-virada/premio-liquido/">calculadora de prêmio líquido</a>.' },
   { q: 'Qual o prazo para resgatar o prêmio?', a: 'O prazo é de 90 dias corridos após o sorteio. Prêmios altos são pagos em agências da Caixa, mediante apresentação do bilhete original e documento de identificação. Depois do prazo, o valor é repassado ao FIES.' },
@@ -56,10 +57,10 @@ const ferramentas = [
   ['/mega-da-virada/resultados/', '🏆', 'Todos os resultados', 'Histórico completo, ano a ano'],
 ];
 ---
-<Base title={`Mega da Virada ${VIRADA.ano}: prêmio, data, como apostar e resultados`} description={`Tudo sobre a Mega da Virada ${VIRADA.ano}: data e horário do sorteio (31/12, 20h), prêmio estimado, chances, calculadora de bolão, estatísticas e todos os resultados anteriores.`} schema={schema} type="article">
+<Base title={`Mega da Virada ${VIRADA.ano}: prêmio de ${VIRADA.premioTexto}, data, horário e prazos`} description={`Mega da Virada ${VIRADA.ano}, concurso ${VIRADA.concurso}: prêmio estimado em ${VIRADA.premioTexto}, sorteio em ${VIRADA.dataCurta} às ${VIRADA.hora}. Prazos de aposta, chances, calculadora de bolão, estatísticas e resultados anteriores.`} schema={schema} type="article">
   <ViradaHero grande titulo={`Mega da Virada <span>${VIRADA.ano}</span>`} sub="O maior prêmio do ano não acumula: alguém vai levar. Aqui você encontra tudo para jogar informado — das chances reais ao bolão, das estatísticas ao histórico completo.">
     <div class="vh-prize">
-      {acumulado ? (<><span>Acumulado para o concurso especial</span><strong>{reaisCurto(acumulado)}</strong></>) : (<><span>Prêmio estimado</span><strong>Divulgado pela Caixa</strong></>)}
+      <span>Prêmio estimado · concurso {VIRADA.concurso}</span><strong>{VIRADA.premioTexto.replace(/^mais de /, '+ de ')}</strong>
     </div>
   </ViradaHero>
   <ViradaNav />
@@ -68,18 +69,26 @@ const ferramentas = [
     <div class="vgrid">
       <div>
         <Resposta>
-          <p>A <strong>Mega da Virada {VIRADA.ano}</strong> será sorteada em <strong>31 de dezembro, às 20h</strong> (horário de Brasília). A aposta simples custa <strong>{reais(l.preco)}</strong> e a chance de acertar as seis dezenas é de <strong>1 em 50.063.860</strong>. O prêmio <strong>não acumula</strong>: sem ganhador da sena, ele é dividido entre quem acertar a quina.
-          {acumulado ? ` Até o último concurso regular, o valor reservado para a Virada era de ${reaisCurto(acumulado)}.` : ''}</p>
+          <p>A <strong>Mega da Virada {VIRADA.ano}</strong> (concurso <strong>{VIRADA.concurso}</strong>) tem prêmio estimado em <strong>{VIRADA.premioTexto}</strong> e será sorteada em <strong>{VIRADA.dataTexto}, às {VIRADA.hora}</strong> (horário de Brasília), no {VIRADA.local}. A aposta simples custa <strong>{reais(l.preco)}</strong> e a chance de acertar as seis dezenas é de <strong>1 em 50.063.860</strong>. O prêmio <strong>não acumula</strong>: sem ganhador da sena, ele é dividido entre quem acertar a quina.</p>
         </Resposta>
         <Autor atualizado={ultMega?.atualizado_em} />
       </div>
       <div class="facts">
-        <div class="card stat"><span class="stat-v">31/12</span><span class="stat-l">Sorteio às 20h</span></div>
+        <div class="card stat"><span class="stat-v">{VIRADA.dataCurta.slice(0, 5)}</span><span class="stat-l">Sorteio às {VIRADA.hora} (2027)</span></div>
         <div class="card stat"><span class="stat-v">{reais(l.preco)}</span><span class="stat-l">Aposta simples</span></div>
         <div class="card stat"><span class="stat-v">6 a 20</span><span class="stat-l">Números por jogo</span></div>
-        <div class="card stat"><span class="stat-v">Não</span><span class="stat-l">acumula</span></div>
+        <div class="card stat"><span class="stat-v">+R$ 1 bi</span><span class="stat-l">prêmio estimado</span></div>
       </div>
     </div>
+  </section>
+
+  <section class="wrap section-sm">
+    <h2>Datas e prazos da Mega da Virada {VIRADA.ano}</h2>
+    <ol class="tl">
+      {VIRADA.prazos.map((p, i) => <li class:list={['card', i === VIRADA.prazos.length - 1 && 'tl-final']}><span class="tl-q">{p.quando}</span><span class="tl-o">{p.o}</span></li>)}
+    </ol>
+    <p class="small faint">Fontes: {VIRADA.fontes.map((f, i) => <>{i > 0 && ' · '}<a href={f.url} rel="noopener nofollow" target="_blank">{f.nome}</a></>)}, com base em informações divulgadas pela Caixa. Confira sempre os canais oficiais.</p>
+    <p><a class="btn btn-primary" href={`/mega-sena/concurso/${VIRADA.concurso}/`}>Página do concurso {VIRADA.concurso}: palpites e resultado →</a></p>
   </section>
 
   {ultima && (
@@ -111,7 +120,7 @@ const ferramentas = [
   <article class="wrap section-sm">
     <div class="prose" style="max-width:820px">
       <h2>O que é a Mega da Virada</h2>
-      <p>A Mega da Virada é o concurso especial de fim de ano da Mega-Sena, sorteado sempre no dia 31 de dezembro. Ao longo do ano, uma parte da arrecadação de cada concurso regular da Mega-Sena é reservada para formar o prêmio da Virada — por isso ela costuma pagar o maior valor do calendário das loterias brasileiras.</p>
+      <p>A Mega da Virada é o concurso especial de fim de ano da Mega-Sena, realizado na virada do ano — na edição 2026, o sorteio será em 1º de janeiro de 2027, às 11h. Ao longo do ano, uma parte da arrecadação de cada concurso regular da Mega-Sena é reservada para formar o prêmio da Virada — por isso ela costuma pagar o maior valor do calendário das loterias brasileiras.</p>
       <p>A grande diferença em relação a um concurso comum é que <strong>o prêmio não acumula</strong>. Se nenhuma aposta acertar as seis dezenas, o valor da faixa principal é dividido entre os acertadores da quina (cinco números). Se também não houver ganhador da quina, o prêmio desce para a quadra.</p>
 
       <h2>Como funciona a aposta</h2>
@@ -162,6 +171,11 @@ const ferramentas = [
   .vh-prize span { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.7); }
   .vh-prize strong { font: 700 clamp(1.6rem, 4vw, 2.4rem)/1.1 var(--display); color: #ffd979; letter-spacing: -.03em; }
   :global(.vh h1 span) { color: #ffd979; -webkit-text-fill-color: #ffd979; }
+  .tl { list-style: none; padding: 0; margin: 16px 0 12px; display: grid; gap: 10px; }
+  .tl li { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; padding: 14px 18px; border-left: 3px solid var(--gold); }
+  .tl-q { font: 700 1rem var(--display); min-width: 260px; }
+  .tl-o { color: var(--muted); }
+  .tl-final { background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 14%, var(--surface)), var(--surface)); }
   .vgrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; align-items: start; }
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .facts .card { padding: 18px; }

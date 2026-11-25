@@ -30,7 +30,7 @@ export const LOTERIAS: Loteria[] = [
     escolhaMin: 6, escolhaMax: 20, preco: 6, dias: [2, 4, 6],
     resumo: 'A loteria mais famosa do Brasil: escolha de 6 a 20 números entre 1 e 60 e ganhe acertando 4, 5 ou 6 dezenas.',
     faixas: [{ acertos: 6, label: 'Sena (6 acertos)' }, { acertos: 5, label: 'Quina (5 acertos)' }, { acertos: 4, label: 'Quadra (4 acertos)' }],
-    dicas: ['Cada dezena a mais multiplica o custo — 7 números custam 7 apostas simples.', 'O concurso especial de 31/12 é a Mega da Virada, que não acumula.'],
+    dicas: ['Cada dezena a mais multiplica o custo — 7 números custam 7 apostas simples.', 'O concurso especial de fim de ano é a Mega da Virada, que não acumula.'],
   },
   {
     slug: 'lotofacil', api: 'lotofacil', nome: 'Lotofácil', curto: 'Lotofácil',
@@ -114,5 +114,26 @@ export function diasTexto(l: Loteria) {
   return d.length > 1 ? `${d.slice(0, -1).join(', ')} e ${d.at(-1)}` : d[0];
 }
 
-// Mega da Virada — sorteio em 31/12, às 20h (horário de Brasília)
-export const VIRADA = { ano: 2026, data: '2026-12-31T20:00:00-03:00' };
+// Mega da Virada 2026 — dados divulgados pela Caixa (fontes abaixo). Atualize aqui a cada ano.
+export const VIRADA = {
+  ano: 2026,
+  concurso: 3100,
+  data: '2027-01-01T11:00:00-03:00',
+  dataCurta: '01/01/2027',
+  dataTexto: '1º de janeiro de 2027',
+  hora: '11h',
+  local: 'Espaço da Sorte, em São Paulo (SP)',
+  premioTexto: 'mais de R$ 1 bilhão',
+  premioValor: 1_000_000_000,
+  prazos: [
+    { quando: 'Desde 3 de novembro de 2026', o: 'Apostas abertas' },
+    { quando: 'Até 15 de dezembro de 2026', o: 'Vendas paralelas (junto com os concursos regulares)' },
+    { quando: '16 a 31 de dezembro de 2026, até 22h', o: 'Vendas exclusivas para a Mega da Virada (apostas individuais)' },
+    { quando: 'Até 9h de 1º de janeiro de 2027', o: 'Bolões digitais nos canais da Caixa' },
+    { quando: '1º de janeiro de 2027, 11h', o: 'Sorteio, no Espaço da Sorte (SP)' },
+  ],
+  fontes: [
+    { nome: 'Agência Brasil', url: 'https://agenciabrasil.ebc.com.br/economia/noticia/2026-11/mega-da-virada-caixa-anuncia-que-premio-deve-superar-r-1-bilhao' },
+    { nome: 'MT Hoje', url: 'https://www.mthoje.com.br/economia/id-732565/mega_da_virada_2026_bate_recorde__veja_quanto_custa_apostar_e_quando_e_o_sorteio' },
+  ],
+};

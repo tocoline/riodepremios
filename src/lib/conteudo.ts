@@ -59,7 +59,7 @@ export function faqLoteria(l: Loteria) {
     { q: `Qual a chance de ganhar na ${l.nome}?`, a: `Com a aposta mínima, a chance de acertar a faixa principal é de 1 em ${numero(cp)}. Veja a tabela completa de probabilidades por faixa nesta página.` },
     { q: `Como jogar na ${l.nome}?`, a: comoJogar(l).join(' ') },
   ];
-  if (l.slug === 'mega-sena') itens.push({ q: 'O que acontece se ninguém acertar a Mega-Sena?', a: 'O prêmio principal acumula para o próximo concurso. A exceção é a Mega da Virada (31/12), que não acumula: se não houver acertador das seis dezenas, o prêmio é dividido entre quem acertou cinco.' });
+  if (l.slug === 'mega-sena') itens.push({ q: 'O que acontece se ninguém acertar a Mega-Sena?', a: 'O prêmio principal acumula para o próximo concurso. A exceção é a Mega da Virada, o concurso especial de fim de ano, que não acumula: se não houver acertador das seis dezenas, o prêmio é dividido entre quem acertou cinco.' });
   if (l.tipo === 'fixo' && l.slug === 'lotomania') itens.push({ q: 'É verdade que errar tudo na Lotomania dá prêmio?', a: 'Sim. Quem não acerta nenhuma das 20 dezenas sorteadas também é premiado, em uma faixa própria.' });
   return itens;
 }

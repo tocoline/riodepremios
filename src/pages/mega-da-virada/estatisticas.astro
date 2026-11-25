@@ -17,7 +17,7 @@ const l = { ...POR_SLUG['mega-sena'], cor: '#d9a521' };
 const s = calcular(l, await historicoDezenas(getDB(Astro.locals), l, true));
 ---
 <Base title="Estatísticas da Mega da Virada: números que mais saíram" description="Quais números mais saíram na Mega da Virada? Frequência de todas as dezenas em todas as edições, mapa de calor, mais atrasadas e combinações de pares e ímpares.">
-  <ViradaHero titulo="Estatísticas da Mega da Virada" crumb="Estatísticas" sub="Análise exclusiva considerando apenas os concursos especiais de 31 de dezembro." />
+  <ViradaHero titulo="Estatísticas da Mega da Virada" crumb="Estatísticas" sub="Análise exclusiva considerando apenas os concursos especiais de fim de ano." />
   <ViradaNav />
   <section class="wrap section-sm">
     {s.total > 0 && (

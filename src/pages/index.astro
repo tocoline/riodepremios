@@ -28,7 +28,7 @@ const faq = [
   { q: 'Que horas saem os resultados das loterias?', a: 'Os sorteios da Caixa acontecem normalmente às 20h (horário de Brasília). O Rio de Prêmios verifica novos resultados automaticamente a cada 10 minutos, então o resultado costuma aparecer aqui poucos minutos depois do sorteio.' },
   { q: 'Os resultados do Rio de Prêmios são oficiais?', a: 'Os números são coletados automaticamente da API pública de resultados da Caixa Econômica Federal. O site é independente e informativo; para resgatar prêmios, confira sempre o bilhete nos canais oficiais da Caixa.' },
   { q: 'Qual loteria tem a maior chance de ganhar?', a: 'Na faixa principal, com a aposta mínima, o Dia de Sorte tem a maior chance (1 em 2.629.575), seguido da Lotofácil (1 em 3.268.760). Na Mega-Sena, a chance da sena com 6 números é de 1 em 50.063.860. Veja o <a href="/guias/qual-loteria-tem-mais-chance-de-ganhar/">ranking completo</a>.' },
-  { q: 'Quando é o sorteio da Mega da Virada?', a: `A Mega da Virada ${VIRADA.ano} é sorteada em 31 de dezembro, às 20h (horário de Brasília). O prêmio não acumula: se ninguém acertar as seis dezenas, o valor é dividido entre os acertadores da quina.` },
+  { q: 'Quando é o sorteio da Mega da Virada?', a: `A Mega da Virada ${VIRADA.ano} (concurso ${VIRADA.concurso}) será sorteada em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília), com prêmio estimado em ${VIRADA.premioTexto}. O prêmio não acumula: se ninguém acertar as seis dezenas, o valor é dividido entre os acertadores da quina.` },
 ];
 ---
 <Base title="Resultados das Loterias Hoje — Mega-Sena, Lotofácil, Quina e mais | Rio de Prêmios"
@@ -57,9 +57,9 @@ const faq = [
   <section class="wrap">
     <a class="virada" href="/mega-da-virada/">
       <div class="virada-txt">
-        <span class="virada-tag">✦ Concurso especial · 31/12 às 20h</span>
+        <span class="virada-tag">✦ Concurso {VIRADA.concurso} · {VIRADA.dataCurta} às {VIRADA.hora}</span>
         <h2>Mega da Virada {VIRADA.ano}</h2>
-        <p>{acumVirada ? <>Já são <strong>{reaisCurto(acumVirada)}</strong> acumulados para o concurso especial — e o prêmio não acumula.</> : <>O maior prêmio do ano, que não acumula. Calculadoras, estatísticas e todos os resultados históricos.</>}</p>
+        <p>Prêmio estimado em <strong>{VIRADA.premioTexto}</strong> — e ele não acumula. Calculadoras, estatísticas e todos os resultados históricos.</p>
         <span class="btn btn-sm virada-btn">Abrir o guia completo →</span>
       </div>
       <Countdown alvo={VIRADA.data} />

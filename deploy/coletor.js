@@ -2,69 +2,6 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../../src/lib/normalizar.ts
-var isoDe = /* @__PURE__ */ __name((br) => {
-  if (!br) return null;
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(br);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
-}, "isoDe");
-var nums = /* @__PURE__ */ __name((a) => Array.isArray(a) && a.length ? a.map((x) => parseInt(String(x), 10)).filter((x) => !Number.isNaN(x)) : null, "nums");
-var n = /* @__PURE__ */ __name((v) => v == null || v === "" ? null : Number(v), "n");
-function normalizar(api, j, fonte) {
-  if (!j || typeof j !== "object") return null;
-  const numero = n(j.numero ?? j.concurso);
-  const data = isoDe(j.dataApuracao ?? j.data);
-  const dezenasBrutas = nums(j.listaDezenas ?? j.dezenas);
-  if (!numero || !data || !dezenasBrutas) return null;
-  const colunas = api === "supersete";
-  const dezenas = colunas ? dezenasBrutas : [...dezenasBrutas].sort((a, b) => a - b);
-  const ordem = nums(j.dezenasSorteadasOrdemSorteio ?? j.dezenasOrdemSorteio);
-  const extra = {};
-  const timeMes = j.nomeTimeCoracaoMesSorte ?? j.timeCoracao ?? j.mesSorte;
-  if (timeMes && String(timeMes).trim()) {
-    if (api === "diadesorte") extra.mes = String(j.mesSorte ?? timeMes).trim();
-    else if (api === "timemania") extra.time = String(j.timeCoracao ?? timeMes).trim();
-  }
-  const trevos = nums(j.trevosSorteados ?? j.trevos);
-  if (trevos) extra.trevos = trevos;
-  const rateio = j.listaRateioPremio ?? j.premiacoes ?? [];
-  const premiacoes = rateio.map((r) => ({
-    faixa: Number(r.faixa ?? 0),
-    descricao: String(r.descricaoFaixa ?? r.descricao ?? ""),
-    ganhadores: Number(r.numeroDeGanhadores ?? r.ganhadores ?? 0),
-    premio: Number(r.valorPremio ?? 0)
-  }));
-  const cidadesBrutas = j.listaMunicipioUFGanhadores ?? j.localGanhadores ?? [];
-  const cidades = cidadesBrutas.map((c) => ({
-    cidade: String(c.municipio ?? c.nomeMunicipio ?? "").trim(),
-    uf: String(c.uf ?? "").trim(),
-    ganhadores: Number(c.ganhadores ?? 1)
-  })).filter((c) => c.cidade || c.uf);
-  const local = [j.localSorteio ?? j.local, j.nomeMunicipioUFSorteio].filter(Boolean).join(" \u2014 ") || null;
-  const especial = api === "megasena" && data.endsWith("-12-31") || Number(j.indicadorConcursoEspecial) === 2;
-  return {
-    loteria: api,
-    numero,
-    data,
-    dezenas,
-    dezenas_ordem: ordem,
-    dezenas2: nums(j.listaDezenasSegundoSorteio),
-    extra: Object.keys(extra).length ? extra : null,
-    premiacoes,
-    acumulado: Boolean(j.acumulado ?? j.acumulou),
-    arrecadacao: n(j.valorArrecadado),
-    proximo_numero: n(j.numeroConcursoProximo ?? j.proximoConcurso),
-    proximo_data: isoDe(j.dataProximoConcurso),
-    proximo_estimativa: n(j.valorEstimadoProximoConcurso),
-    acumulado_especial: n(j.valorAcumuladoConcursoEspecial),
-    local,
-    cidades_ganhadoras: cidades.length ? cidades : null,
-    especial,
-    fonte
-  };
-}
-__name(normalizar, "normalizar");
-
 // ../../src/lib/loterias.ts
 var LOTERIAS = [
   {
@@ -84,7 +21,7 @@ var LOTERIAS = [
     dias: [2, 4, 6],
     resumo: "A loteria mais famosa do Brasil: escolha de 6 a 20 n\xFAmeros entre 1 e 60 e ganhe acertando 4, 5 ou 6 dezenas.",
     faixas: [{ acertos: 6, label: "Sena (6 acertos)" }, { acertos: 5, label: "Quina (5 acertos)" }, { acertos: 4, label: "Quadra (4 acertos)" }],
-    dicas: ["Cada dezena a mais multiplica o custo \u2014 7 n\xFAmeros custam 7 apostas simples.", "O concurso especial de 31/12 \xE9 a Mega da Virada, que n\xE3o acumula."]
+    dicas: ["Cada dezena a mais multiplica o custo \u2014 7 n\xFAmeros custam 7 apostas simples.", "O concurso especial de fim de ano \xE9 a Mega da Virada, que n\xE3o acumula."]
   },
   {
     slug: "lotofacil",
@@ -255,6 +192,91 @@ var LOTERIAS = [
 ];
 var POR_SLUG = Object.fromEntries(LOTERIAS.map((l) => [l.slug, l]));
 var POR_API = Object.fromEntries(LOTERIAS.map((l) => [l.api, l]));
+var VIRADA = {
+  ano: 2026,
+  concurso: 3100,
+  data: "2027-01-01T11:00:00-03:00",
+  dataCurta: "01/01/2027",
+  dataTexto: "1\xBA de janeiro de 2027",
+  hora: "11h",
+  local: "Espa\xE7o da Sorte, em S\xE3o Paulo (SP)",
+  premioTexto: "mais de R$ 1 bilh\xE3o",
+  premioValor: 1e9,
+  prazos: [
+    { quando: "Desde 3 de novembro de 2026", o: "Apostas abertas" },
+    { quando: "At\xE9 15 de dezembro de 2026", o: "Vendas paralelas (junto com os concursos regulares)" },
+    { quando: "16 a 31 de dezembro de 2026, at\xE9 22h", o: "Vendas exclusivas para a Mega da Virada (apostas individuais)" },
+    { quando: "At\xE9 9h de 1\xBA de janeiro de 2027", o: "Bol\xF5es digitais nos canais da Caixa" },
+    { quando: "1\xBA de janeiro de 2027, 11h", o: "Sorteio, no Espa\xE7o da Sorte (SP)" }
+  ],
+  fontes: [
+    { nome: "Ag\xEAncia Brasil", url: "https://agenciabrasil.ebc.com.br/economia/noticia/2026-11/mega-da-virada-caixa-anuncia-que-premio-deve-superar-r-1-bilhao" },
+    { nome: "MT Hoje", url: "https://www.mthoje.com.br/economia/id-732565/mega_da_virada_2026_bate_recorde__veja_quanto_custa_apostar_e_quando_e_o_sorteio" }
+  ]
+};
+
+// ../../src/lib/normalizar.ts
+var isoDe = /* @__PURE__ */ __name((br) => {
+  if (!br) return null;
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(br);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}, "isoDe");
+var nums = /* @__PURE__ */ __name((a) => Array.isArray(a) && a.length ? a.map((x) => parseInt(String(x), 10)).filter((x) => !Number.isNaN(x)) : null, "nums");
+var n = /* @__PURE__ */ __name((v) => v == null || v === "" ? null : Number(v), "n");
+function normalizar(api, j, fonte) {
+  if (!j || typeof j !== "object") return null;
+  const numero = n(j.numero ?? j.concurso);
+  const data = isoDe(j.dataApuracao ?? j.data);
+  const dezenasBrutas = nums(j.listaDezenas ?? j.dezenas);
+  if (!numero || !data || !dezenasBrutas) return null;
+  const colunas = api === "supersete";
+  const dezenas = colunas ? dezenasBrutas : [...dezenasBrutas].sort((a, b) => a - b);
+  const ordem = nums(j.dezenasSorteadasOrdemSorteio ?? j.dezenasOrdemSorteio);
+  const extra = {};
+  const timeMes = j.nomeTimeCoracaoMesSorte ?? j.timeCoracao ?? j.mesSorte;
+  if (timeMes && String(timeMes).trim()) {
+    if (api === "diadesorte") extra.mes = String(j.mesSorte ?? timeMes).trim();
+    else if (api === "timemania") extra.time = String(j.timeCoracao ?? timeMes).trim();
+  }
+  const trevos = nums(j.trevosSorteados ?? j.trevos);
+  if (trevos) extra.trevos = trevos;
+  const rateio = j.listaRateioPremio ?? j.premiacoes ?? [];
+  const premiacoes = rateio.map((r) => ({
+    faixa: Number(r.faixa ?? 0),
+    descricao: String(r.descricaoFaixa ?? r.descricao ?? ""),
+    ganhadores: Number(r.numeroDeGanhadores ?? r.ganhadores ?? 0),
+    premio: Number(r.valorPremio ?? 0)
+  }));
+  const cidadesBrutas = j.listaMunicipioUFGanhadores ?? j.localGanhadores ?? [];
+  const cidades = cidadesBrutas.map((c) => ({
+    cidade: String(c.municipio ?? c.nomeMunicipio ?? "").trim(),
+    uf: String(c.uf ?? "").trim(),
+    ganhadores: Number(c.ganhadores ?? 1)
+  })).filter((c) => c.cidade || c.uf);
+  const local = [j.localSorteio ?? j.local, j.nomeMunicipioUFSorteio].filter(Boolean).join(" \u2014 ") || null;
+  const especial = api === "megasena" && (data.endsWith("-12-31") || numero === VIRADA.concurso) || Number(j.indicadorConcursoEspecial) === 2;
+  return {
+    loteria: api,
+    numero,
+    data,
+    dezenas,
+    dezenas_ordem: ordem,
+    dezenas2: nums(j.listaDezenasSegundoSorteio),
+    extra: Object.keys(extra).length ? extra : null,
+    premiacoes,
+    acumulado: Boolean(j.acumulado ?? j.acumulou),
+    arrecadacao: n(j.valorArrecadado),
+    proximo_numero: n(j.numeroConcursoProximo ?? j.proximoConcurso),
+    proximo_data: isoDe(j.dataProximoConcurso),
+    proximo_estimativa: n(j.valorEstimadoProximoConcurso),
+    acumulado_especial: n(j.valorAcumuladoConcursoEspecial),
+    local,
+    cidades_ganhadoras: cidades.length ? cidades : null,
+    especial,
+    fonte
+  };
+}
+__name(normalizar, "normalizar");
 
 // src/index.ts
 var ORIGENS = [

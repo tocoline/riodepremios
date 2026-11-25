@@ -9,7 +9,7 @@ const { titulo, sub, crumb, grande = false } = Astro.props;
   <div class="vh-fx" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="wrap vh-in">
     <div class="vh-crumbs"><Crumbs itens={crumb ? [{ nome: 'Mega da Virada', url: '/mega-da-virada/' }, { nome: crumb }] : [{ nome: 'Mega da Virada' }]} /></div>
-    <span class="vh-tag">✦ Mega da Virada {VIRADA.ano} · 31 de dezembro, 20h</span>
+    <span class="vh-tag">✦ Mega da Virada {VIRADA.ano} · concurso {VIRADA.concurso} · {VIRADA.dataCurta}, {VIRADA.hora}</span>
     <h1 set:html={titulo} />
     {sub && <p class="vh-sub">{sub}</p>}
     <slot />

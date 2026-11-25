@@ -1,5 +1,6 @@
 // Converte as respostas da API oficial da Caixa (ou da API comunitária de reserva)
 // para o formato da tabela `concursos`. Usado pelo Worker coletor.
+import { VIRADA } from './loterias';
 export interface ConcursoRow {
   loteria: string; numero: number; data: string;
   dezenas: number[]; dezenas_ordem: number[] | null; dezenas2: number[] | null;
@@ -57,7 +58,7 @@ export function normalizar(api: string, j: any, fonte: string): ConcursoRow | nu
   })).filter((c) => c.cidade || c.uf);
 
   const local = [j.localSorteio ?? j.local, j.nomeMunicipioUFSorteio].filter(Boolean).join(' — ') || null;
-  const especial = (api === 'megasena' && data.endsWith('-12-31')) || Number(j.indicadorConcursoEspecial) === 2;
+  const especial = (api === 'megasena' && (data.endsWith('-12-31') || numero === VIRADA.concurso)) || Number(j.indicadorConcursoEspecial) === 2;
 
   return {
     loteria: api, numero, data, dezenas, dezenas_ordem: ordem,

@@ -6,12 +6,13 @@ import Resposta from '../../components/Resposta.astro';
 import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import Autor from '../../components/Autor.astro';
+import { VIRADA } from '../../lib/loterias';
 const passos = [
   ['Escolha onde apostar', 'Lotéricas, app Loterias Caixa, portal Loterias Online ou internet banking de bancos credenciados. Apostas online exigem cadastro e ser maior de 18 anos.'],
   ['Marque de 6 a 20 números', 'Entre 1 e 60. Ou use a Surpresinha para o sistema escolher por você.'],
   ['Confira o valor', 'A aposta simples custa R$ 6,00. Com mais números, o preço cresce pelas combinações: 7 números = R$ 42,00; 8 = R$ 168,00; 9 = R$ 504,00.'],
   ['Pague e guarde o comprovante', 'O bilhete (ou o comprovante digital) é o único documento que garante o prêmio. Fotografe e guarde em local seguro.'],
-  ['Acompanhe o sorteio', 'Dia 31/12, às 20h. O resultado aparece aqui automaticamente minutos depois — use o conferidor para checar seus jogos.'],
+  ['Acompanhe o sorteio', `${VIRADA.dataTexto}, às ${VIRADA.hora}. O resultado aparece aqui automaticamente minutos depois — use o conferidor para checar seus jogos.`],
 ];
 const schema = [{ '@context': 'https://schema.org', '@type': 'HowTo', name: 'Como apostar na Mega da Virada', estimatedCost: { '@type': 'MonetaryAmount', currency: 'BRL', value: 6 }, step: passos.map(([n, t], i) => ({ '@type': 'HowToStep', position: i + 1, name: n, text: t })) }];
 ---

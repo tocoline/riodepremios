@@ -2,7 +2,7 @@
 // Uso: /imagem-concurso.png?l=mega-sena&n=3091
 import type { APIRoute } from 'astro';
 import { ImageResponse, CustomFont, cache } from '@cf-wasm/og/workerd';
-import { POR_SLUG, DIAS } from '../lib/loterias';
+import { POR_SLUG, DIAS, VIRADA } from '../lib/loterias';
 import { getDB, concurso, ultimos } from '../lib/db';
 import { RP, dataEdicao, proximaEdicao, isoSorteio } from '../lib/riodepremios';
 import { reaisCurto, pad } from '../lib/format';
@@ -50,10 +50,11 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
   const c = await concurso(db, l, n);
   const [ult] = c ? [null] : await ultimos(db, l, 1);
-  const prox = !c && ult && ult.proximo_numero === n ? ult : null;
+  const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
+  const prox = !c && ult && (ult.proximo_numero === n || (ehVirada && ult.numero < n)) ? ult : null;
   if (!c && !prox) return new Response('concurso não encontrado', { status: 404 });
 
-  const dataIso = c ? c.data : prox!.proximo_data;
+  const dataIso = c ? c.data : ehVirada ? VIRADA.data.slice(0, 10) : prox!.proximo_data;
   const dia = dataIso ? (() => { const [y, m, d] = dataIso.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1, d, 12)); return `${DIAS[dt.getUTCDay()]}, ${pad(d)}/${pad(m)}/${y}`; })() : '';
   const dig = l.tipo === 'colunas' ? 1 : 2;
   const fonte = (f: string) => () => env.ASSETS.fetch(new URL(`/og-fonts/${f}`, url)).then((r: Response) => r.arrayBuffer());
@@ -75,8 +76,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
     );
   } else {
     corpo = h('div', { flexDirection: 'column', gap: 10 },
-      h('div', { fontSize: 30, color: '#9aa6bf', fontFamily: 'IN6' }, prox!.proximo_estimativa ? 'Prêmio estimado' : 'Sorteio às 20h'),
-      h('div', { fontSize: 104, color: '#ffd979', fontFamily: 'SG', letterSpacing: -3 }, prox!.proximo_estimativa ? reaisCurto(prox!.proximo_estimativa) : 'Hoje, 20h'),
+      h('div', { fontSize: 30, color: '#9aa6bf', fontFamily: 'IN6' }, ehVirada ? 'Prêmio estimado · Mega da Virada' : prox!.proximo_estimativa ? 'Prêmio estimado' : 'Sorteio às 20h'),
+      h('div', { fontSize: ehVirada ? 92 : 104, color: '#ffd979', fontFamily: 'SG', letterSpacing: -3 }, ehVirada ? VIRADA.premioTexto.replace(/^mais de /, '+ de ') : prox!.proximo_estimativa ? reaisCurto(prox!.proximo_estimativa) : 'Hoje, 20h'),
       h('div', { fontSize: 32, color: '#eef2fb', fontFamily: 'IN6', marginTop: 10 }, 'Palpites, estatísticas e resultado ao vivo'),
     );
   }
@@ -91,7 +92,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     ),
     h('div', { flexDirection: 'column', gap: 6 },
       h('div', { fontSize: 76, fontFamily: 'SG', letterSpacing: -2 }, `${l.nome} ${n}`),
-      h('div', { fontSize: 34, color: '#c8d0e0' }, dia + (c ? '' : ' · 20h (Brasília)')),
+      h('div', { fontSize: 34, color: '#c8d0e0' }, dia + (c ? '' : ehVirada ? ` · ${VIRADA.hora} (Brasília)` : ' · 20h (Brasília)')),
     ),
     corpo,
   );

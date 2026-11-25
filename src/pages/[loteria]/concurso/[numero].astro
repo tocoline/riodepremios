@@ -10,7 +10,7 @@ import Countdown from '../../../components/Countdown.astro';
 import Palpites from '../../../components/Palpites.astro';
 import TabelasLoteria from '../../../components/TabelasLoteria.astro';
 import Faq from '../../../components/Faq.astro';
-import { POR_SLUG, DIAS, diasTexto } from '../../../lib/loterias';
+import { POR_SLUG, DIAS, diasTexto, VIRADA } from '../../../lib/loterias';
 import { getDB, concurso, vizinhos, ultimos, anteriores } from '../../../lib/db';
 import { gerarPalpites, frequencias } from '../../../lib/palpites';
 import { chancePrincipal } from '../../../lib/conteudo';
@@ -26,7 +26,8 @@ const c = await concurso(db, l, n);
 
 // Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
 const [ult] = c ? [null] : await ultimos(db, l, 1);
-const prox = !c && ult && ult.proximo_numero === n ? ult : null;
+const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
+const prox = !c && ult && (ult.proximo_numero === n || (ehVirada && ult.numero < n)) ? ult : null;
 if (!c && !prox) return naoEncontrado(Astro);
 
 const hist = await anteriores(db, l, n, 100);
@@ -35,10 +36,11 @@ const viz = c ? await vizinhos(db, l, n) : { anterior: ult!.numero, proximo: nul
 cachear(Astro, c ? (Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300) : 300);
 
 const dig = l.tipo === 'colunas' ? 1 : 2;
-const dataSorteio = c ? c.data : prox!.proximo_data;
+const dataSorteio = c ? c.data : ehVirada ? VIRADA.data.slice(0, 10) : prox!.proximo_data;
+const horaTxt = ehVirada ? VIRADA.hora : '20h';
 const diaSemana = dataSorteio ? DIAS[new Date(dataSorteio + 'T12:00:00Z').getUTCDay()] : '';
 const dataCurta = dataSorteio ? dataBR(dataSorteio).slice(0, 5) : '';
-const sorteioISO = dataSorteio ? `${dataSorteio}T20:00:00-03:00` : null;
+const sorteioISO = ehVirada ? VIRADA.data : dataSorteio ? `${dataSorteio}T20:00:00-03:00` : null;
 const imagem = `/imagem-concurso.png?l=${l.slug}&n=${n}${c ? '&r=1' : ''}`;
 const dz = c?.dezenas.map((d) => pad(d, dig)).join(' - ') ?? '';
 
@@ -48,14 +50,16 @@ const quentes = [...freq].sort((a, b) => b.vezes - a.vezes || a.dezena - b.dezen
 const atrasadas = [...freq].sort((a, b) => b.atraso - a.atraso || a.dezena - b.dezena).slice(0, 10);
 let seguidas = 0;
 for (let i = hist.length - 1; i >= 0 && hist[i].acumulado; i--) seguidas++;
-const premio = prox?.proximo_estimativa;
+if (ehVirada) seguidas = 0;
+const premio = ehVirada ? VIRADA.premioValor : prox?.proximo_numero === n ? prox?.proximo_estimativa : null;
+const premioTxt = ehVirada ? VIRADA.premioTexto : premio ? reaisCurto(premio) : null;
 
 const titulo = c
   ? `Resultado ${l.nome} ${n} de ${dataBR(c.data)}: dezenas sorteadas${c.especial ? ' (Mega da Virada)' : ''}`
-  : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premio ? ` e prêmio de ${reaisCurto(premio)}` : ' e horário'}`;
+  : ehVirada ? `Mega da Virada ${VIRADA.ano}: resultado do concurso ${n} (${VIRADA.dataCurta}), palpites e prêmio de ${premioTxt}` : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premioTxt ? ` e prêmio de ${premioTxt}` : ' e horário'}`;
 const desc = c
   ? `${l.nome} ${n} (${dataBR(c.data)}): ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação, ganhadores por cidade e como foram os palpites.`
-  : `${l.nome} concurso ${n}: sorteio ${diaSemana}, ${dataBR(dataSorteio)}, às 20h.${premio ? ` Prêmio estimado de ${reaisCurto(premio)}.` : ''} Palpites estatísticos, dezenas quentes e atrasadas e resultado ao vivo nesta página.`;
+  : `${ehVirada ? `Mega da Virada ${VIRADA.ano}, ` : ''}${l.nome} concurso ${n}: sorteio ${diaSemana}, ${dataBR(dataSorteio)}, às ${horaTxt}.${premioTxt ? ` Prêmio estimado de ${premioTxt}.` : ''} Palpites estatísticos, dezenas quentes e atrasadas e resultado ao vivo nesta página.`;
 const publicado = c ? `${c.data}T21:00:00-03:00` : (ult!.atualizado_em ?? new Date().toISOString());
 const modificado = c ? c.atualizado_em : (ult!.atualizado_em ?? new Date().toISOString());
 const schema = [{
@@ -66,9 +70,9 @@ const schema = [{
   publisher: { '@type': 'Organization', name: SITE.nome, logo: { '@type': 'ImageObject', url: `${SITE.url}/icon-512.png` } },
 }];
 const faqPre = prox ? [
-  { q: `Que horas sai o resultado da ${l.nome} ${n}?`, a: `O sorteio do concurso ${n} acontece ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às 20h (horário de Brasília). O resultado aparece nesta mesma página poucos minutos depois, automaticamente.` },
-  { q: `Qual é o prêmio da ${l.nome} ${n}?`, a: premio ? `O prêmio estimado para o concurso ${n} é de ${reais(premio)}${seguidas > 0 ? `, depois de ${seguidas} concurso(s) seguido(s) sem ganhador na faixa principal` : ''}. O valor final é divulgado pela Caixa após o sorteio.` : 'A Caixa divulga a estimativa de prêmio após o concurso anterior. Ela aparece aqui automaticamente.' },
-  { q: 'Até que horas posso apostar?', a: 'Em geral, as apostas ficam abertas até as 19h (horário de Brasília) do dia do sorteio, nas lotéricas, no app Loterias Caixa e no portal Loterias Online. Não deixe para a última hora.' },
+  { q: `Que horas sai o resultado da ${l.nome} ${n}?`, a: `O sorteio do concurso ${n} acontece ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às ${horaTxt} (horário de Brasília)${ehVirada ? `, no ${VIRADA.local}` : ''}. O resultado aparece nesta mesma página poucos minutos depois, automaticamente.` },
+  { q: `Qual é o prêmio da ${l.nome} ${n}?`, a: premioTxt ? `O prêmio estimado para o concurso ${n} é de ${ehVirada ? premioTxt : reais(premio!)}${seguidas > 0 ? `, depois de ${seguidas} concurso(s) seguido(s) sem ganhador na faixa principal` : ''}. O valor final é divulgado pela Caixa após o sorteio.` : 'A Caixa divulga a estimativa de prêmio após o concurso anterior. Ela aparece aqui automaticamente.' },
+  { q: 'Até que horas posso apostar?', a: ehVirada ? 'Apostas individuais até 31 de dezembro de 2026, às 22h. Bolões digitais nos canais da Caixa até 9h de 1º de janeiro de 2027.' : 'Em geral, as apostas ficam abertas até as 19h (horário de Brasília) do dia do sorteio, nas lotéricas, no app Loterias Caixa e no portal Loterias Online. Não deixe para a última hora.' },
   { q: `Quanto custa e qual a chance de ganhar?`, a: `A aposta mínima custa ${reais(l.preco)} e a chance de acertar a faixa principal com ela é de 1 em ${numero(chancePrincipal(l))}.` },
   { q: 'Onde assistir ao sorteio?', a: 'Os sorteios são transmitidos ao vivo pelos canais oficiais da Caixa nas redes sociais. Se preferir, acompanhe por aqui: a página é atualizada sozinha quando o resultado sai.' },
 ] : [];
@@ -77,11 +81,11 @@ const faqPre = prox ? [
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, { nome: `Concurso ${n}` }]} />
     {c?.especial && <span class="pill hot">✦ Concurso especial</span>}
-    {prox && <span class="pill hot">⏳ Ainda não sorteado</span>}
-    <h1>{c ? `${l.nome} — resultado do concurso ${n}` : `${l.nome} ${n}: palpites e resultado de ${diaSemana} (${dataCurta})`}</h1>
+    {ehVirada && <span class="pill hot">✦ Mega da Virada {VIRADA.ano}</span>} {prox && <span class="pill hot">⏳ Ainda não sorteado</span>}
+    <h1>{c ? `${l.nome} — resultado do concurso ${n}` : ehVirada ? `Mega da Virada ${VIRADA.ano} — concurso ${n}: palpites e resultado` : `${l.nome} ${n}: palpites e resultado de ${diaSemana} (${dataCurta})`}</h1>
     <p class="lead">{c
       ? `Sorteio realizado em ${dataBR(c.data, true)}${c.local ? `, em ${c.local}` : ''}.`
-      : `Sorteio ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às 20h (Brasília). Esta página mostra o resultado automaticamente assim que ele sair.`}</p>
+      : `Sorteio ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às ${horaTxt} (Brasília)${ehVirada ? `, no ${VIRADA.local}` : ''}. Esta página mostra o resultado automaticamente assim que ele sair.`}</p>
     <Autor atualizado={modificado} />
   </div>
 
@@ -91,7 +95,7 @@ const faqPre = prox ? [
         <div class="card big pre" style={`--c:${l.cor}`}>
           <p class="lbl">Contagem regressiva para o sorteio</p>
           {sorteioISO && <div class="cd-wrap"><Countdown alvo={sorteioISO} /></div>}
-          {premio ? <div class="prz"><span class="lbl">Prêmio estimado</span><strong>{reaisCurto(premio)}</strong>{seguidas > 0 && <span class="pill hot">Acumulado há {seguidas} concurso{seguidas > 1 ? 's' : ''}</span>}</div> : null}
+          {premioTxt ? <div class="prz"><span class="lbl">Prêmio estimado</span><strong>{premioTxt}</strong>{seguidas > 0 && <span class="pill hot">Acumulado há {seguidas} concurso{seguidas > 1 ? 's' : ''}</span>}</div> : null}
           <div class="acts">
             <a class="btn btn-primary btn-sm" href="#palpites">Ver palpites</a>
             <a class="btn btn-sm" href={`/ferramentas/gerador-de-numeros/`}>Gerar meus jogos</a>
@@ -99,7 +103,7 @@ const faqPre = prox ? [
         </div>
         <div class="side">
           <Resposta>
-            <p>O concurso <strong>{n} da {l.nome}</strong> será sorteado <strong>{diaSemana}, {dataBR(dataSorteio)}, às 20h</strong> (horário de Brasília).{premio ? <> O prêmio estimado é de <strong>{reaisCurto(premio)}</strong>.</> : ''} A aposta mínima custa {reais(l.preco)}. O resultado será publicado nesta página automaticamente, minutos após o sorteio.</p>
+            <p>O concurso <strong>{n} da {l.nome}</strong> será sorteado <strong>{diaSemana}, {dataBR(dataSorteio)}, às {horaTxt}</strong> (horário de Brasília).{premioTxt ? <> O prêmio estimado é de <strong>{premioTxt}</strong>.</> : ''}{ehVirada ? <> É a <a href="/mega-da-virada/">Mega da Virada {VIRADA.ano}</a>, que não acumula.</> : ''} A aposta mínima custa {reais(l.preco)}. O resultado será publicado nesta página automaticamente, minutos após o sorteio.</p>
           </Resposta>
           <figure class="hero-img"><img src={imagem} alt={`${l.nome} concurso ${n} — ${dataBR(dataSorteio)}`} width="1200" height="675" loading="eager" /></figure>
         </div>

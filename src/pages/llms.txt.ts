@@ -24,7 +24,7 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - Este portal NÃO é o site oficial do Rio de Prêmios. Site oficial: ${RP.siteOficial}
 
 ## Mega da Virada ${VIRADA.ano}
-- [Guia completo](${u}/mega-da-virada/): sorteio em 31/12/${VIRADA.ano} às 20h (Brasília); prêmio não acumula (sem sena, vai para a quina).
+- [Guia completo](${u}/mega-da-virada/): concurso ${VIRADA.concurso}, sorteio em ${VIRADA.dataCurta} às ${VIRADA.hora} (Brasília), ${VIRADA.local}; prêmio estimado em ${VIRADA.premioTexto}; aposta simples R$ 6,00; não acumula (sem sena, vai para a quina).
 - [Todos os resultados](${u}/mega-da-virada/resultados/)
 - [Estatísticas](${u}/mega-da-virada/estatisticas/)
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)
