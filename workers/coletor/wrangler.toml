@@ -4,8 +4,8 @@ main = "src/index.ts"
 compatibility_date = "2025-09-01"
 
 [triggers]
-# a cada 10 minutos: atualiza o último concurso de cada loteria e completa o histórico aos poucos
-crons = ["*/10 * * * *"]
+# a cada minuto: completa o histórico; os últimos resultados são buscados a cada 10 min (2 min no horário dos sorteios)
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"

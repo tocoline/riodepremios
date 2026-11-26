@@ -14,11 +14,12 @@ import Analise from '../../../components/Analise.astro';
 import Fonte from '../../../components/Fonte.astro';
 import { sincronizar } from '../../../lib/sincronizar';
 import { POR_SLUG, DIAS, diasTexto, VIRADA, MESES } from '../../../lib/loterias';
-import { getDB, concurso, vizinhos, ultimos, anteriores, ultimaAparicao, menorNumero, doMes, anoCompleto } from '../../../lib/db';
+import { getDB, concurso, vizinhos, ultimos, anteriores, doMes, dbFalhou } from '../../../lib/db';
+import { resumo } from '../../../lib/resumo';
 import { gerarPalpites, frequencias } from '../../../lib/palpites';
 import { chancePrincipal } from '../../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
-import { cachear, naoEncontrado } from '../../../lib/cache';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
 import { SITE, autoraLD } from '../../../lib/site';
 
 const l = POR_SLUG[Astro.params.loteria!];
@@ -33,16 +34,18 @@ if (!c && ult && n < ult.numero && (await sincronizar(db, l, n))) { c = await co
 // Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
 const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
 const prox = !c && ult && (ult.proximo_numero === n || (ehVirada && ult.numero < n)) ? ult : null;
-if (!c && !prox) return naoEncontrado(Astro);
+if (!c && !prox) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
 
 const hist = await anteriores(db, l, n, 100);
 // dados da análise (só para concursos já sorteados)
-const [ant, aparicoes, menor, mesmoMes] = c ? await Promise.all([
-  concurso(db, l, n - 1), ultimaAparicao(db, l, n, l.tipo === 'colunas' ? [] : c.dezenas), menorNumero(db, l), doMes(db, l, c.data.slice(0, 7)),
-]) : [null, {}, 0, []];
+const [ant, mesmoMes, res] = c ? await Promise.all([concurso(db, l, n - 1), doMes(db, l, c.data.slice(0, 7)), resumo(db, l)]) : [null, [], null];
+// última aparição de cada dezena, a partir dos 100 concursos anteriores já carregados (sem varrer o histórico)
+const aparicoes: Record<number, number> = {};
+if (c && l.tipo !== 'colunas') for (const h of hist) for (const d of h.dezenas) if (c.dezenas.includes(d)) aparicoes[d] = h.numero;
+const menor = hist[0]?.numero ?? n;
 const anoC = c ? Number(c.data.slice(0, 4)) : 0;
 // concursos de anos ainda incompletos no arquivo ficam fora do índice até o histórico ser completado
-const indexavel = c ? await anoCompleto(db, l, anoC) : true;
+const indexavel = c ? !!res?.anos.find((a) => a.ano === anoC)?.completo : true;
 const mesC = c ? Number(c.data.slice(5, 7)) : 0;
 const palpites = gerarPalpites(l, n, hist);
 const viz = c ? await vizinhos(db, l, n) : { anterior: ult!.numero, proximo: null };

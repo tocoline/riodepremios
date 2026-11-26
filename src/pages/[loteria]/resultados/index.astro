@@ -9,10 +9,11 @@ import AnosNav from '../../../components/AnosNav.astro';
 import EstatSecoes from '../../../components/EstatSecoes.astro';
 import Ad from '../../../components/Ad.astro';
 import { POR_SLUG, diasTexto } from '../../../lib/loterias';
-import { getDB, lista as listar, anos as listarAnos, historicoDezenas, frequenciaPorAno } from '../../../lib/db';
+import { getDB, lista as listar, dbFalhou } from '../../../lib/db';
 import { calcular } from '../../../lib/estatisticas';
+import { resumo } from '../../../lib/resumo';
 import { dataBR, reaisCurto, numero, pad } from '../../../lib/format';
-import { cachear, naoEncontrado } from '../../../lib/cache';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l) return naoEncontrado(Astro);
@@ -20,8 +21,12 @@ if (!l) return naoEncontrado(Astro);
 if (Astro.url.searchParams.has('pagina') || Astro.url.searchParams.has('page')) return Astro.redirect(`/${l.slug}/resultados/`, 301);
 cachear(Astro, 600);
 const db = getDB(Astro.locals);
-const [{ itens, total }, anos, hist, porAno] = await Promise.all([listar(db, l, 1, 30), listarAnos(db, l), historicoDezenas(db, l), l.tipo !== 'colunas' ? frequenciaPorAno(db, l) : Promise.resolve([])]);
-const s = calcular(l, hist);
+const [{ itens }, r] = await Promise.all([listar(db, l, 1, 30), resumo(db, l)]);
+if (!itens.length && dbFalhou(db)) return indisponivel();
+const total = r?.total ?? itens.length;
+const anos = r?.anos ?? [];
+const porAno = r?.porAno ?? [];
+const s = r?.s ?? calcular(l, []);
 const ult = itens[0];
 const dig = l.tipo === 'colunas' ? 1 : 2;
 ---

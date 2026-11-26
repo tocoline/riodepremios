@@ -202,6 +202,8 @@ var VIRADA = {
   local: "Espa\xE7o da Sorte, em S\xE3o Paulo (SP)",
   premioTexto: "mais de R$ 1 bilh\xE3o",
   premioValor: 1e9,
+  atualizado: "2026-11-26",
+  // data da última alteração destes dados (usada no sitemap)
   prazos: [
     { quando: "Desde 3 de novembro de 2026", o: "Apostas abertas" },
     { quando: "At\xE9 15 de dezembro de 2026", o: "Vendas paralelas (junto com os concursos regulares)" },
@@ -353,56 +355,88 @@ async function registrar(env, msg) {
   }
 }
 __name(registrar, "registrar");
-async function executar(env, historicoMax = 30) {
+function horaDeBuscarUltimos(agora = /* @__PURE__ */ new Date()) {
+  const h = agora.getUTCHours(), m = agora.getUTCMinutes();
+  const sorteio = h === 23 || h === 0 || h === 1;
+  return m % 10 === 0 || sorteio && m % 2 === 0;
+}
+__name(horaDeBuscarUltimos, "horaDeBuscarUltimos");
+async function executar(env, historicoMax = 30, buscarUltimos = true) {
   usados = 0;
   const log = {};
   const ultimos = {};
   const erros = [];
-  for (const l of LOTERIAS) {
-    try {
-      const c = await buscar(l.api);
-      if (c) {
-        await gravar(env, c);
-        ultimos[l.api] = c.numero;
-      } else erros.push(`${l.api}: nenhuma fonte respondeu`);
-    } catch (e) {
-      erros.push(`${l.api}: ${String(e)}`);
+  if (buscarUltimos) {
+    for (const l of LOTERIAS) {
+      try {
+        const c = await buscar(l.api);
+        if (c) {
+          await gravar(env, c);
+          ultimos[l.api] = c.numero;
+        } else erros.push(`${l.api}: nenhuma fonte respondeu`);
+      } catch (e) {
+        erros.push(`${l.api}: ${String(e)}`);
+      }
     }
+    log.ultimos = ultimos;
   }
-  log.ultimos = ultimos;
+  const { results: tops } = await env.DB.prepare("SELECT loteria, MAX(numero) m FROM concursos GROUP BY loteria").all();
+  for (const t of tops) if (!ultimos[t.loteria]) ultimos[t.loteria] = t.m;
   let gravados = 0;
   try {
-    const { results } = await env.DB.prepare("SELECT loteria, numero FROM concursos").all();
-    const tem = new Set(results.map((r) => r.loteria + ":" + r.numero));
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS coletor_cursor (loteria TEXT PRIMARY KEY, proximo INTEGER NOT NULL)").run();
+    const { results: curs } = await env.DB.prepare("SELECT loteria, proximo FROM coletor_cursor").all();
+    const cursor = Object.fromEntries(curs.map((c) => [c.loteria, c.proximo]));
     const porLoteria = [];
     for (const [api, topo] of Object.entries(ultimos)) {
+      let c = cursor[api] ?? topo;
+      if (c < 1) {
+        porLoteria.push([]);
+        continue;
+      }
       const f = [];
-      for (let n2 = topo; n2 >= 1 && f.length < 6; n2--) if (!tem.has(api + ":" + n2)) f.push([api, n2]);
+      for (let volta = 0; volta < 5 && f.length < 6 && c >= 1; volta++) {
+        const ini = Math.max(1, c - 19);
+        const { results: ex } = await env.DB.prepare("SELECT numero FROM concursos WHERE loteria=? AND numero BETWEEN ? AND ?").bind(api, ini, c).all();
+        const tem = new Set(ex.map((r) => r.numero));
+        for (let n2 = c; n2 >= ini && f.length < 6; n2--) if (!tem.has(n2)) f.push([api, n2]);
+        if (f.length === 0) {
+          c = ini - 1;
+          cursor[api] = c;
+        } else break;
+      }
       porLoteria.push(f);
+      if (f.length === 0) cursor[api] = c;
     }
     const faltando = [];
     for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
+    const falhou = /* @__PURE__ */ new Set();
     for (const [api, n2] of faltando.slice(0, historicoMax)) {
-      if (usados >= LIMITE_SUBREQ) break;
+      if (usados >= LIMITE_SUBREQ || falhou.has(api)) break;
       const c = await buscar(api, n2);
       if (c) {
         await gravar(env, c);
         gravados++;
-      }
+        cursor[api] = Math.min(cursor[api] ?? n2, n2 - 1);
+      } else falhou.add(api);
     }
+    const st = env.DB.prepare("INSERT INTO coletor_cursor (loteria, proximo) VALUES (?1, ?2) ON CONFLICT(loteria) DO UPDATE SET proximo=excluded.proximo");
+    await env.DB.batch(Object.entries(cursor).map(([api, n2]) => st.bind(api, n2)));
+    log.marcadores = cursor;
   } catch (e) {
     erros.push("historico: " + String(e));
   }
   log.historico = gravados;
   log.requisicoes = usados;
   if (erros.length) log.erros = erros;
-  await registrar(env, JSON.stringify(log));
+  if (buscarUltimos || gravados || erros.length) await registrar(env, JSON.stringify(log));
   return log;
 }
 __name(executar, "executar");
 var index_default = {
   async scheduled(_e, env, ctx) {
-    ctx.waitUntil(executar(env).catch((e) => registrar(env, "falha: " + String(e))));
+    const ultimos = horaDeBuscarUltimos();
+    ctx.waitUntil(executar(env, ultimos ? 30 : 40, ultimos).catch((e) => registrar(env, "falha: " + String(e))));
   },
   async fetch(req, env) {
     const url = new URL(req.url);

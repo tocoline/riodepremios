@@ -28,10 +28,13 @@ function parse(r: any): Concurso {
   };
 }
 
+const falhas = new WeakSet<object>();
+/** true se alguma consulta desta conexão falhou (ex.: limite diário do D1) — páginas devem responder 503, não 404. */
+export function dbFalhou(db: DB) { return !db || falhas.has(db as object); }
 async function all(db: DB, q: string, ...binds: any[]): Promise<any[]> {
   if (!db) return [];
   try { const r = await db.prepare(q).bind(...binds).all(); return r.results ?? []; }
-  catch (e) { console.error('D1', e); return []; }
+  catch (e) { console.error('D1', e); falhas.add(db as object); return []; }
 }
 
 export async function ultimos(db: DB, l: Loteria, limite = 1): Promise<Concurso[]> {
@@ -57,8 +60,7 @@ export async function vizinhos(db: DB, l: Loteria, numero: number) {
 
 export async function lista(db: DB, l: Loteria, pagina = 1, porPagina = 30) {
   const rows = await all(db, 'SELECT * FROM concursos WHERE loteria=? ORDER BY numero DESC LIMIT ? OFFSET ?', l.api, porPagina, (pagina - 1) * porPagina);
-  const tot = await all(db, 'SELECT COUNT(*) n FROM concursos WHERE loteria=?', l.api);
-  return { itens: rows.map(parse), total: Number(tot[0]?.n ?? 0) };
+  return { itens: rows.map(parse) };
 }
 
 const SO_VIRADA = "AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')";

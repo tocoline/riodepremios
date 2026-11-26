@@ -55,52 +55,84 @@ async function registrar(env: Env, msg: string) {
   } catch (e) { console.error('log', String(e)); }
 }
 
-/** Busca o último concurso de cada loteria e completa o histórico (até `historicoMax` concursos por execução). */
-async function executar(env: Env, historicoMax = 30) {
+/** Hora de buscar os últimos resultados? A cada 10 min; a cada 2 min no horário dos sorteios (20h–22h59 de Brasília = 23h–01h59 UTC). */
+function horaDeBuscarUltimos(agora = new Date()) {
+  const h = agora.getUTCHours(), m = agora.getUTCMinutes();
+  const sorteio = h === 23 || h === 0 || h === 1;
+  return m % 10 === 0 || (sorteio && m % 2 === 0);
+}
+
+/**
+ * Busca os últimos concursos (quando é hora) e completa o histórico de cima para baixo.
+ * O avanço do histórico usa um marcador por loteria (tabela coletor_cursor), para não ler o banco inteiro a cada execução.
+ */
+async function executar(env: Env, historicoMax = 30, buscarUltimos = true) {
   usados = 0;
   const log: Record<string, unknown> = {};
   const ultimos: Record<string, number> = {};
   const erros: string[] = [];
 
   // 1) último concurso de cada loteria — grava um a um
-  for (const l of LOTERIAS) {
-    try {
-      const c = await buscar(l.api);
-      if (c) { await gravar(env, c); ultimos[l.api] = c.numero; } else erros.push(`${l.api}: nenhuma fonte respondeu`);
-    } catch (e) { erros.push(`${l.api}: ${String(e)}`); }
+  if (buscarUltimos) {
+    for (const l of LOTERIAS) {
+      try {
+        const c = await buscar(l.api);
+        if (c) { await gravar(env, c); ultimos[l.api] = c.numero; } else erros.push(`${l.api}: nenhuma fonte respondeu`);
+      } catch (e) { erros.push(`${l.api}: ${String(e)}`); }
+    }
+    log.ultimos = ultimos;
   }
-  log.ultimos = ultimos;
+  // topo de cada loteria a partir do banco (consulta leve, usa o índice)
+  const { results: tops } = await env.DB.prepare('SELECT loteria, MAX(numero) m FROM concursos GROUP BY loteria').all<{ loteria: string; m: number }>();
+  for (const t of tops) if (!ultimos[t.loteria]) ultimos[t.loteria] = t.m;
 
-  // 2) completa o histórico (do mais recente para o mais antigo)
+  // 2) completa o histórico usando o marcador de cada loteria
   let gravados = 0;
   try {
-    const { results } = await env.DB.prepare('SELECT loteria, numero FROM concursos').all<{ loteria: string; numero: number }>();
-    const tem = new Set(results.map((r) => r.loteria + ':' + r.numero));
-    // até 6 faltantes por loteria, intercalados (rodízio) para todas avançarem juntas
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS coletor_cursor (loteria TEXT PRIMARY KEY, proximo INTEGER NOT NULL)').run();
+    const { results: curs } = await env.DB.prepare('SELECT loteria, proximo FROM coletor_cursor').all<{ loteria: string; proximo: number }>();
+    const cursor: Record<string, number> = Object.fromEntries(curs.map((c) => [c.loteria, c.proximo]));
     const porLoteria: [string, number][][] = [];
     for (const [api, topo] of Object.entries(ultimos)) {
+      let c = cursor[api] ?? topo;
+      if (c < 1) { porLoteria.push([]); continue; }
+      // janela de até 20 números a partir do marcador: o que já existe é pulado
       const f: [string, number][] = [];
-      for (let n = topo; n >= 1 && f.length < 6; n--) if (!tem.has(api + ':' + n)) f.push([api, n]);
+      for (let volta = 0; volta < 5 && f.length < 6 && c >= 1; volta++) {
+        const ini = Math.max(1, c - 19);
+        const { results: ex } = await env.DB.prepare('SELECT numero FROM concursos WHERE loteria=? AND numero BETWEEN ? AND ?').bind(api, ini, c).all<{ numero: number }>();
+        const tem = new Set(ex.map((r) => r.numero));
+        for (let n = c; n >= ini && f.length < 6; n--) if (!tem.has(n)) f.push([api, n]);
+        if (f.length === 0) { c = ini - 1; cursor[api] = c; }
+        else break;
+      }
       porLoteria.push(f);
+      if (f.length === 0) cursor[api] = c;
     }
     const faltando: [string, number][] = [];
     for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
+    const falhou = new Set<string>();
     for (const [api, n] of faltando.slice(0, historicoMax)) {
-      if (usados >= LIMITE_SUBREQ) break;
+      if (usados >= LIMITE_SUBREQ || falhou.has(api)) break;
       const c = await buscar(api, n);
-      if (c) { await gravar(env, c); gravados++; }
+      if (c) { await gravar(env, c); gravados++; cursor[api] = Math.min(cursor[api] ?? n, n - 1); }
+      else falhou.add(api); // não avança o marcador dessa loteria; tenta de novo na próxima execução
     }
+    const st = env.DB.prepare('INSERT INTO coletor_cursor (loteria, proximo) VALUES (?1, ?2) ON CONFLICT(loteria) DO UPDATE SET proximo=excluded.proximo');
+    await env.DB.batch(Object.entries(cursor).map(([api, n]) => st.bind(api, n)));
+    log.marcadores = cursor;
   } catch (e) { erros.push('historico: ' + String(e)); }
   log.historico = gravados;
   log.requisicoes = usados;
   if (erros.length) log.erros = erros;
-  await registrar(env, JSON.stringify(log));
+  if (buscarUltimos || gravados || erros.length) await registrar(env, JSON.stringify(log));
   return log;
 }
 
 export default {
   async scheduled(_e: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(executar(env).catch((e) => registrar(env, 'falha: ' + String(e))));
+    const ultimos = horaDeBuscarUltimos();
+    ctx.waitUntil(executar(env, ultimos ? 30 : 40, ultimos).catch((e) => registrar(env, 'falha: ' + String(e))));
   },
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);

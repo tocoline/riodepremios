@@ -8,17 +8,21 @@ import Resposta from '../../components/Resposta.astro';
 import Fonte from '../../components/Fonte.astro';
 import Ad from '../../components/Ad.astro';
 import { POR_SLUG } from '../../lib/loterias';
-import { getDB, historicoDezenas, frequenciaPorAno, anos as listarAnos, ultimos } from '../../lib/db';
+import { getDB, ultimos, dbFalhou } from '../../lib/db';
 import { calcular } from '../../lib/estatisticas';
+import { resumo } from '../../lib/resumo';
 import { pad, numero } from '../../lib/format';
-import { cachear, naoEncontrado } from '../../lib/cache';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
 cachear(Astro, 1800);
 const db = getDB(Astro.locals);
-const [hist, porAno, anos, [ult]] = await Promise.all([historicoDezenas(db, l), frequenciaPorAno(db, l), listarAnos(db, l), ultimos(db, l, 1)]);
-const s = calcular(l, hist);
+const [r, [ult]] = await Promise.all([resumo(db, l), ultimos(db, l, 1)]);
+if (!r && dbFalhou(db)) return indisponivel();
+const s = r?.s ?? calcular(l, []);
+const porAno = r?.porAno ?? [];
+const anos = r?.anos ?? [];
 ---
 <Base title={`Estatísticas da ${l.nome}: dezenas que mais saem e atrasadas`} description={`Estatísticas da ${l.nome} com ${numero(s.total)} concursos: dezenas mais sorteadas, mais atrasadas, pares e ímpares e frequência por ano, atualizadas a cada sorteio.`} modificado={ult?.atualizado_em}>
   <div class="wrap phero">
