@@ -1,0 +1,115 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { VIRADA } from '../../lib/loterias';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+// Valores de referência redondos (hipotéticos e editáveis) — não são preços de produtos específicos
+const ITENS = [
+  { id: 'ap', e: '🏢', nome: 'Apartamentos', unid: 'apartamentos', v: 800_000 },
+  { id: 'casa', e: '🏖️', nome: 'Casas de praia', unid: 'casas de praia', v: 2_500_000 },
+  { id: 'carro', e: '🚗', nome: 'Carros populares', unid: 'carros', v: 90_000 },
+  { id: 'luxo', e: '🏎️', nome: 'Carros de luxo', unid: 'carros de luxo', v: 1_500_000 },
+  { id: 'viagem', e: '✈️', nome: 'Viagens internacionais em família', unid: 'viagens', v: 60_000 },
+  { id: 'fac', e: '🎓', nome: 'Faculdades particulares completas', unid: 'cursos completos', v: 300_000 },
+  { id: 'sal', e: '💼', nome: 'Anos de um salário de R$ 5 mil', unid: 'anos de salário', v: 65_000 },
+  { id: 'casam', e: '💍', nome: 'Festas de casamento', unid: 'festas', v: 120_000 },
+];
+const liquido = VIRADA.premioValor * 0.7;
+const n = (v: number) => Math.floor(liquido / v).toLocaleString('pt-BR');
+const titulo = `O que comprar se ganhar a Mega da Virada: simulação com R$ 1 bilhão`;
+const desc = 'Quantos apartamentos, carros e viagens dá para comprar com o prêmio de R$ 1 bilhão da Mega da Virada depois do imposto — e o que especialistas recomendam fazer primeiro com o dinheiro.';
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, image: [`${SITE.url}/imagem-concurso.png?tipo=rende&v=R%24%20700%20milh%C3%B5es`], mainEntityOfPage: `${SITE.url}/mega-da-virada/o-que-comprar/` }];
+---
+<Base title="O que comprar se ganhar a Mega da Virada? Simulação com R$ 1 bilhão" description={desc} schema={schema} type="article" image="/imagem-concurso.png?tipo=rende&v=R%24%20700%20milh%C3%B5es">
+  <ViradaHero titulo="O que dá para comprar com R$ 1 bilhão?" crumb="O que comprar" sub="Uma simulação divertida (e um plano sério) para o maior prêmio do ano — depois do Imposto de Renda." />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Um prêmio de <strong>R$ 1 bilhão</strong> vira cerca de <strong>R$ 700 milhões</strong> depois dos 30% de Imposto de Renda. Com valores de referência redondos, isso daria para comprar, por exemplo, <strong>{n(800_000)} apartamentos de R$ 800 mil</strong>, <strong>{n(90_000)} carros de R$ 90 mil</strong> ou pagar <strong>{n(65_000)} anos</strong> de um salário de R$ 5 mil. Ajuste os valores na simulação abaixo — e veja o que especialistas recomendam fazer antes de qualquer compra.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <form class="card oc" onsubmit="return false" style="margin-top:20px">
+      <div class="row">
+        <div class="field"><label for="oc-p">Prêmio bruto (R$)</label><input id="oc-p" name="premio" type="number" step="1000000" value={VIRADA.premioValor} inputmode="decimal" /></div>
+        <div class="field"><label for="oc-g">Dividido entre (ganhadores)</label><input id="oc-g" name="ganhadores" type="number" min="1" value="1" inputmode="numeric" /></div>
+      </div>
+      <p class="oc-liq">Valor líquido por ganhador: <strong data-liq>R$ 700.000.000</strong></p>
+      <div class="oc-grid">
+        {ITENS.map((it) => (
+          <div class="oc-i">
+            <span class="oc-e" aria-hidden="true">{it.e}</span>
+            <strong class="oc-n" data-n={it.id}>{n(it.v)}</strong>
+            <span class="oc-u">{it.unid}</span>
+            <label class="small faint">de R$ <input class="oc-v" data-v={it.id} type="number" min="1" step="1000" value={it.v} inputmode="decimal" aria-label={`Valor de referência: ${it.nome}`} /></label>
+          </div>
+        ))}
+      </div>
+      <div class="acts" style="margin-top:12px"><a class="btn btn-sm wa" data-wa target="_blank" rel="noopener">Compartilhar no WhatsApp</a></div>
+      <p class="small faint" style="margin:8px 0 0">Valores de referência hipotéticos, editáveis, apenas para a simulação. Não consideram custos de manutenção, impostos sobre bens ou rendimentos.</p>
+    </form>
+
+    <div class="prose" style="margin-top:28px">
+      <h2>Antes de comprar: o plano dos primeiros 90 dias</h2>
+      <p>Histórias de ganhadores que perderam tudo têm algo em comum: decisões grandes tomadas nos primeiros dias, sob emoção. Um roteiro prudente ajuda a transformar o prêmio em segurança para a vida toda.</p>
+      <h3>1. Discrição total</h3>
+      <p>Conte para pouquíssimas pessoas de confiança. Exposição atrai pedidos de dinheiro, golpes e riscos de segurança.</p>
+      <h3>2. Resgate com calma e deixe o dinheiro parado em lugar seguro</h3>
+      <p>Você tem 90 dias para resgatar o prêmio. Depois do resgate, mantenha o valor em aplicações de baixo risco e alta liquidez enquanto monta um plano. Veja <a href="/mega-da-virada/quanto-rende/">quanto o prêmio rende por mês</a> sem você gastar nada.</p>
+      <h3>3. Monte uma equipe independente</h3>
+      <p>Um contador, um advogado e um planejador financeiro independentes — que não ganhem comissão sobre produtos que vendem — ajudam a organizar impostos, patrimônio e investimentos.</p>
+      <h3>4. Defina prioridades</h3>
+      <p>Quite dívidas, garanta moradia, crie reservas para saúde e educação da família e só então pense em compras grandes. Uma regra comum é separar uma parte pequena para realizar sonhos e proteger o restante.</p>
+
+      <h2>Ajudar a família e os amigos</h2>
+      <p>Transferências de dinheiro podem ser consideradas doação e estão sujeitas ao ITCMD, imposto estadual com regras que variam por estado. Planeje antes de distribuir valores e prefira formalizar com orientação profissional. Saiba mais no <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">guia de Imposto de Renda sobre prêmios</a>.</p>
+
+      <h2>Se o prêmio for dividido</h2>
+      <p>A Mega da Virada não acumula e, quando há vários acertadores, o prêmio é dividido igualmente. Com 5 ganhadores, por exemplo, cada um recebe cerca de R$ 140 milhões líquidos — ainda uma fortuna. Mude o campo "Dividido entre" na simulação para ver o impacto.</p>
+    </div>
+    <Ad />
+    <div class="prose">
+      <h2>Primeiro, é preciso apostar</h2>
+      <p>A chance de acertar a sena com uma aposta simples é de 1 em 50.063.860. Veja <a href="/mega-da-virada/quanto-custa-apostar/">quanto custa cada aposta</a>, <a href="/mega-da-virada/como-jogar-online/">como jogar online</a> e monte um <a href="/mega-da-virada/bolao-online/">bolão com a família</a>. E lembre: loteria é diversão — aposte só o que não vai fazer falta.</p>
+    </div>
+    <Faq itens={[
+      { q: 'Quanto sobra de R$ 1 bilhão depois do imposto?', a: 'Com a retenção de 30% de Imposto de Renda, cerca de R$ 700 milhões para um único ganhador.' },
+      { q: 'O que fazer primeiro se ganhar na Mega da Virada?', a: 'Manter discrição, guardar o bilhete em segurança, resgatar dentro do prazo de 90 dias e deixar o dinheiro em aplicação segura enquanto monta um plano com profissionais independentes.' },
+      { q: 'Posso dar dinheiro para a família sem pagar imposto?', a: 'Doações podem ter ITCMD, imposto estadual com regras e limites que variam por estado. Consulte um contador antes de transferir valores altos.' },
+    ]} />
+  </article>
+</Base>
+<script>
+  import { linkWhatsApp } from '../../lib/compartilhar';
+  const f = document.querySelector<HTMLFormElement>('.oc')!;
+  const calc = () => {
+    const p = Number((f.elements.namedItem('premio') as HTMLInputElement).value) || 0;
+    const g = Math.max(1, Number((f.elements.namedItem('ganhadores') as HTMLInputElement).value) || 1);
+    const liq = (p / g) * 0.7;
+    f.querySelector('[data-liq]')!.textContent = liq.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    let resumo: string[] = [];
+    f.querySelectorAll<HTMLInputElement>('[data-v]').forEach((inp) => {
+      const v = Math.max(1, Number(inp.value) || 1), q = Math.floor(liq / v);
+      const el = f.querySelector(`[data-n="${inp.dataset.v}"]`)!; el.textContent = q.toLocaleString('pt-BR');
+      if (resumo.length < 3) resumo.push(`${q.toLocaleString('pt-BR')} ${inp.closest('.oc-i')!.querySelector('.oc-u')!.textContent}`);
+    });
+    (f.querySelector('[data-wa]') as HTMLAnchorElement).href = linkWhatsApp(`🤑 Com o prêmio da Mega da Virada dá pra comprar ${resumo.join(', ')}... Faça a sua simulação:`, location.origin + '/mega-da-virada/o-que-comprar/');
+  };
+  f.addEventListener('input', calc); calc();
+</script>
+<style>
+  .oc-liq { margin: 6px 0 14px; font-size: 1.05rem; }
+  .oc-liq strong { color: var(--gold); }
+  .oc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .oc-i { padding: 16px; border-radius: var(--r-sm); background: var(--surface2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  .oc-e { font-size: 1.6rem; }
+  .oc-n { font: 700 1.6rem/1.1 var(--display); color: var(--gold); letter-spacing: -.02em; }
+  .oc-u { font-weight: 600; font-size: .9rem; }
+  .oc-v { width: 110px; padding: 4px 8px; font-size: .82rem; display: inline-block; }
+  .wa { background: #25d366; color: #05210f; border: 0; }
+  .wa:hover { background: #22c55e; color: #05210f; }
+</style>

@@ -29,6 +29,7 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - [Estatísticas](${u}/mega-da-virada/estatisticas/)
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)
 - [Simulador de chances](${u}/mega-da-virada/simulador/)
+- [Quanto custa apostar (6 a 20 números)](${u}/mega-da-virada/quanto-custa-apostar/) · [Prêmios por acertos](${u}/mega-da-virada/premios-por-acertos/) · [Como jogar online](${u}/mega-da-virada/como-jogar-online/) · [O que comprar se ganhar](${u}/mega-da-virada/o-que-comprar/) · [Palpites por signo](${u}/mega-da-virada/palpites-por-signo/)
 - [Seus números da sorte](${u}/mega-da-virada/seus-numeros/) · [Bolão online com conferência automática](${u}/mega-da-virada/bolao-online/) · [Quanto rende R$ 1 bilhão](${u}/mega-da-virada/quanto-rende/)
 
 ## Estatísticas

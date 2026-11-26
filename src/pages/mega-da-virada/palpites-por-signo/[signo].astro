@@ -1,0 +1,79 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ViradaHero from '../../../components/ViradaHero.astro';
+import ViradaNav from '../../../components/ViradaNav.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { VIRADA } from '../../../lib/loterias';
+import { SIGNOS, palpitesSigno, type Signo } from '../../../lib/signos';
+import { pad } from '../../../lib/format';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../../lib/site';
+
+export function getStaticPaths() { return SIGNOS.map((s) => ({ params: { signo: s.slug }, props: { s } })); }
+const { s } = Astro.props as { s: Signo };
+const p = palpitesSigno(s);
+const mesmoElemento = SIGNOS.filter((x) => x.elemento === s.elemento && x.slug !== s.slug);
+const outros = SIGNOS.filter((x) => x.slug !== s.slug);
+const dz = (a: number[]) => a.map((d) => pad(d)).join(' - ');
+const titulo = `Palpite da Mega da Virada ${VIRADA.ano} para ${s.nome}`;
+const desc = `Palpite da Mega da Virada ${VIRADA.ano} para o signo de ${s.nome} (${s.periodo}): ${dz(p.principal)}. Jogo alternativo, dezena da sorte e dicas para o signo. Entretenimento.`;
+const imagem = `/imagem-concurso.png?tipo=jogo&d=${p.principal.join('-')}&n=${encodeURIComponent(s.nome)}`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, image: [new URL(imagem, SITE.url).href], mainEntityOfPage: `${SITE.url}/mega-da-virada/palpites-por-signo/${s.slug}/` }];
+const p2 = (a: number[]) => a.filter((d) => d % 2 === 0).length;
+---
+<Base title={titulo} description={desc} schema={schema} image={imagem} type="article">
+  <ViradaHero titulo={`${s.emoji} Palpite da Mega da Virada para ${s.nome}`} crumb={s.nome} sub={`Signo de ${s.elemento.toLowerCase()}, regido por ${s.regente} · nascidos de ${s.periodo}`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:900px">
+    <Resposta><p>O palpite da Mega da Virada {VIRADA.ano} para <strong>{s.nome}</strong> é <strong>{dz(p.principal)}</strong>. O jogo alternativo é {dz(p.alternativo)}, e a dezena da sorte do signo é a <strong>{pad(p.dezena)}</strong>. Lembre: é entretenimento — todas as combinações têm a mesma chance de sair.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <div class="card pl" style="margin-top:20px">
+      <p class="lbl">Jogo principal de {s.nome}</p>
+      <div class="balls">{p.principal.map((d) => <span class="ball lg gold">{pad(d)}</span>)}</div>
+      <p class="lbl" style="margin-top:14px">Jogo alternativo</p>
+      <div class="balls">{p.alternativo.map((d) => <span class="ball gold">{pad(d)}</span>)}</div>
+      <p class="small muted" style="margin:12px 0 0">Dezena da sorte: <strong>{pad(p.dezena)}</strong> · Jogo principal com {p2(p.principal)} pares e {6 - p2(p.principal)} ímpares, soma {p.principal.reduce((a, b) => a + b, 0)}.</p>
+      <div class="acts" style="margin-top:14px">
+        <a class="btn btn-sm wa" href={`https://wa.me/?text=${encodeURIComponent(`${s.emoji} Palpite da Mega da Virada para ${s.nome}: ${dz(p.principal)} 🍀 Veja o do seu signo: ${SITE.url}/mega-da-virada/palpites-por-signo/${s.slug}/`)}`} target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+        <a class="btn btn-sm" href="/mega-da-virada/bolao-online/">Montar bolão com esses números</a>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top:28px">
+      <h2>{s.nome} na Mega da Virada</h2>
+      <p>{s.perfil}</p>
+      <p>{s.estilo}</p>
+      <h2>Ficha do signo</h2>
+      <ul>
+        <li><strong>Período:</strong> nascidos de {s.periodo}</li>
+        <li><strong>Elemento:</strong> {s.elemento}{mesmoElemento.length ? ` (com ${mesmoElemento.map((x) => x.nome).join(' e ')})` : ''}</li>
+        <li><strong>Planeta regente:</strong> {s.regente}</li>
+        <li><strong>Dezena da sorte {VIRADA.ano}:</strong> {pad(p.dezena)}</li>
+      </ul>
+    </div>
+    <Ad />
+    <div class="prose">
+      <h2>Antes de apostar</h2>
+      <ul>
+        <li>A aposta simples custa R$ 6,00. Veja todos os valores na <a href="/mega-da-virada/quanto-custa-apostar/">tabela de preços da Mega da Virada</a>.</li>
+        <li>As apostas individuais vão até 31/12/2026, às 22h; o sorteio é em {VIRADA.dataTexto}, às {VIRADA.hora}. Veja <a href="/mega-da-virada/como-jogar-online/">como jogar online</a>.</li>
+        <li>Astrologia é diversão: o sorteio é aleatório e nenhum signo tem mais chance. Defina um limite de gastos.</li>
+      </ul>
+      <h2>Palpites dos outros signos</h2>
+      <p>{outros.map((x, i) => <>{i > 0 && ' · '}<a href={`/mega-da-virada/palpites-por-signo/${x.slug}/`}>{x.emoji} {x.nome}</a></>)}</p>
+    </div>
+    <Faq itens={[
+      { q: `Qual o palpite da Mega da Virada para ${s.nome}?`, a: `Jogo principal: ${dz(p.principal)}. Jogo alternativo: ${dz(p.alternativo)}. Dezena da sorte: ${pad(p.dezena)}.` },
+      { q: `Quem é de ${s.nome} tem mais sorte na Mega da Virada?`, a: 'Não. O sorteio é aleatório e a chance é a mesma para todos: 1 em 50.063.860 com uma aposta simples. O palpite por signo é entretenimento.' },
+      { q: 'Quando é o sorteio da Mega da Virada?', a: `Em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília), com prêmio estimado em ${VIRADA.premioTexto}.` },
+    ]} />
+  </article>
+</Base>
+<style>
+  .lbl { margin: 0 0 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  .wa { background: #25d366; color: #05210f; border: 0; }
+  .wa:hover { background: #22c55e; color: #05210f; }
+</style>

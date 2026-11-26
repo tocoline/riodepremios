@@ -4,6 +4,7 @@ import { GUIAS } from './guias';
 import { SITE, CONTEUDO_ATUALIZADO } from './site';
 import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios';
 import { resumo, type Resumo } from './resumo';
+import { SIGNOS } from './signos';
 import { marcarFalha } from './db';
 
 /** Resumos de todas as loterias (1 linha lida por loteria). */
@@ -46,8 +47,9 @@ export async function paginas(db: any): Promise<Url[]> {
   }
   const viradas = await q(db, "SELECT MAX(data) d FROM concursos WHERE loteria='megasena' AND especial=1");
   const vir = max(VIRADA.atualizado, viradas[0]?.d);
-  for (const p of ['', 'resultados/', 'estatisticas/', 'calculadora-de-bolao/', 'simulador/', 'gerador/', 'premio-liquido/', 'como-apostar/', 'seus-numeros/', 'bolao-online/', 'quanto-rende/'])
+  for (const p of ['', 'resultados/', 'estatisticas/', 'calculadora-de-bolao/', 'simulador/', 'gerador/', 'premio-liquido/', 'como-apostar/', 'seus-numeros/', 'bolao-online/', 'quanto-rende/', 'quanto-custa-apostar/', 'premios-por-acertos/', 'como-jogar-online/', 'o-que-comprar/', 'palpites-por-signo/'])
     u.push({ loc: `/mega-da-virada/${p}`, lastmod: p === 'resultados/' || p === 'estatisticas/' ? max(viradas[0]?.d) : vir });
+  for (const sg of SIGNOS) u.push({ loc: `/mega-da-virada/palpites-por-signo/${sg.slug}/`, lastmod: fixo });
   const prox = proximaEdicao();
   const rpAtu = dataEdicao(prox - 1);
   for (const p of ['', 'resultados/']) u.push({ loc: `/rio-de-premios/${p}`, lastmod: max(rpAtu, fixo) });

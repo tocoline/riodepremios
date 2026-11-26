@@ -1,0 +1,88 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { VIRADA } from '../../lib/loterias';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const passos = [
+  ['Baixe o app ou acesse o portal oficial', 'Use o aplicativo Loterias Caixa (Android e iOS) ou o portal Loterias Online da Caixa. Confira se está no endereço oficial da Caixa antes de digitar qualquer dado.'],
+  ['Faça seu cadastro', 'O cadastro exige ser maior de 18 anos e informar CPF e dados pessoais. Clientes Caixa também podem apostar pelo internet banking.'],
+  ['Escolha a Mega da Virada', 'Selecione o concurso especial de fim de ano e marque de 6 a 20 números, ou use a Surpresinha para o sistema escolher.'],
+  ['Adicione ao carrinho e pague', 'Revise os jogos e finalize o pagamento pelas formas aceitas no carrinho. Os canais digitais costumam exigir um valor mínimo por compra, informado na tela.'],
+  ['Guarde o comprovante', 'A aposta fica registrada na sua conta. Salve o comprovante e, depois do sorteio, confira os jogos — o resultado sai aqui automaticamente.'],
+];
+const titulo = `Como jogar a Mega da Virada ${VIRADA.ano} online: passo a passo`;
+const desc = 'Passo a passo para apostar na Mega da Virada pela internet: app Loterias Caixa, portal Loterias Online e internet banking, cadastro, pagamento, bolões digitais, prazos e segurança.';
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'HowTo', name: titulo, step: passos.map(([n, t], i) => ({ '@type': 'HowToStep', position: i + 1, name: n, text: t })) },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/mega-da-virada/como-jogar-online/` },
+];
+---
+<Base title={`Como jogar a Mega da Virada online: passo a passo ${VIRADA.ano}`} description={desc} schema={schema} type="article">
+  <ViradaHero titulo="Como jogar a Mega da Virada online" crumb="Jogar online" sub="Aposte sem sair de casa, com segurança: canais oficiais, cadastro, pagamento, bolões digitais e os prazos desta edição." />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:900px">
+    <Resposta><p>Para jogar a Mega da Virada online, use os canais oficiais da Caixa: o <strong>app Loterias Caixa</strong>, o <strong>portal Loterias Online</strong> ou o <strong>internet banking da Caixa</strong>. É preciso ser maior de 18 anos e ter cadastro com CPF. Nesta edição, as apostas individuais vão até <strong>31/12/2026, às 22h</strong>, e os bolões digitais até <strong>9h de 1º/01/2027</strong>.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <h2 style="margin-top:28px">Passo a passo</h2>
+    <ol class="steps">
+      {passos.map(([n, t], i) => <li class="card"><span class="sn">{i + 1}</span><div><h3>{n}</h3><p class="muted">{t}</p></div></li>)}
+    </ol>
+
+    <div class="prose">
+      <h2>Onde apostar pela internet</h2>
+      <h3>App Loterias Caixa</h3>
+      <p>É o caminho mais prático no celular. Depois do cadastro, você escolhe a modalidade, marca os números e paga pelo próprio app. As apostas ficam salvas no histórico da conta, o que evita o risco de perder um bilhete de papel.</p>
+      <h3>Portal Loterias Online</h3>
+      <p>Funciona no computador e no navegador do celular, com o mesmo cadastro do app. É útil para quem prefere conferir os jogos numa tela maior antes de pagar.</p>
+      <h3>Internet banking da Caixa</h3>
+      <p>Correntistas da Caixa podem apostar direto pelo internet banking, com o valor debitado da conta. Outros bancos também já ofereceram apostas em seus aplicativos; verifique no app do seu banco se a opção está disponível.</p>
+
+      <h2>Bolões digitais</h2>
+      <p>Os canais digitais da Caixa também vendem cotas de bolões oficiais. Na Mega da Virada {VIRADA.ano}, as cotas de bolão digital podem ser compradas até <strong>9h de 1º de janeiro de 2027</strong> — duas horas antes do sorteio, que acontece às {VIRADA.hora}. Para organizar um bolão próprio com a família ou os colegas, use o <a href="/mega-da-virada/bolao-online/">bolão online do Rio de Prêmios</a>, que confere os jogos automaticamente.</p>
+    </div>
+    <Ad />
+    <div class="prose">
+      <h2>Prazos desta edição</h2>
+      <ul>{VIRADA.prazos.map((p) => <li><strong>{p.quando}:</strong> {p.o}</li>)}</ul>
+      <p>Nos últimos dias de dezembro, o volume de acessos aos canais digitais é muito alto. Faça sua aposta com antecedência para não correr o risco de ficar de fora.</p>
+
+      <h2>Segurança: como evitar golpes</h2>
+      <ul>
+        <li><strong>Só use canais oficiais da Caixa.</strong> Desconfie de sites e perfis que "vendem" apostas da Mega da Virada com desconto ou por mensagem.</li>
+        <li><strong>Nunca informe senha ou código de verificação</strong> a quem entrar em contato dizendo ser da Caixa.</li>
+        <li><strong>Cuidado com links recebidos por mensagem</strong> prometendo "jogos premiados" ou "números garantidos".</li>
+        <li><strong>Ninguém cobra taxa para liberar prêmio.</strong> O Imposto de Renda é descontado pela própria Caixa no pagamento.</li>
+      </ul>
+
+      <h2>Ganhei apostando online. Como recebo?</h2>
+      <p>Prêmios menores podem ser creditados na conta indicada no cadastro; prêmios maiores são pagos em agências da Caixa, com documento de identificação. O prazo para resgate é de 90 dias após o sorteio. Veja os detalhes no guia <a href="/guias/como-resgatar-premio-da-loteria/">como resgatar prêmio da loteria</a>.</p>
+
+      <h2>Antes de apostar</h2>
+      <ul>
+        <li>Veja quanto custa cada tipo de jogo na <a href="/mega-da-virada/quanto-custa-apostar/">tabela de preços</a>.</li>
+        <li>Gere números aleatórios no <a href="/mega-da-virada/gerador/">gerador da Mega da Virada</a> ou descubra seus <a href="/mega-da-virada/seus-numeros/">números da sorte</a>.</li>
+        <li>Defina um limite de gastos e leia o guia de <a href="/jogo-responsavel/">jogo responsável</a>.</li>
+      </ul>
+    </div>
+    <Faq itens={[
+      { q: 'Dá para jogar a Mega da Virada pela internet?', a: 'Sim, pelo app Loterias Caixa, pelo portal Loterias Online e pelo internet banking da Caixa, com cadastro e maioridade.' },
+      { q: 'Até que horas posso apostar online na Mega da Virada?', a: 'Apostas individuais até 31/12/2026, às 22h. Cotas de bolão digital até 9h de 1º/01/2027.' },
+      { q: 'Existe valor mínimo para apostar online?', a: 'Os canais digitais da Caixa costumam exigir um valor mínimo por compra no carrinho. O valor vigente aparece na tela de pagamento.' },
+      { q: 'Aposta online é segura?', a: 'Sim, desde que feita nos canais oficiais da Caixa. A aposta fica registrada na sua conta, o que evita perder o bilhete. Desconfie de qualquer outro site ou perfil que venda apostas.' },
+    ]} />
+  </article>
+</Base>
+<style>
+  .steps { list-style: none; padding: 0; margin: 16px 0 24px; display: grid; gap: 12px; }
+  .steps li { display: flex; gap: 18px; align-items: flex-start; }
+  .steps h3 { margin: 4px 0; }
+  .steps p { margin: 0; }
+  .sn { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 700 1.1rem var(--display); color: #1c1400; background: linear-gradient(120deg, #f6d36b, #e3a92c); }
+</style>

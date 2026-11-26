@@ -53,6 +53,14 @@ const virais = [
   ['/mega-da-virada/bolao-online/', '👨‍👩‍👧', 'Bolão online da família', 'Monte o bolão, mande o link no grupo e ele confere sozinho no dia 1º'],
   ['/mega-da-virada/quanto-rende/', '💰', 'Quanto rende R$ 1 bilhão', 'Por mês, por dia e por segundo — compare com o seu salário'],
 ];
+const artigos = [
+  ['/mega-da-virada/quanto-custa-apostar/', '💵', 'Quanto custa apostar', 'Preços de 6 a 20 números, com as chances de cada aposta'],
+  ['/mega-da-virada/premios-por-acertos/', '🏆', 'Prêmios por acertos', 'Quanto paga sena, quina e quadra — e jogos com mais números'],
+  ['/mega-da-virada/como-jogar-online/', '📱', 'Como jogar online', 'App, portal e internet banking, prazos e segurança'],
+  ['/mega-da-virada/o-que-comprar/', '🛍️', 'O que comprar se ganhar', 'Simulação com R$ 1 bilhão e o plano dos primeiros 90 dias'],
+  ['/mega-da-virada/palpites-por-signo/', '✨', 'Palpites por signo', 'Um jogo para cada signo do zodíaco, só por diversão'],
+  ['/mega-da-virada/como-apostar/', '📝', 'Como apostar', 'Passo a passo do volante ao comprovante'],
+];
 const ferramentas = [
   ['/mega-da-virada/calculadora-de-bolao/', '👥', 'Calculadora de bolão', 'Custo, cotas e prêmio por participante'],
   ['/mega-da-virada/simulador/', '🎰', 'Simulador de chances', 'Sua chance real + simulação de 500 mil sorteios'],
@@ -116,6 +124,16 @@ const ferramentas = [
     <div class="grid g3">
       {virais.map(([h, i, t, d]) => (
         <a class="card card-link vt vt-hot" href={h}><span class="vt-i" aria-hidden="true">{i}</span><div><h3>{t}</h3><p class="small muted">{d}</p></div></a>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap section-sm">
+    <span class="eyebrow">Guias da Virada</span>
+    <h2>Tudo o que você precisa saber</h2>
+    <div class="grid g3">
+      {artigos.map(([h, i, t, d]) => (
+        <a class="card card-link vt" href={h}><span class="vt-i" aria-hidden="true">{i}</span><div><h3>{t}</h3><p class="small muted">{d}</p></div></a>
       ))}
     </div>
   </section>

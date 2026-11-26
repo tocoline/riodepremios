@@ -1,0 +1,70 @@
+---
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { custo, probabilidade, chance, C } from '../../lib/math';
+import { reais, numero } from '../../lib/format';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const l = POR_SLUG['mega-sena'];
+const linhas = Array.from({ length: 15 }, (_, i) => i + 6).map((n) => ({
+  n, preco: custo(l, n), combos: C(n, 6),
+  sena: chance(probabilidade(l, 6, n)), quina: chance(probabilidade(l, 5, n)), quadra: chance(probabilidade(l, 4, n)),
+}));
+const L = Object.fromEntries(linhas.map((x) => [x.n, x]));
+const titulo = `Quanto custa apostar na Mega da Virada ${VIRADA.ano}: preços de 6 a 20 números`;
+const desc = `Tabela completa de preços da Mega da Virada ${VIRADA.ano}: de R$ 6,00 (6 números) a R$ 232.560,00 (20 números), com a chance exata de sena, quina e quadra em cada aposta.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/mega-da-virada/quanto-custa-apostar/` }];
+---
+<Base title={`Quanto custa apostar na Mega da Virada ${VIRADA.ano}: tabela de preços`} description={desc} schema={schema} type="article">
+  <ViradaHero titulo="Quanto custa apostar na Mega da Virada" crumb="Quanto custa" sub="Do jogo simples de R$ 6,00 à aposta máxima de 20 números: preços, combinações e chances, calculados com exatidão." />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>A aposta simples da Mega da Virada {VIRADA.ano}, com <strong>6 números</strong>, custa <strong>{reais(6)}</strong>. Com 7 números, custa {reais(L[7].preco)}; com 8, {reais(L[8].preco)}; com 10, {reais(L[10].preco)}; e a aposta máxima, com <strong>20 números</strong>, custa <strong>{reais(L[20].preco)}</strong>. O preço de cada aposta é sempre R$ 6,00 multiplicado pelo número de combinações de 6 dezenas que ela contém.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <div class="prose" style="margin-top:24px">
+      <h2>Tabela de preços e chances da Mega da Virada</h2>
+      <p>A tabela abaixo mostra, para cada quantidade de números marcados, o valor da aposta, quantas combinações de 6 dezenas ela cobre e a chance de acertar cada faixa de prêmio. As chances foram calculadas por análise combinatória — a mesma conta usada nas tabelas oficiais da Caixa.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Números</th><th class="num">Preço</th><th class="num">Combinações de 6</th><th class="num">Sena (6)</th><th class="num">Quina (5)</th><th class="num">Quadra (4)</th></tr></thead>
+        <tbody>{linhas.map((x) => <tr><td><strong>{x.n}</strong></td><td class="num">{reais(x.preco)}</td><td class="num">{numero(x.combos)}</td><td class="num">1 em {numero(x.sena)}</td><td class="num">1 em {numero(x.quina)}</td><td class="num">1 em {numero(x.quadra)}</td></tr>)}</tbody>
+      </table>
+    </div>
+    <p class="small faint">Preço da aposta simples conforme a tabela vigente da Caixa (reajuste de julho de 2025). Confira sempre os valores nos canais oficiais.</p>
+
+    <div class="prose">
+      <h2>Como o preço é calculado</h2>
+      <p>Na Mega-Sena, o sorteio tira 6 dezenas. Quando você marca mais de 6 números, a Caixa considera todas as combinações possíveis de 6 dezenas dentro do seu jogo — e cobra R$ 6,00 por cada uma. Um jogo de 7 números contém 7 combinações diferentes de 6; um de 8 números contém 28; um de 10 contém 210. Por isso o preço cresce tão rápido: a aposta de 20 números equivale a {numero(L[20].combos)} apostas simples.</p>
+      <h3>A chance cresce na mesma proporção do preço</h3>
+      <p>Não existe "desconto" nas apostas maiores: se você paga 28 vezes mais por um jogo de 8 números, sua chance de acertar a sena também fica exatamente 28 vezes maior (1 em {numero(L[8].sena)}). Na prática, um jogo de 8 números e 28 apostas simples diferentes têm a mesma chance de sena — a diferença está nas faixas menores, explicada no artigo <a href="/mega-da-virada/premios-por-acertos/">prêmios por quantidade de acertos</a>.</p>
+
+      <h2>Qual aposta escolher?</h2>
+      <h3>Até R$ 50: jogos simples ou um jogo de 7 números</h3>
+      <p>Com R$ 42,00 você faz um jogo de 7 números ou 7 apostas simples. A chance de sena é a mesma (1 em {numero(L[7].sena)}). Apostas simples espalhadas permitem variar mais os números; o jogo de 7 concentra prêmios menores quando acerta.</p>
+      <h3>De R$ 100 a R$ 1.000: considere o bolão</h3>
+      <p>Um jogo de 9 números ({reais(L[9].preco)}) ou de 10 números ({reais(L[10].preco)}) pesa no bolso de uma pessoa, mas fica acessível dividido entre amigos. Com 20 participantes, cada cota de um jogo de 10 números sai por {reais(L[10].preco / 20)}. Simule na <a href="/mega-da-virada/calculadora-de-bolao/">calculadora de bolão</a> ou monte o grupo no <a href="/mega-da-virada/bolao-online/">bolão online</a>.</p>
+      <h3>Acima disso: só em grupo e com limite</h3>
+      <p>Jogos de 15 números ou mais custam dezenas de milhares de reais e normalmente aparecem em bolões grandes, como os vendidos em lotéricas. Defina sempre um limite de gastos: loteria é entretenimento, não investimento. Leia o guia de <a href="/jogo-responsavel/">jogo responsável</a>.</p>
+    </div>
+    <Ad />
+    <div class="prose">
+      <h2>Prazos para apostar na Mega da Virada {VIRADA.ano}</h2>
+      <ul>{VIRADA.prazos.map((p) => <li><strong>{p.quando}:</strong> {p.o}</li>)}</ul>
+      <p>Veja onde e como apostar no guia <a href="/mega-da-virada/como-jogar-online/">como jogar a Mega da Virada online</a>.</p>
+    </div>
+    <Faq itens={[
+      { q: 'Quanto custa a aposta mínima da Mega da Virada?', a: 'R$ 6,00, com 6 números — o mesmo preço da aposta simples da Mega-Sena.' },
+      { q: 'Quanto custa jogar 7, 8, 9 ou 10 números?', a: `7 números: ${reais(L[7].preco)}; 8 números: ${reais(L[8].preco)}; 9 números: ${reais(L[9].preco)}; 10 números: ${reais(L[10].preco)}.` },
+      { q: 'Qual o valor da aposta máxima?', a: `A aposta máxima, com 20 números, custa ${reais(L[20].preco)} e equivale a ${numero(L[20].combos)} apostas simples. A chance de sena fica em 1 em ${numero(L[20].sena)}.` },
+      { q: 'Apostar com mais números compensa?', a: 'A chance aumenta exatamente na proporção do preço. A vantagem dos jogos maiores é concentrar prêmios secundários quando acertam; a desvantagem é o custo. Em grupo, o bolão divide esse custo.' },
+    ]} />
+  </article>
+</Base>

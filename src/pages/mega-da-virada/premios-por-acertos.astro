@@ -1,0 +1,91 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { C } from '../../lib/math';
+import { getDB, especiais } from '../../lib/db';
+import { premioPrincipal, anoDe } from '../../lib/virada';
+import { reais, reaisCurto, numero } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+cachear(Astro, 3600);
+const l = POR_SLUG['mega-sena'];
+const viradas = (await especiais(getDB(Astro.locals), l)).slice(0, 8);
+// prêmios gerados por um jogo de n números com h acertos
+const premios = (n: number, h: number) => ({ sena: C(h, 6), quina: C(h, 5) * C(n - h, 1), quadra: C(h, 4) * C(n - h, 2) });
+const ns = [6, 7, 8, 9, 10, 12, 15, 20];
+const txt = (p: ReturnType<typeof premios>) => [p.sena && `${p.sena} sena${p.sena > 1 ? 's' : ''}`, p.quina && `${p.quina} quina${p.quina > 1 ? 's' : ''}`, p.quadra && `${p.quadra} quadra${p.quadra > 1 ? 's' : ''}`].filter(Boolean).join(' + ') || '—';
+const titulo = `Prêmios da Mega da Virada por acertos: quanto ganha quem acerta 4, 5 ou 6`;
+const desc = 'Como funcionam as faixas de prêmio da Mega da Virada, quantos prêmios um jogo com 7 a 20 números rende quando acerta e quanto pagaram a sena, a quina e a quadra nas últimas Viradas.';
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: viradas[0]?.atualizado_em ?? CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/mega-da-virada/premios-por-acertos/` }];
+---
+<Base title="Prêmios da Mega da Virada por acertos: 4, 5 e 6 números" description={desc} schema={schema} type="article">
+  <ViradaHero titulo="Quanto ganha quem acerta 4, 5 ou 6 números" crumb="Prêmios por acertos" sub="As três faixas de prêmio da Mega da Virada, o que acontece se ninguém acertar e quantos prêmios um jogo com mais números rende." />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>A Mega da Virada paga três faixas: <strong>sena (6 acertos)</strong>, <strong>quina (5)</strong> e <strong>quadra (4)</strong>. O valor de cada faixa é dividido entre todos os acertadores dela. A diferença em relação a um concurso comum é que o prêmio <strong>não acumula</strong>: se ninguém acertar as seis dezenas, o valor da sena é dividido entre os acertadores da quina. Em jogos com mais de 6 números, um único bilhete pode ganhar vários prêmios ao mesmo tempo.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <div class="prose" style="margin-top:24px">
+      <h2>As três faixas de prêmio</h2>
+      <ul>
+        <li><strong>Sena (6 acertos):</strong> o prêmio principal, estimado em {VIRADA.premioTexto} na edição {VIRADA.ano}. Chance com aposta simples: 1 em 50.063.860.</li>
+        <li><strong>Quina (5 acertos):</strong> costuma pagar dezenas de milhares de reais por aposta. Chance com aposta simples: 1 em 154.518.</li>
+        <li><strong>Quadra (4 acertos):</strong> paga valores menores, normalmente na casa de centenas ou poucos milhares de reais. Chance com aposta simples: 1 em 2.332.</li>
+      </ul>
+      <p>O valor exato de cada faixa só é conhecido depois do sorteio, porque depende da arrecadação total e de quantas apostas acertaram. Prêmios acima do limite de isenção têm 30% de Imposto de Renda retido na fonte — veja o valor líquido na <a href="/mega-da-virada/premio-liquido/">calculadora de prêmio líquido</a>.</p>
+
+      <h2>Se ninguém acertar a sena</h2>
+      <p>Na Mega-Sena comum, o prêmio principal acumula para o próximo concurso. Na Mega da Virada, não: o regulamento determina que, sem acertadores das seis dezenas, o prêmio seja dividido entre os acertadores da quina; e, se também não houver quina, entre os da quadra. Por isso se diz que "alguém sempre leva" o prêmio da Virada.</p>
+
+      <h2>Quantos prêmios um jogo com mais números ganha</h2>
+      <p>Um jogo com mais de 6 números equivale a várias apostas simples. Quando ele acerta, cada combinação de 6 dezenas dentro do jogo é conferida separadamente — e um único bilhete pode somar vários prêmios. A tabela mostra o que cada jogo ganha conforme o número de acertos:</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Números no jogo</th><th>Com 4 acertos</th><th>Com 5 acertos</th><th>Com 6 acertos</th></tr></thead>
+        <tbody>{ns.map((n) => <tr><td><strong>{n}</strong></td><td>{txt(premios(n, 4))}</td><td>{txt(premios(n, 5))}</td><td>{txt(premios(n, 6))}</td></tr>)}</tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <h3>Exemplo: jogo de 8 números com 6 acertos</h3>
+      <p>Quem acerta as seis dezenas sorteadas com um jogo de 8 números ganha <strong>{txt(premios(8, 6))}</strong>: uma combinação tem os 6 números sorteados; 12 combinações têm 5 deles; e 15 têm 4. Com um jogo de 10 números e 6 acertos, são <strong>{txt(premios(10, 6))}</strong>.</p>
+      <h3>Exemplo: jogo de 10 números com 5 acertos</h3>
+      <p>Mesmo sem a sena, um jogo de 10 números com 5 acertos rende <strong>{txt(premios(10, 5))}</strong>. É por isso que jogos maiores são populares em bolões: quando acertam, concentram prêmios. Lembre que eles custam proporcionalmente mais — veja a <a href="/mega-da-virada/quanto-custa-apostar/">tabela de preços</a>.</p>
+    </div>
+    <Ad />
+    {viradas.length > 0 && (
+      <>
+        <div class="prose">
+          <h2>Quanto pagaram as últimas Viradas</h2>
+          <p>Rateio oficial das edições mais recentes da Mega da Virada, com o número de ganhadores e o prêmio por aposta em cada faixa. Dados da Caixa Econômica Federal.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Edição</th><th class="num">Sena: ganhadores</th><th class="num">Sena: prêmio por aposta</th><th class="num">Quina: ganhadores</th><th class="num">Quina: por aposta</th><th class="num">Quadra: ganhadores</th><th class="num">Quadra: por aposta</th></tr></thead>
+            <tbody>{viradas.map((c) => { const [s, q, qd] = c.premiacoes; return (
+              <tr><td><a href={`/mega-sena/concurso/${c.numero}/`}>{anoDe(c)} ({c.numero})</a></td>
+                <td class="num">{numero(s?.ganhadores ?? 0)}</td><td class="num">{s?.ganhadores ? reais(s.premio) : '—'}</td>
+                <td class="num">{numero(q?.ganhadores ?? 0)}</td><td class="num">{q?.ganhadores ? reais(q.premio) : '—'}</td>
+                <td class="num">{numero(qd?.ganhadores ?? 0)}</td><td class="num">{qd?.ganhadores ? reais(qd.premio) : '—'}</td></tr>
+            ); })}</tbody>
+          </table>
+        </div>
+        <p class="small faint">Valores brutos, antes do Imposto de Renda. O maior prêmio principal da lista foi pago na Virada de {anoDe([...viradas].sort((a, b) => premioPrincipal(b).total - premioPrincipal(a).total)[0])}: {reaisCurto(Math.max(...viradas.map((c) => premioPrincipal(c).total)))}.</p>
+      </>
+    )}
+    <Faq itens={[
+      { q: 'Quanto ganha quem acerta a quina na Mega da Virada?', a: 'Depende da arrecadação e do número de acertadores. Nas últimas edições, a quina costuma pagar dezenas de milhares de reais por aposta — veja a tabela com o rateio real das últimas Viradas nesta página.' },
+      { q: 'Quadra na Mega da Virada dá quanto?', a: 'A quadra paga os menores prêmios, normalmente na casa de centenas a poucos milhares de reais por aposta, conforme o número de ganhadores.' },
+      { q: 'Se ninguém acertar os 6 números, o prêmio acumula?', a: 'Não. Na Mega da Virada, sem acertadores da sena, o prêmio é dividido entre quem acertou a quina; sem quina, entre quem acertou a quadra.' },
+      { q: 'Um jogo de 7 números com 6 acertos ganha quanto?', a: `Ganha ${txt(premios(7, 6))}: uma sena e as seis quinas formadas pelas combinações restantes.` },
+    ]} />
+  </article>
+</Base>

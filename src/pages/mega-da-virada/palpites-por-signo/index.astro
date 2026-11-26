@@ -1,0 +1,66 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ViradaHero from '../../../components/ViradaHero.astro';
+import ViradaNav from '../../../components/ViradaNav.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { VIRADA } from '../../../lib/loterias';
+import { SIGNOS, palpitesSigno } from '../../../lib/signos';
+import { pad } from '../../../lib/format';
+import { SITE, autoraLD, CONTEUDO_ATUALIZADO } from '../../../lib/site';
+
+const titulo = `Palpites da Mega da Virada ${VIRADA.ano} por signo`;
+const desc = `Palpites da Mega da Virada ${VIRADA.ano} para os 12 signos do zodíaco: jogo principal, jogo alternativo e dezena da sorte de cada signo. Conteúdo de entretenimento.`;
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/mega-da-virada/palpites-por-signo/` },
+  { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: SIGNOS.map((s, i) => ({ '@type': 'ListItem', position: i + 1, name: `Palpite da Mega da Virada para ${s.nome}`, url: `${SITE.url}/mega-da-virada/palpites-por-signo/${s.slug}/` })) },
+];
+const elementos = ['Fogo', 'Terra', 'Ar', 'Água'] as const;
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <ViradaHero titulo={`Palpites da Mega da Virada por signo`} crumb="Palpites por signo" sub="Um jogo para cada signo do zodíaco — para se divertir com a família na contagem regressiva para a Virada." />
+  <ViradaNav />
+  <article class="wrap section-sm">
+    <div style="max-width:900px">
+      <Resposta><p>Escolha seu signo para ver o <strong>jogo principal</strong>, um <strong>jogo alternativo</strong> e a <strong>dezena da sorte</strong> para a Mega da Virada {VIRADA.ano}. É pura diversão: na matemática, todas as combinações têm exatamente a mesma chance — 1 em 50.063.860 com 6 números —, seja qual for o signo.</p></Resposta>
+      <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+    </div>
+    {elementos.map((el) => (
+      <section class="el">
+        <h2>Signos de {el}</h2>
+        <div class="grid g4">
+          {SIGNOS.filter((s) => s.elemento === el).map((s) => { const p = palpitesSigno(s); return (
+            <a class="card card-link sg" href={`/mega-da-virada/palpites-por-signo/${s.slug}/`}>
+              <div class="sg-top"><span class="sg-e" aria-hidden="true">{s.emoji}</span><div><h3>{s.nome}</h3><span class="small faint">{s.periodo}</span></div></div>
+              <div class="balls">{p.principal.map((d) => <span class="ball sm gold">{pad(d)}</span>)}</div>
+              <span class="small muted">Dezena da sorte: <strong>{pad(p.dezena)}</strong> · ver palpite completo →</span>
+            </a>
+          ); })}
+        </div>
+      </section>
+    ))}
+    <Ad />
+    <div class="prose" style="max-width:900px">
+      <h2>Como os palpites por signo são feitos</h2>
+      <p>Cada signo recebe um jogo gerado por computador a partir do nome do signo e do ano da Virada. Assim, o palpite é sempre o mesmo para todos os nativos do signo nesta edição — dá para comparar com a família, combinar um bolão por signo ou simplesmente acompanhar no dia do sorteio. Os jogos espalham os números de 1 a 60, fugindo das datas de aniversário que concentram as apostas.</p>
+      <h2>Astrologia e probabilidade</h2>
+      <p>A astrologia é uma tradição cultural milenar, e muita gente gosta de usá-la como inspiração. Mas o sorteio da Mega-Sena é feito por globos mecânicos e é completamente aleatório: o signo, a data de nascimento ou a fase da lua não alteram a chance de nenhum número sair. Use os palpites como brincadeira e aposte com responsabilidade.</p>
+      <h2>Quer outros números?</h2>
+      <p>Gere um jogo pessoal com nome e data de nascimento em <a href="/mega-da-virada/seus-numeros/">seus números da sorte</a>, crie jogos aleatórios no <a href="/mega-da-virada/gerador/">gerador</a> ou veja as <a href="/mega-da-virada/estatisticas/">dezenas que mais saíram nas Viradas</a>.</p>
+    </div>
+    <div style="max-width:900px"><Faq itens={[
+      { q: 'Palpite por signo aumenta a chance de ganhar?', a: 'Não. É entretenimento. Todas as combinações têm a mesma probabilidade, independentemente do signo.' },
+      { q: 'Os números do meu signo mudam?', a: `Não durante esta edição: o palpite de cada signo é fixo para a Mega da Virada ${VIRADA.ano}.` },
+      { q: 'Posso fazer um bolão com os palpites dos signos?', a: 'Pode, e é uma brincadeira divertida para a família. Monte os jogos no bolão online e mande o link no grupo: ele confere tudo depois do sorteio.' },
+    ]} /></div>
+  </article>
+</Base>
+<style>
+  .el { margin-top: 28px; }
+  .sg { display: flex; flex-direction: column; gap: 12px; }
+  .sg-top { display: flex; gap: 12px; align-items: center; }
+  .sg-top h3 { margin: 0; }
+  .sg-e { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 1.5rem; background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--gold); }
+</style>
