@@ -14,7 +14,7 @@ import { getDB, ultimos, especiais } from '../../lib/db';
 import { premioPrincipal, anoDe } from '../../lib/virada';
 import { reais, reaisCurto, numero, dataBR } from '../../lib/format';
 import { cachear } from '../../lib/cache';
-import { SITE } from '../../lib/site';
+import { SITE, autoraLD } from '../../lib/site';
 
 cachear(Astro);
 const l = POR_SLUG['mega-sena'];
@@ -46,7 +46,7 @@ const schema = [
     organizer: { '@type': 'Organization', name: 'Caixa Econômica Federal', url: 'https://loterias.caixa.gov.br' },
     description: 'Concurso especial de fim de ano da Mega-Sena, cujo prêmio não acumula.',
   },
-  { '@context': 'https://schema.org', '@type': 'Article', headline: `Mega da Virada ${VIRADA.ano}: guia completo`, inLanguage: 'pt-BR', dateModified: ultMega?.atualizado_em ?? new Date().toISOString(), author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` }, publisher: { '@id': `${SITE.url}/#org` } },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: `Mega da Virada ${VIRADA.ano}: guia completo`, inLanguage: 'pt-BR', dateModified: ultMega?.atualizado_em ?? new Date().toISOString(), author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
 ];
 const virais = [
   ['/mega-da-virada/seus-numeros/', '🍀', 'Seus números da sorte', 'Digite nome e data de nascimento e receba um jogo exclusivo para compartilhar'],

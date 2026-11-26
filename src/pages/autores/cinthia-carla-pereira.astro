@@ -1,0 +1,68 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import { SITE, AUTORA, autoraLD, CONTEUDO_ATUALIZADO } from '../../lib/site';
+import { GUIAS } from '../../lib/guias';
+import { LOTERIAS } from '../../lib/loterias';
+import { dataBR } from '../../lib/format';
+
+const artigos = [
+  ...GUIAS.map((g) => ({ href: `/guias/${g.slug}/`, t: g.titulo, d: g.atualizado })),
+  { href: '/mega-da-virada/', t: 'Mega da Virada 2026: guia completo', d: CONTEUDO_ATUALIZADO },
+  { href: '/mega-da-virada/como-apostar/', t: 'Como apostar na Mega da Virada', d: CONTEUDO_ATUALIZADO },
+  { href: '/rio-de-premios/como-funciona/', t: 'Como funciona o Rio de Prêmios', d: CONTEUDO_ATUALIZADO },
+  { href: '/rio-de-premios/bilhete-e-cadastro/', t: 'Bilhete e cadastro do Rio de Prêmios', d: CONTEUDO_ATUALIZADO },
+  { href: '/rio-de-premios/como-resgatar/', t: 'Como resgatar o prêmio do Rio de Prêmios', d: CONTEUDO_ATUALIZADO },
+];
+const schema = [{ '@context': 'https://schema.org', '@type': 'ProfilePage', name: `${AUTORA.nome} — ${AUTORA.cargo}`, url: AUTORA.url, inLanguage: 'pt-BR', dateModified: CONTEUDO_ATUALIZADO, mainEntity: autoraLD() }];
+---
+<Base title={`${AUTORA.nome}, editora-chefe do Rio de Prêmios`} description={`Conheça ${AUTORA.nome}, editora-chefe do Rio de Prêmios: o que ela cobre, como verifica as informações sobre loterias e os guias que escreveu.`} schema={schema} image={AUTORA.fotoJpg}>
+  <div class="narrow phero">
+    <Crumbs itens={[{ nome: 'Sobre', url: '/sobre/' }, { nome: 'Equipe editorial', url: '/sobre/equipe-editorial/' }, { nome: AUTORA.nome }]} />
+    <div class="perfil">
+      <img class="foto" src={AUTORA.foto} alt={`Foto de ${AUTORA.nome}`} width="200" height="200" loading="eager" />
+      <div>
+        <span class="eyebrow">{AUTORA.cargo}</span>
+        <h1>{AUTORA.nome}</h1>
+        <p class="lead">{AUTORA.bio}</p>
+        <p class="small"><a href={`mailto:${SITE.email}`}>{SITE.email}</a>{AUTORA.sameAs.map((u) => <> · <a href={u} rel="me noopener" target="_blank">{new URL(u).hostname.replace('www.', '')}</a></>)}</p>
+      </div>
+    </div>
+  </div>
+
+  <article class="narrow prose">
+    <h2>Sobre Cinthia</h2>
+    <p>Cinthia Carla Pereira é a editora-chefe do Rio de Prêmios e responde por todo o conteúdo editorial do site: os guias, as explicações de regras e probabilidades, a cobertura especial da Mega da Virada e a seção dedicada ao Rio de Prêmios, a loteria oficial do Estado do Rio de Janeiro.</p>
+    <p>Seu trabalho parte de uma convicção simples: quem aposta merece informação correta, clara e sem promessas falsas. Em vez de "fórmulas" para ganhar, Cinthia explica o que de fato está em jogo — quanto custa cada aposta, qual é a chance real de cada faixa de prêmio, quais são os prazos e como funcionam os impostos. Quando um assunto mexe com o dinheiro do leitor, como o resgate de um prêmio ou a divisão de um bolão, a prioridade é a segurança: canais oficiais, documentos certos e alerta contra golpes.</p>
+    <p>No dia a dia, Cinthia acompanha os sorteios, revisa os guias quando regras, preços ou prazos mudam e define como os dados oficiais da Caixa são apresentados nas páginas de resultados, estatísticas e análises automáticas do site.</p>
+
+    <h2>O que ela cobre</h2>
+    <ul>{AUTORA.areas.map((a) => <li>{a}</li>)}</ul>
+
+    <h2>Como Cinthia trabalha</h2>
+    <h3>Dados oficiais em primeiro lugar</h3>
+    <p>Resultados, números de concurso e valores de prêmio vêm dos dados oficiais da Caixa Econômica Federal. Informações sobre o Rio de Prêmios seguem a LOTERJ e o site oficial do produto. Quando usa informações da imprensa — como prazos e estimativas da Mega da Virada —, os veículos são citados como fonte.</p>
+    <h3>Matemática conferida</h3>
+    <p>Toda probabilidade publicada é calculada por análise combinatória e conferida com as tabelas oficiais. Quando um número de guia é revisto, a data de atualização da página muda.</p>
+    <h3>Sem palpite "garantido"</h3>
+    <p>Os palpites e estatísticas do site sempre vêm acompanhados do aviso de que todas as combinações têm a mesma chance. Cinthia não publica métodos que prometem aumentar a probabilidade de ganhar, porque eles não existem.</p>
+    <h3>Correções transparentes</h3>
+    <p>Encontrou um erro? Escreva para <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. As correções são feitas o mais rápido possível e, em caso de divergência, vale sempre a informação oficial. Conheça a <a href="/metodologia/">metodologia</a> e a <a href="/sobre/equipe-editorial/">política editorial</a>.</p>
+
+    <h2>Artigos e guias de Cinthia</h2>
+    <ul class="arts">{artigos.map((a) => <li><a href={a.href}>{a.t}</a> <span class="faint small">· atualizado em {dataBR(a.d)}</span></li>)}</ul>
+    <h3>Como jogar, loteria por loteria</h3>
+    <p>{LOTERIAS.map((l, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/como-jogar/`}>{l.nome}</a></>)}</p>
+
+    <h2>Responsabilidade editorial</h2>
+    <p>Além dos textos que assina, Cinthia é a responsável editorial pelas páginas geradas automaticamente a partir dos dados oficiais — resultados, arquivos por ano, estatísticas e análises de cada concurso. Nessas páginas, os números não passam por edição manual: eles são exibidos como publicados pela Caixa, com a fonte e o horário da última atualização.</p>
+  </article>
+</Base>
+<style>
+  .perfil { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .foto { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 4px var(--surface), 0 0 0 7px color-mix(in srgb, var(--brand) 55%, transparent), var(--shadow-lg); }
+  .perfil h1 { margin-bottom: 8px; }
+  .perfil .lead { margin-bottom: 8px; }
+  .arts li { margin-bottom: 6px; }
+  @media (max-width: 600px) { .perfil { flex-direction: column; text-align: center; } .foto { width: 160px; height: 160px; } }
+</style>

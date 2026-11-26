@@ -1,6 +1,6 @@
 ---
 import Pagina from '../../layouts/Pagina.astro';
-import { SITE } from '../../lib/site';
+import { SITE, AUTORA } from '../../lib/site';
 const schema = [{ '@context': 'https://schema.org', '@type': 'AboutPage', name: 'Sobre o Rio de Prêmios', mainEntity: { '@id': `${SITE.url}/#org` } }];
 ---
 <Pagina nome="Sobre o Rio de Prêmios" titulo="Sobre nós" desc="Conheça o Rio de Prêmios: quem somos, como trabalhamos e nosso compromisso com dados oficiais e jogo responsável." schema={schema}>
@@ -15,7 +15,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'AboutPage', name: 
     <li><strong>Jogo responsável.</strong> Loteria é entretenimento. Mantemos um <a href="/jogo-responsavel/">guia de jogo responsável</a> e não direcionamos conteúdo a menores de 18 anos.</li>
   </ul>
   <h2 id="equipe">Equipe editorial</h2>
-  <p><strong>{SITE.editor.nome}</strong> — {SITE.editor.cargo}. {SITE.editor.bio}</p>
+  <p>O conteúdo editorial é coordenado por <a href={`/autores/${AUTORA.slug}/`}><strong>{AUTORA.nome}</strong></a>, {AUTORA.cargo.toLowerCase()}. {AUTORA.bio} Conheça a <a href="/sobre/equipe-editorial/">equipe e a política editorial</a>.</p>
   <h2>Como somos financiados</h2>
   <p>O site é gratuito e mantido por publicidade (Google AdSense). Anunciantes não influenciam o conteúdo editorial, os resultados ou as estatísticas.</p>
   <h2>Fale conosco</h2>

@@ -26,7 +26,7 @@ export async function paginas(db: any): Promise<Url[]> {
   const fixo = CONTEUDO_ATUALIZADO;
   const u: Url[] = [
     { loc: '/', lastmod: geral },
-    ...['/estatisticas/', '/ferramentas/', '/guias/', '/sobre/', '/sobre/equipe-editorial/', '/metodologia/', '/jogo-responsavel/', '/contato/', '/politica-de-privacidade/', '/termos/',
+    ...['/estatisticas/', '/ferramentas/', '/guias/', '/sobre/', '/sobre/equipe-editorial/', '/autores/cinthia-carla-pereira/', '/metodologia/', '/jogo-responsavel/', '/contato/', '/politica-de-privacidade/', '/termos/',
       '/ferramentas/conferidor/', '/ferramentas/gerador-de-numeros/', '/ferramentas/calculadora-de-probabilidades/', '/ferramentas/calculadora-de-bolao/', '/ferramentas/premio-liquido/'].map((loc) => ({ loc, lastmod: fixo })),
     ...GUIAS.map((g) => ({ loc: `/guias/${g.slug}/`, lastmod: max(g.atualizado, fixo) })),
   ];

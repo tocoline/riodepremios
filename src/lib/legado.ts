@@ -92,7 +92,7 @@ export function legado(caminho: string): Acao {
   if (comBarra === '/sobre-nos/' || comBarra === '/quem-somos/') return { tipo: 'redirect', para: '/sobre/' };
 
   // /tag/... e /author/... do WordPress
-  if (/^\/author\/[^/]+/.test(p)) return { tipo: 'redirect', para: '/sobre/equipe-editorial/' };
+  if (/^\/author\/[^/]+/.test(p)) return { tipo: 'redirect', para: '/autores/cinthia-carla-pereira/' };
   if (/^\/tag\/[^/]+/.test(p)) return { tipo: 'redirect', para: '/' };
 
   return null;

@@ -1,6 +1,6 @@
 ---
 import Pagina from '../../layouts/Pagina.astro';
-import { SITE } from '../../lib/site';
+import { SITE, AUTORA } from '../../lib/site';
 import { GUIAS } from '../../lib/guias';
 const schema = [
   { '@context': 'https://schema.org', '@type': 'ProfilePage', name: `${SITE.editor.nome} — equipe editorial`, url: `${SITE.url}/sobre/equipe-editorial/`,
@@ -9,6 +9,11 @@ const schema = [
 ---
 <Pagina nome={`${SITE.editor.nome}`} titulo="Equipe editorial do Rio de Prêmios: quem escreve e revisa" desc="Conheça a equipe responsável pelo conteúdo do Rio de Prêmios: como trabalhamos, como verificamos os dados das loterias e como corrigimos erros." schema={schema}>
   <p class="lead">{SITE.editor.bio}</p>
+  <h2>Responsável editorial</h2>
+  <div class="card resp">
+    <img src={AUTORA.fotoP} alt={`Foto de ${AUTORA.nome}`} width="96" height="96" loading="lazy" />
+    <div><p style="margin:0"><strong><a href={`/autores/${AUTORA.slug}/`}>{AUTORA.nome}</a></strong> — {AUTORA.cargo}</p><p class="small muted" style="margin:4px 0 0">{AUTORA.bio}</p></div>
+  </div>
   <h2>O que fazemos</h2>
   <p>A equipe editorial do Rio de Prêmios é responsável pelos guias, pelas explicações de regras e pelas análises publicadas no site. Os resultados das loterias são coletados automaticamente dos dados oficiais da Caixa Econômica Federal; os textos de análise de cada concurso são gerados a partir desses dados, sem edição manual dos números.</p>
   <h2>Como verificamos as informações</h2>
@@ -25,3 +30,4 @@ const schema = [
   <h2>Guias escritos pela equipe</h2>
   <ul>{GUIAS.map((g) => <li><a href={`/guias/${g.slug}/`}>{g.titulo}</a></li>)}</ul>
 </Pagina>
+<style> .resp { display: flex; gap: 16px; align-items: center; } .resp img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: none; } </style>

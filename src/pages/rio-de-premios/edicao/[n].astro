@@ -11,7 +11,7 @@ import Autor from '../../../components/Autor.astro';
 import { RP, proximaEdicao, dataEdicao, isoSorteio } from '../../../lib/riodepremios';
 import { dataBR } from '../../../lib/format';
 import { cachear, naoEncontrado } from '../../../lib/cache';
-import { SITE } from '../../../lib/site';
+import { SITE, autoraLD } from '../../../lib/site';
 
 const n = Number(Astro.params.n);
 const prox = proximaEdicao();
@@ -50,7 +50,7 @@ const schema = [{
   '@context': 'https://schema.org', '@type': 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
   image: [new URL(imagem, SITE.url).href], datePublished: publicado, dateModified: modificado,
   mainEntityOfPage: `${SITE.url}/rio-de-premios/edicao/${n}/`,
-  author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` },
+  author: { '@type': 'Organization', name: SITE.nome, url: SITE.url }, editor: autoraLD(),
   publisher: { '@type': 'Organization', name: SITE.nome, logo: { '@type': 'ImageObject', url: `${SITE.url}/icon-512.png` } },
 }];
 const faq = [
@@ -76,7 +76,7 @@ const faq = [
           <p>A <strong>edição {n} do Rio de Prêmios</strong> será sorteada no <strong>domingo, {dataBR(data)}</strong>. Para participar, compre e cadastre o bilhete no site oficial antes do encerramento das vendas. O resultado oficial será publicado em <a href={RP.siteOficial} rel="noopener nofollow" target="_blank">riodepremiosoficial.com.br</a>.</p>
         )}
       </Resposta>
-      <Autor atualizado={modificado} revisado={false} />
+      <Autor atualizado={modificado} modo="auto" />
       <RpAviso />
       {realizada && <p><a class="btn btn-primary" href={RP.siteOficial} rel="noopener nofollow" target="_blank">Ver resultado oficial da edição {n} ↗</a></p>}
     </div>

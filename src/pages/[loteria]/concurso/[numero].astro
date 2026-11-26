@@ -19,7 +19,7 @@ import { gerarPalpites, frequencias } from '../../../lib/palpites';
 import { chancePrincipal } from '../../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
 import { cachear, naoEncontrado } from '../../../lib/cache';
-import { SITE } from '../../../lib/site';
+import { SITE, autoraLD } from '../../../lib/site';
 
 const l = POR_SLUG[Astro.params.loteria!];
 const n = Number(Astro.params.numero);
@@ -81,7 +81,7 @@ const schema = [{
   '@context': 'https://schema.org', '@type': c && Date.now() - Date.parse(c.data) > 7 * 864e5 ? 'Article' : 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
   image: [new URL(imagem, SITE.url).href], datePublished: publicado, dateModified: modificado,
   mainEntityOfPage: `${SITE.url}/${l.slug}/concurso/${n}/`,
-  author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` },
+  author: { '@type': 'Organization', name: SITE.nome, url: SITE.url }, editor: autoraLD(),
   publisher: { '@type': 'Organization', name: SITE.nome, logo: { '@type': 'ImageObject', url: `${SITE.url}/icon-512.png` } },
 }];
 const faqPre = prox ? [
@@ -101,7 +101,7 @@ const faqPre = prox ? [
     <p class="lead">{c
       ? `Sorteio realizado em ${dataBR(c.data, true)}${c.local ? `, em ${c.local}` : ''}.`
       : `Sorteio ${diaSemana}, ${dataBR(dataSorteio, true).replace(/^[^,]+, /, '')}, às ${horaTxt} (Brasília)${ehVirada ? `, no ${VIRADA.local}` : ''}. Esta página mostra o resultado automaticamente assim que ele sair.`}</p>
-    <Autor atualizado={modificado} />
+    <Autor atualizado={modificado} modo="auto" />
   </div>
 
   {prox ? (

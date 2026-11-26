@@ -39,7 +39,7 @@ const schema = [{
     <span class="eyebrow" style={`color:${l.cor}`}>Sorteios: {diasTexto(l)} às 20h</span>
     <h1>Resultado da {l.nome}</h1>
     <p class="lead">{l.resumo}</p>
-    <Autor atualizado={c?.atualizado_em} />
+    <Autor atualizado={c?.atualizado_em} modo="auto" />
     <Fonte atualizado={c?.atualizado_em} />
   </div>
 

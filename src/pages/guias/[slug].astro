@@ -6,12 +6,12 @@ import Autor from '../../components/Autor.astro';
 import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import { GUIAS, type Guia } from '../../lib/guias';
-import { SITE } from '../../lib/site';
+import { SITE, autoraLD } from '../../lib/site';
 import { dataBR } from '../../lib/format';
 export function getStaticPaths() { return GUIAS.map((g) => ({ params: { slug: g.slug }, props: { g } })); }
 const { g } = Astro.props as { g: Guia };
 const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: g.titulo, description: g.desc, inLanguage: 'pt-BR', datePublished: g.publicado, dateModified: g.atualizado,
-  author: { '@type': 'Organization', '@id': `${SITE.url}/#editorial`, name: SITE.editor.nome, url: `${SITE.url}/sobre/equipe-editorial/` }, publisher: { '@id': `${SITE.url}/#org` },
+  author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` },
   mainEntityOfPage: `${SITE.url}/guias/${g.slug}/`, image: [`${SITE.url}/og.png`] }];
 const partes = g.html.split('<h2>');
 const [a, b] = partes.length > 3 ? [partes.slice(0, 3).join('<h2>'), '<h2>' + partes.slice(3).join('<h2>')] : [g.html, ''];
