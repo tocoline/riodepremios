@@ -9,7 +9,7 @@ const ORIGENS = [
   { nome: 'reserva2', url: (api: string, n?: number) => `https://api.guidi.dev.br/loteria/${api}/${n ?? 'ultimo'}` },
 ];
 const HEADERS = { accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; RioDePremiosBot/1.0)' };
-const LIMITE_SUBREQ = 45; // plano gratuito: 50 por execução
+const LIMITE_SUBREQ = 150; // plano Workers Paid (o gratuito permitia 50 por execução)
 
 let usados = 0;
 async function buscar(api: string, n?: number): Promise<ConcursoRow | null> {
@@ -98,11 +98,11 @@ async function executar(env: Env, historicoMax = 30, buscarUltimos = true) {
       if (c < 1) { porLoteria.push([]); continue; }
       // janela de até 20 números a partir do marcador: o que já existe é pulado
       const f: [string, number][] = [];
-      for (let volta = 0; volta < 5 && f.length < 6 && c >= 1; volta++) {
+      for (let volta = 0; volta < 5 && f.length < 10 && c >= 1; volta++) {
         const ini = Math.max(1, c - 19);
         const { results: ex } = await env.DB.prepare('SELECT numero FROM concursos WHERE loteria=? AND numero BETWEEN ? AND ?').bind(api, ini, c).all<{ numero: number }>();
         const tem = new Set(ex.map((r) => r.numero));
-        for (let n = c; n >= ini && f.length < 6; n--) if (!tem.has(n)) f.push([api, n]);
+        for (let n = c; n >= ini && f.length < 10; n--) if (!tem.has(n)) f.push([api, n]);
         if (f.length === 0) { c = ini - 1; cursor[api] = c; }
         else break;
       }
@@ -110,7 +110,7 @@ async function executar(env: Env, historicoMax = 30, buscarUltimos = true) {
       if (f.length === 0) cursor[api] = c;
     }
     const faltando: [string, number][] = [];
-    for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
+    for (let i = 0; i < 10; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
     const falhou = new Set<string>();
     for (const [api, n] of faltando.slice(0, historicoMax)) {
       if (usados >= LIMITE_SUBREQ || falhou.has(api)) break;
@@ -132,7 +132,7 @@ async function executar(env: Env, historicoMax = 30, buscarUltimos = true) {
 export default {
   async scheduled(_e: ScheduledController, env: Env, ctx: ExecutionContext) {
     const ultimos = horaDeBuscarUltimos();
-    ctx.waitUntil(executar(env, ultimos ? 30 : 40, ultimos).catch((e) => registrar(env, 'falha: ' + String(e))));
+    ctx.waitUntil(executar(env, ultimos ? 60 : 80, ultimos).catch((e) => registrar(env, 'falha: ' + String(e))));
   },
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);

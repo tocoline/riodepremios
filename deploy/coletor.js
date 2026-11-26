@@ -287,7 +287,7 @@ var ORIGENS = [
   { nome: "reserva2", url: /* @__PURE__ */ __name((api, n2) => `https://api.guidi.dev.br/loteria/${api}/${n2 ?? "ultimo"}`, "url") }
 ];
 var HEADERS = { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; RioDePremiosBot/1.0)" };
-var LIMITE_SUBREQ = 45;
+var LIMITE_SUBREQ = 150;
 var usados = 0;
 async function buscar(api, n2) {
   for (const o of ORIGENS) {
@@ -395,11 +395,11 @@ async function executar(env, historicoMax = 30, buscarUltimos = true) {
         continue;
       }
       const f = [];
-      for (let volta = 0; volta < 5 && f.length < 6 && c >= 1; volta++) {
+      for (let volta = 0; volta < 5 && f.length < 10 && c >= 1; volta++) {
         const ini = Math.max(1, c - 19);
         const { results: ex } = await env.DB.prepare("SELECT numero FROM concursos WHERE loteria=? AND numero BETWEEN ? AND ?").bind(api, ini, c).all();
         const tem = new Set(ex.map((r) => r.numero));
-        for (let n2 = c; n2 >= ini && f.length < 6; n2--) if (!tem.has(n2)) f.push([api, n2]);
+        for (let n2 = c; n2 >= ini && f.length < 10; n2--) if (!tem.has(n2)) f.push([api, n2]);
         if (f.length === 0) {
           c = ini - 1;
           cursor[api] = c;
@@ -409,7 +409,7 @@ async function executar(env, historicoMax = 30, buscarUltimos = true) {
       if (f.length === 0) cursor[api] = c;
     }
     const faltando = [];
-    for (let i = 0; i < 6; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
+    for (let i = 0; i < 10; i++) for (const f of porLoteria) if (f[i]) faltando.push(f[i]);
     const falhou = /* @__PURE__ */ new Set();
     for (const [api, n2] of faltando.slice(0, historicoMax)) {
       if (usados >= LIMITE_SUBREQ || falhou.has(api)) break;
@@ -436,7 +436,7 @@ __name(executar, "executar");
 var index_default = {
   async scheduled(_e, env, ctx) {
     const ultimos = horaDeBuscarUltimos();
-    ctx.waitUntil(executar(env, ultimos ? 30 : 40, ultimos).catch((e) => registrar(env, "falha: " + String(e))));
+    ctx.waitUntil(executar(env, ultimos ? 60 : 80, ultimos).catch((e) => registrar(env, "falha: " + String(e))));
   },
   async fetch(req, env) {
     const url = new URL(req.url);
