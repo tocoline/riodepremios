@@ -5,6 +5,29 @@ import Conferidor from '../../components/tools/Conferidor.astro';
 <Ferramenta nome="Conferidor" titulo="Conferidor de apostas: confira seus jogos de todas as loterias" h1="Conferidor de apostas"
   desc="Digite seus jogos e confira na hora contra o último resultado ou qualquer concurso anterior — Mega-Sena, Lotofácil, Quina e todas as outras."
   resposta="Escolha a loteria, deixe o concurso em branco para usar o último sorteio e digite um jogo por linha. Os acertos ficam destacados em dourado e o conferidor indica se a aposta foi premiada."
-  faq={[{ q: 'O conferidor substitui a conferência oficial?', a: 'Não. É uma ferramenta informativa. Para resgatar prêmios, valide o bilhete em uma lotérica ou no app Loterias Caixa.' }, { q: 'Posso conferir concursos antigos?', a: 'Sim. Digite o número do concurso no campo correspondente.' }]}>
+  faq={[
+    { q: 'O conferidor substitui a conferência oficial?', a: 'Não. É uma ferramenta informativa. Para resgatar prêmios, valide o bilhete em uma lotérica ou no app Loterias Caixa.' },
+    { q: 'Posso conferir concursos antigos?', a: 'Sim. Digite o número do concurso no campo correspondente.' },
+    { q: 'Meus jogos ficam salvos?', a: 'Não. A conferência acontece no seu navegador e os números não são armazenados.' },
+    { q: 'Como conferir jogos com mais de 6 números na Mega-Sena?', a: 'Digite todos os números na mesma linha. O conferidor mostra quantos acertos o jogo teve.' },
+  ]}>
   <Conferidor />
+  <div slot="depois" class="prose">
+    <h2>Como usar o conferidor</h2>
+    <ol>
+      <li><strong>Escolha a loteria</strong> no seletor (Mega-Sena, Lotofácil, Quina e as demais).</li>
+      <li><strong>Informe o concurso</strong> ou deixe em branco para usar o último sorteio.</li>
+      <li><strong>Digite seus jogos</strong>, um por linha. Pode separar os números com espaço, vírgula ou traço.</li>
+      <li>Clique em <strong>Conferir agora</strong>: os acertos ficam destacados e o conferidor indica se a aposta foi premiada.</li>
+    </ol>
+    <h2>Exemplos de preenchimento</h2>
+    <ul>
+      <li><strong>Mega-Sena:</strong> <code>05 12 23 34 45 56</code> (de 6 a 20 números por linha).</li>
+      <li><strong>Lotofácil:</strong> <code>01 02 04 05 07 09 10 12 14 16 18 20 22 24 25</code>.</li>
+      <li><strong>+Milionária:</strong> <code>03 11 22 30 41 48 | 2 5</code> — os trevos vão depois da barra.</li>
+      <li><strong>Super Sete:</strong> um número por coluna, na ordem: <code>4 0 7 1 9 3 8</code>.</li>
+    </ul>
+    <h2>Dicas</h2>
+    <p>Você pode colar dezenas de jogos de um bolão de uma vez. Na Dupla Sena, o conferidor mostra os acertos no 1º e no 2º sorteio. Para concursos antigos, informe o número do concurso — todos estão no nosso <a href="/mega-sena/resultados/">arquivo de resultados por ano</a>.</p>
+  </div>
 </Ferramenta>

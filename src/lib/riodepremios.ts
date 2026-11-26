@@ -13,6 +13,7 @@ export const RP = {
   hora: '09:00', // horário de Brasília (confirme na divulgação oficial)
   preco: null as number | null, // ex.: 5 — deixe null para não exibir
   edicoesFuturas: 2, // quantas edições futuras já ganham página
+  publicado: '2026-11-25', // data em que a seção foi publicada (lastmod das primeiras edições futuras)
 };
 
 const DIA = 864e5;

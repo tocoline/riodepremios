@@ -1,0 +1,72 @@
+---
+// Seções de estatísticas renderizadas no servidor (H2 + tabelas + texto + FAQ)
+import Faq from './Faq.astro';
+import type { Loteria } from '../lib/loterias';
+import { calcular } from '../lib/estatisticas';
+import { pad, numero } from '../lib/format';
+interface Props { l: Loteria; s: ReturnType<typeof calcular>; porAno: { ano: number; d: number; n: number }[]; concursosPorAno: { ano: number; n: number }[]; faqExtra?: { q: string; a: string }[] }
+const { l, s, porAno, concursosPorAno, faqExtra = [] } = Astro.props;
+const universo = l.max - l.min + 1;
+const esperado = s.total ? (s.total * l.sorteadas * (l.slug === 'dupla-sena' ? 2 : 1)) / universo : 0;
+const pct = (v: number, t: number) => (t ? ((v / t) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : '0') + '%';
+const totPI = s.paresImpares.reduce((a, b) => a + b[1], 0);
+const anos = concursosPorAno.map((a) => {
+  const top = porAno.filter((x) => x.ano === a.ano).sort((x, y) => y.n - x.n || x.d - y.d).slice(0, 5);
+  return { ...a, top };
+});
+const faq = [
+  { q: `Quais números mais saem na ${l.nome}?`, a: s.total ? `Considerando ${numero(s.total)} concursos, as dezenas mais sorteadas são ${s.mais.slice(0, 6).map((x) => `${pad(x.dezena)} (${x.vezes} vezes)`).join(', ')}.` : 'As estatísticas aparecem assim que o histórico for sincronizado.' },
+  { q: `Qual é a dezena mais atrasada da ${l.nome}?`, a: s.total ? `A dezena ${pad(s.atrasadas[0].dezena)} é a mais atrasada: não sai há ${s.atrasadas[0].atraso} concursos.` : 'Aguardando o histórico.' },
+  { q: 'Jogar nas dezenas que mais saem aumenta a chance?', a: 'Não. Cada sorteio é independente e todas as dezenas têm a mesma probabilidade em cada concurso. As estatísticas descrevem o passado e ajudam a montar jogos variados, mas não preveem resultados.' },
+  { q: 'Com que frequência as estatísticas são atualizadas?', a: 'Automaticamente, a cada novo concurso. Os dados vêm dos resultados oficiais da Caixa Econômica Federal.' },
+  ...faqExtra,
+];
+---
+{s.total > 0 && l.tipo !== 'colunas' && (
+  <>
+    <section class="es-sec">
+      <h2>Dezenas mais sorteadas</h2>
+      <p>As dezenas abaixo foram as que mais saíram nos {numero(s.total)} concursos analisados da {l.nome}. Pelo acaso, cada dezena deveria sair cerca de <strong>{esperado.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} vezes</strong> nesse período; diferenças pequenas em relação a esse valor são normais.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Posição</th><th>Dezena</th><th class="num">Vezes sorteada</th><th class="num">% dos concursos</th><th class="num">Último concurso</th></tr></thead>
+        <tbody>{s.mais.map((x, i) => <tr><td>{i + 1}º</td><td><strong>{pad(x.dezena)}</strong></td><td class="num">{x.vezes}</td><td class="num">{pct(x.vezes, s.total)}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>{x.ultimo}</a> : '—'}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+
+    <section class="es-sec">
+      <h2>Dezenas mais atrasadas</h2>
+      <p>"Atraso" é a quantidade de concursos desde a última vez que a dezena foi sorteada. Uma dezena atrasada não tem mais chance de sair no próximo concurso — a probabilidade é sempre a mesma —, mas a informação é útil para quem gosta de variar os jogos.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Dezena</th><th class="num">Concursos sem sair</th><th class="num">Última vez</th><th class="num">Total de vezes</th></tr></thead>
+        <tbody>{s.atrasadas.map((x) => <tr><td><strong>{pad(x.dezena)}</strong></td><td class="num">{x.atraso}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>concurso {x.ultimo}</a> : '—'}</td><td class="num">{x.vezes}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+
+    <section class="es-sec">
+      <h2>Pares e ímpares</h2>
+      <p>No total, foram sorteadas <strong>{numero(s.pares)} dezenas pares</strong> e <strong>{numero(s.impares)} ímpares</strong> ({pct(s.pares, s.pares + s.impares)} pares). A tabela mostra as combinações mais comuns em cada sorteio — jogos muito desequilibrados (só pares ou só ímpares) são raros.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Combinação</th><th class="num">Sorteios</th><th class="num">Frequência</th></tr></thead>
+        <tbody>{s.paresImpares.map(([k, v]) => <tr><td>{k.replace('p/', ' pares e ').replace('i', ' ímpares')}</td><td class="num">{numero(v)}</td><td class="num">{pct(v, totPI)}</td></tr>)}</tbody>
+      </table></div>
+      <p class="small muted">A soma média das dezenas sorteadas é <strong>{s.somaMedia}</strong>.</p>
+    </section>
+
+    {anos.length > 0 && (
+      <section class="es-sec">
+        <h2>Frequência por ano</h2>
+        <p>As cinco dezenas mais sorteadas em cada ano do histórico. Clique no ano para ver todos os concursos.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Ano</th><th class="num">Concursos</th><th>Dezenas mais sorteadas no ano</th></tr></thead>
+          <tbody>{anos.map((a) => <tr><td><a href={`/${l.slug}/resultados/${a.ano}/`}><strong>{a.ano}</strong></a></td><td class="num">{a.n}</td><td>{a.top.map((t) => `${pad(t.d)} (${t.n}×)`).join(' · ')}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    )}
+  </>
+)}
+<section class="es-sec"><Faq itens={faq} /></section>
+<style>
+  .es-sec { margin-top: 32px; }
+  .es-sec h2 { margin-bottom: 10px; }
+  .es-sec > p { color: var(--muted); max-width: 820px; }
+</style>

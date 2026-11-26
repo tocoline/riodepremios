@@ -10,8 +10,11 @@ import Countdown from '../../../components/Countdown.astro';
 import Palpites from '../../../components/Palpites.astro';
 import TabelasLoteria from '../../../components/TabelasLoteria.astro';
 import Faq from '../../../components/Faq.astro';
-import { POR_SLUG, DIAS, diasTexto, VIRADA } from '../../../lib/loterias';
-import { getDB, concurso, vizinhos, ultimos, anteriores } from '../../../lib/db';
+import Analise from '../../../components/Analise.astro';
+import Fonte from '../../../components/Fonte.astro';
+import { sincronizar } from '../../../lib/sincronizar';
+import { POR_SLUG, DIAS, diasTexto, VIRADA, MESES } from '../../../lib/loterias';
+import { getDB, concurso, vizinhos, ultimos, anteriores, ultimaAparicao, menorNumero, doMes } from '../../../lib/db';
 import { gerarPalpites, frequencias } from '../../../lib/palpites';
 import { chancePrincipal } from '../../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
@@ -22,15 +25,23 @@ const l = POR_SLUG[Astro.params.loteria!];
 const n = Number(Astro.params.numero);
 if (!l || !Number.isInteger(n) || n < 1) return naoEncontrado(Astro);
 const db = getDB(Astro.locals);
-const c = await concurso(db, l, n);
+let c = await concurso(db, l, n);
+let [ult] = c ? [null] : await ultimos(db, l, 1);
+// Concurso antigo ainda não sincronizado pelo coletor: busca na Caixa agora e grava
+if (!c && ult && n < ult.numero && (await sincronizar(db, l, n))) { c = await concurso(db, l, n); ult = null; }
 
 // Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
-const [ult] = c ? [null] : await ultimos(db, l, 1);
 const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
 const prox = !c && ult && (ult.proximo_numero === n || (ehVirada && ult.numero < n)) ? ult : null;
 if (!c && !prox) return naoEncontrado(Astro);
 
 const hist = await anteriores(db, l, n, 100);
+// dados da análise (só para concursos já sorteados)
+const [ant, aparicoes, menor, mesmoMes] = c ? await Promise.all([
+  concurso(db, l, n - 1), ultimaAparicao(db, l, n, l.tipo === 'colunas' ? [] : c.dezenas), menorNumero(db, l), doMes(db, l, c.data.slice(0, 7)),
+]) : [null, {}, 0, []];
+const anoC = c ? Number(c.data.slice(0, 4)) : 0;
+const mesC = c ? Number(c.data.slice(5, 7)) : 0;
 const palpites = gerarPalpites(l, n, hist);
 const viz = c ? await vizinhos(db, l, n) : { anterior: ult!.numero, proximo: null };
 cachear(Astro, c ? (Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300) : 300);
@@ -62,12 +73,12 @@ const titulo = c
   ? nomeEspecial ? `${nomeEspecial} ${anoEspecial}: resultado do concurso ${n}` : `Resultado ${l.nome} ${n} de ${dataBR(c.data)}: dezenas sorteadas`
   : ehVirada ? `Mega da Virada ${VIRADA.ano} (concurso ${n}): palpites e resultado` : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premioTxt ? ` e ${premioTxt}` : ' e horário'}`;
 const desc = c
-  ? `${l.nome} ${n} (${dataBR(c.data)}): ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação, ganhadores por cidade e como foram os palpites.`
+  ? `${l.nome} ${n} (${dataBR(c.data)}): ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Análise das dezenas, premiação e ganhadores por cidade.`
   : `${ehVirada ? `Mega da Virada ${VIRADA.ano}, ` : ''}${l.nome} concurso ${n}: sorteio ${diaSemana}, ${dataBR(dataSorteio)}, às ${horaTxt}.${premioTxt ? ` Prêmio estimado de ${premioTxt}.` : ''} Palpites estatísticos, dezenas quentes e atrasadas e resultado ao vivo nesta página.`;
 const publicado = c ? `${c.data}T21:00:00-03:00` : (ult!.atualizado_em ?? new Date().toISOString());
 const modificado = c ? c.atualizado_em : (ult!.atualizado_em ?? new Date().toISOString());
 const schema = [{
-  '@context': 'https://schema.org', '@type': 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
+  '@context': 'https://schema.org', '@type': c && Date.now() - Date.parse(c.data) > 7 * 864e5 ? 'Article' : 'NewsArticle', headline: titulo, description: desc, inLanguage: 'pt-BR',
   image: [new URL(imagem, SITE.url).href], datePublished: publicado, dateModified: modificado,
   mainEntityOfPage: `${SITE.url}/${l.slug}/concurso/${n}/`,
   author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` },
@@ -83,7 +94,7 @@ const faqPre = prox ? [
 ---
 <Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado}>
   <div class="wrap phero">
-    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, { nome: `Concurso ${n}` }]} />
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, ...(c ? [{ nome: String(anoC), url: `/${l.slug}/resultados/${anoC}/` }] : []), { nome: `Concurso ${n}` }]} />
     {c?.especial && <span class="pill hot">✦ Concurso especial</span>}
     {ehVirada && <span class="pill hot">✦ Mega da Virada {VIRADA.ano}</span>} {prox && <span class="pill hot">⏳ Ainda não sorteado</span>}
     <h1>{c ? `${l.nome} — resultado do concurso ${n}` : ehVirada ? `Mega da Virada ${VIRADA.ano} — concurso ${n}: palpites e resultado` : `${l.nome} ${n}: palpites e resultado de ${diaSemana} (${dataCurta})`}</h1>
@@ -174,25 +185,19 @@ const faqPre = prox ? [
       </section>
 
       <section class="wrap section-sm">
-        <h2>Premiação</h2>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Faixa</th><th class="num">Ganhadores</th><th class="num">Prêmio por ganhador</th></tr></thead>
-            <tbody>{c.premiacoes.map((p) => <tr><td>{p.descricao}</td><td class="num">{numero(p.ganhadores)}</td><td class="num">{p.ganhadores ? reais(p.premio) : '—'}</td></tr>)}</tbody>
-          </table>
-        </div>
-        {c.arrecadacao ? <p class="small faint" style="margin-top:10px">Arrecadação total: {reais(c.arrecadacao)}.</p> : null}
+        <Fonte atualizado={c.atualizado_em} />
+        <Analise l={l} c={c} ant={ant} hist={hist} aparicoes={aparicoes} menor={menor} />
       </section>
 
-      {c.cidades_ganhadoras && (
-        <section class="wrap section-sm">
-          <h2>Onde saíram os prêmios principais</h2>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Cidade</th><th>UF</th><th class="num">Ganhadores</th></tr></thead>
-            <tbody>{c.cidades_ganhadoras.map((g) => <tr><td>{g.cidade || 'Canal eletrônico'}</td><td>{g.uf}</td><td class="num">{g.ganhadores}</td></tr>)}</tbody>
-          </table></div>
-        </section>
-      )}
+      <section class="wrap section-sm">
+        <h2>Outros concursos de {MESES[mesC - 1].toLowerCase()} de {anoC}</h2>
+        <div class="mes-lista">
+          {mesmoMes.map((m) => m.numero === n
+            ? <span class="pill ok">{m.numero} · {dataBR(m.data).slice(0, 5)}</span>
+            : <a class="pill" href={`/${l.slug}/concurso/${m.numero}/`}>{m.numero} · {dataBR(m.data).slice(0, 5)}{m.acumulado ? ' · acumulou' : ''}</a>)}
+        </div>
+        <p><a class="btn btn-sm" href={`/${l.slug}/resultados/${anoC}/`}>Todos os resultados da {l.nome} em {anoC} →</a></p>
+      </section>
 
       <div class="wrap"><Ad /></div>
       <section class="wrap section-sm"><Palpites l={l} palpites={palpites} numero={n} resultado={c.dezenas} resultado2={c.dezenas2} trevosSorteados={c.extra?.trevos} /></section>
@@ -229,6 +234,9 @@ const faqPre = prox ? [
   .prz { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
   .prz strong { font: 700 clamp(2rem, 5vw, 3rem)/1.05 var(--display); color: var(--gold); letter-spacing: -.03em; }
   .lastc { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .mes-lista { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+  .mes-lista a.pill { text-decoration: none; }
+  .mes-lista a.pill:hover { border-color: var(--brand); color: var(--brand); }
   .nextc { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: space-between; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); }
   .nextc h3 { margin: 4px 0 0; }
   .nx-v { font: 700 1.6rem var(--display); color: var(--gold); }

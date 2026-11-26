@@ -1,6 +1,6 @@
 ---
-import Pagina from '../layouts/Pagina.astro';
-import { SITE } from '../lib/site';
+import Pagina from '../../layouts/Pagina.astro';
+import { SITE } from '../../lib/site';
 const schema = [{ '@context': 'https://schema.org', '@type': 'AboutPage', name: 'Sobre o Rio de Prêmios', mainEntity: { '@id': `${SITE.url}/#org` } }];
 ---
 <Pagina nome="Sobre o Rio de Prêmios" titulo="Sobre nós" desc="Conheça o Rio de Prêmios: quem somos, como trabalhamos e nosso compromisso com dados oficiais e jogo responsável." schema={schema}>

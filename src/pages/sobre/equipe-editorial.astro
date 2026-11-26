@@ -1,0 +1,27 @@
+---
+import Pagina from '../../layouts/Pagina.astro';
+import { SITE } from '../../lib/site';
+import { GUIAS } from '../../lib/guias';
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'ProfilePage', name: `${SITE.editor.nome} — equipe editorial`, url: `${SITE.url}/sobre/equipe-editorial/`,
+    mainEntity: { '@type': 'Organization', '@id': `${SITE.url}/#editorial`, name: SITE.editor.nome, description: SITE.editor.bio, parentOrganization: { '@id': `${SITE.url}/#org` }, sameAs: SITE.editor.sameAs, email: SITE.email } },
+];
+---
+<Pagina nome={`${SITE.editor.nome}`} titulo="Equipe editorial do Rio de Prêmios: quem escreve e revisa" desc="Conheça a equipe responsável pelo conteúdo do Rio de Prêmios: como trabalhamos, como verificamos os dados das loterias e como corrigimos erros." schema={schema}>
+  <p class="lead">{SITE.editor.bio}</p>
+  <h2>O que fazemos</h2>
+  <p>A equipe editorial do Rio de Prêmios é responsável pelos guias, pelas explicações de regras e pelas análises publicadas no site. Os resultados das loterias são coletados automaticamente dos dados oficiais da Caixa Econômica Federal; os textos de análise de cada concurso são gerados a partir desses dados, sem edição manual dos números.</p>
+  <h2>Como verificamos as informações</h2>
+  <ul>
+    <li><strong>Resultados:</strong> vêm da API pública de resultados da Caixa, com registro da fonte e do horário de cada atualização.</li>
+    <li><strong>Probabilidades e preços:</strong> calculados por análise combinatória e conferidos com a tabela oficial de preços da Caixa.</li>
+    <li><strong>Regras e prazos:</strong> conferidos com os canais oficiais (Caixa e LOTERJ) e com veículos de imprensa, que citamos como fonte quando usados.</li>
+    <li><strong>Revisão:</strong> guias são revisados periodicamente; a data da última atualização aparece no topo de cada um.</li>
+  </ul>
+  <h2>Política de correções</h2>
+  <p>Se encontrar qualquer divergência, escreva para <a href={`mailto:${SITE.email}`}>{SITE.email}</a> informando a página. Corrigimos o mais rápido possível e, em caso de conflito, prevalece sempre a informação oficial. Veja também nossa <a href="/metodologia/">metodologia</a>.</p>
+  <h2>Independência</h2>
+  <p>O Rio de Prêmios é um site independente, mantido por publicidade, sem vínculo com a Caixa, a LOTERJ ou o Rio de Prêmios oficial. Anunciantes não influenciam o conteúdo. Não vendemos apostas nem palpites "garantidos".</p>
+  <h2>Guias escritos pela equipe</h2>
+  <ul>{GUIAS.map((g) => <li><a href={`/guias/${g.slug}/`}>{g.titulo}</a></li>)}</ul>
+</Pagina>

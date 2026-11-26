@@ -1,0 +1,16 @@
+---
+// Fonte dos dados e horário da última atualização (sinal de confiança nas páginas de resultado)
+interface Props { atualizado?: string | null }
+const { atualizado } = Astro.props;
+const quando = atualizado ? new Date(atualizado) : null;
+---
+<p class="fonte">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  Fonte: <strong>Caixa Econômica Federal</strong> (resultados oficiais, coletados automaticamente)
+  {quando && <> · Última atualização: <time datetime={quando.toISOString()}>{quando.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })}</time></>}
+  · <a href="/metodologia/">Metodologia</a>
+</p>
+<style>
+  .fonte { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .82rem; color: var(--muted); margin: 14px 0; padding: 10px 14px; border-radius: var(--r-sm); background: var(--surface2); border: 1px solid var(--line); }
+  .fonte svg { color: var(--brand); flex: none; }
+</style>

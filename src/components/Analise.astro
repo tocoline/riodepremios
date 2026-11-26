@@ -1,0 +1,119 @@
+---
+// "Análise do concurso N": texto único gerado a partir dos dados do sorteio.
+import type { Loteria } from '../lib/loterias';
+import type { Concurso } from '../lib/db';
+import { dataBR, reais, reaisCurto, numero, pad } from '../lib/format';
+interface Props {
+  l: Loteria; c: Concurso; ant: Concurso | null;
+  hist: { numero: number; acumulado: boolean }[];   // concursos anteriores (ordem crescente)
+  aparicoes: Record<number, number>;               // dezena → último concurso anterior em que saiu
+  menor: number;                                   // menor concurso no banco (para não afirmar além do histórico)
+}
+const { l, c, ant, hist, aparicoes, menor } = Astro.props;
+const dig = l.tipo === 'colunas' ? 1 : 2;
+const ds = c.dezenas;
+const pares = ds.filter((d) => d % 2 === 0).length;
+const impares = ds.length - pares;
+const soma = ds.reduce((a, b) => a + b, 0);
+const meio = (l.min + l.max) / 2;
+const baixas = ds.filter((d) => d <= meio).length;
+const repetidas = ant ? (l.tipo === 'colunas' ? ds.filter((d, i) => ant.dezenas[i] === d) : ds.filter((d) => ant.dezenas.includes(d))) : [];
+const sequencias = l.tipo === 'colunas' ? 0 : [...ds].sort((a, b) => a - b).reduce((acc, d, i, arr) => acc + (i > 0 && d === arr[i - 1] + 1 ? 1 : 0), 0);
+
+// acumulações seguidas (inclui este concurso)
+let seguidas = 0;
+if (c.acumulado) { seguidas = 1; for (let i = hist.length - 1; i >= 0 && hist[i].acumulado && hist[i].numero === c.numero - seguidas; i--) seguidas++; }
+const ord = (k: number) => `${k}ª`;
+
+// prêmio
+const p0 = c.premiacoes[0];
+const estimativaAntes = ant?.proximo_numero === c.numero ? ant.proximo_estimativa : null;
+const evol = estimativaAntes && c.proximo_estimativa ? ((c.proximo_estimativa - estimativaAntes) / estimativaAntes) * 100 : null;
+
+// cidades
+const cidades = c.cidades_ganhadoras ?? [];
+const porUF = Object.entries(cidades.reduce((m, g) => ((m[g.uf || '—'] = (m[g.uf || '—'] ?? 0) + (g.ganhadores || 1)), m), {} as Record<string, number>)).sort((a, b) => b[1] - a[1]);
+const listaCidades = cidades.slice(0, 4).map((g) => (g.cidade ? `${g.cidade}${g.uf ? `/${g.uf}` : ''}` : 'canal eletrônico'));
+
+// atraso de cada dezena
+const atrasos = l.tipo === 'colunas' ? [] : [...ds].sort((a, b) => a - b).map((d) => {
+  const u = aparicoes[d];
+  return { d, ult: u ?? null, atraso: u ? c.numero - u : null };
+});
+const maisAtrasada = [...atrasos].filter((a) => a.atraso).sort((a, b) => (b.atraso ?? 0) - (a.atraso ?? 0))[0];
+const ineditasNoHistorico = atrasos.filter((a) => a.atraso === null).map((a) => a.d);
+
+// frase-resumo
+const resumo = c.acumulado
+  ? `Ninguém acertou a faixa principal e o prêmio acumulou${seguidas > 1 ? ` pela ${ord(seguidas)} vez seguida` : ''}.`
+  : `${numero(p0?.ganhadores ?? 0)} aposta${(p0?.ganhadores ?? 0) > 1 ? 's acertaram' : ' acertou'} a faixa principal${p0?.premio ? `, com prêmio de ${reais(p0.premio)} para cada` : ''}${listaCidades.length ? `, com ganhadores em ${listaCidades.join(', ')}${cidades.length > 4 ? ' e outras cidades' : ''}` : ''}.`;
+---
+<section class="analise">
+  <h2>Análise do concurso {c.numero}</h2>
+  <p class="lead-a">O concurso <strong>{c.numero}</strong> da {l.nome}, sorteado em {dataBR(c.data, true)}, teve as dezenas <strong>{ds.map((d) => pad(d, dig)).join(', ')}</strong>. {resumo}</p>
+
+  <div class="grid g4 a-stats">
+    {l.tipo !== 'colunas' && <div class="stat res"><span class="stat-l">Pares × ímpares</span><span class="stat-v">{pares} × {impares}</span></div>}
+    <div class="stat res"><span class="stat-l">Soma das dezenas</span><span class="stat-v">{soma}</span></div>
+    {l.tipo !== 'colunas' && <div class="stat res"><span class="stat-l">Baixas × altas</span><span class="stat-v">{baixas} × {ds.length - baixas}</span></div>}
+    <div class="stat res"><span class="stat-l">Repetidas do anterior</span><span class="stat-v">{ant ? repetidas.length : '—'}</span></div>
+  </div>
+
+  <div class="prose">
+    {l.tipo !== 'colunas' && (
+      <p>O sorteio teve <strong>{pares} dezena{pares === 1 ? '' : 's'} par{pares === 1 ? '' : 'es'}</strong> e <strong>{impares} ímpar{impares === 1 ? '' : 'es'}</strong>, com <strong>{baixas}</strong> dezena{baixas === 1 ? '' : 's'} na metade baixa (até {Math.floor(meio)}) e <strong>{ds.length - baixas}</strong> na metade alta. A soma das dezenas foi <strong>{soma}</strong>{sequencias > 0 ? `, e houve ${sequencias} par${sequencias > 1 ? 'es' : ''} de números consecutivos` : ', sem números consecutivos'}.</p>
+    )}
+    {ant && (
+      <p>{repetidas.length
+        ? <>Em relação ao <a href={`/${l.slug}/concurso/${ant.numero}/`}>concurso anterior ({ant.numero})</a>, {repetidas.length === 1 ? 'repetiu-se a dezena' : `repetiram-se ${repetidas.length} dezenas:`} <strong>{repetidas.map((d) => pad(d, dig)).join(', ')}</strong>{l.tipo === 'colunas' ? ' (na mesma coluna)' : ''}.</>
+        : <>Nenhuma dezena se repetiu em relação ao <a href={`/${l.slug}/concurso/${ant.numero}/`}>concurso anterior ({ant.numero})</a>.</>}</p>
+    )}
+    {maisAtrasada && (
+      <p>A dezena que estava há mais tempo sem sair era a <strong>{pad(maisAtrasada.d)}</strong>, ausente havia <strong>{maisAtrasada.atraso} concursos</strong> (última vez no <a href={`/${l.slug}/concurso/${maisAtrasada.ult}/`}>concurso {maisAtrasada.ult}</a>).{ineditasNoHistorico.length ? ` ${ineditasNoHistorico.length === 1 ? 'A dezena' : 'As dezenas'} ${ineditasNoHistorico.map((d) => pad(d)).join(', ')} não ${ineditasNoHistorico.length === 1 ? 'aparecia' : 'apareciam'} em nenhum dos concursos anteriores do nosso histórico (desde o ${menor}).` : ''}</p>
+    )}
+    {(estimativaAntes || c.proximo_estimativa) && (
+      <p>{estimativaAntes ? <>A estimativa de prêmio para este concurso era de <strong>{reaisCurto(estimativaAntes)}</strong>. </> : ''}
+        {c.proximo_estimativa ? <>Para o concurso seguinte ({c.proximo_numero}), a estimativa passou a ser <strong>{reaisCurto(c.proximo_estimativa)}</strong>{evol !== null ? <> — {evol >= 0 ? 'alta' : 'queda'} de <strong>{Math.abs(evol).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong></> : ''}.</> : ''}
+        {c.arrecadacao ? <> A arrecadação total do concurso foi de {reais(c.arrecadacao)}.</> : ''}</p>
+    )}
+  </div>
+
+  {atrasos.length > 0 && (
+    <>
+      <h3>Há quantos concursos cada dezena não saía</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Dezena</th><th>Última vez antes deste concurso</th><th class="num">Concursos sem sair</th></tr></thead>
+        <tbody>{atrasos.map((a) => <tr><td><strong>{pad(a.d)}</strong></td><td>{a.ult ? <a href={`/${l.slug}/concurso/${a.ult}/`}>concurso {a.ult}</a> : `não aparece desde o ${menor}`}</td><td class="num">{a.atraso ?? '—'}</td></tr>)}</tbody>
+      </table></div>
+    </>
+  )}
+
+  <h3>Ganhadores por faixa</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Faixa</th><th class="num">Ganhadores</th><th class="num">Prêmio por ganhador</th><th class="num">Total pago na faixa</th></tr></thead>
+    <tbody>{c.premiacoes.map((p) => <tr><td>{p.descricao}</td><td class="num">{numero(p.ganhadores)}</td><td class="num">{p.ganhadores ? reais(p.premio) : '—'}</td><td class="num">{p.ganhadores ? reais(p.premio * p.ganhadores) : '—'}</td></tr>)}</tbody>
+  </table></div>
+
+  {cidades.length > 0 && (
+    <>
+      <h3>Ganhadores da faixa principal por cidade e UF</h3>
+      <div class="grid g2">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Cidade</th><th>UF</th><th class="num">Ganhadores</th></tr></thead>
+          <tbody>{cidades.map((g) => <tr><td>{g.cidade || 'Canal eletrônico'}</td><td>{g.uf || '—'}</td><td class="num">{g.ganhadores}</td></tr>)}</tbody>
+        </table></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>UF</th><th class="num">Ganhadores</th></tr></thead>
+          <tbody>{porUF.map(([uf, n]) => <tr><td>{uf}</td><td class="num">{n}</td></tr>)}</tbody>
+        </table></div>
+      </div>
+    </>
+  )}
+</section>
+<style>
+  .analise { margin: 8px 0; }
+  .lead-a { font-size: 1.05rem; max-width: 860px; }
+  .a-stats { margin: 16px 0 6px; }
+  .analise h3 { margin-top: 26px; }
+  .analise .prose { max-width: 860px; }
+</style>

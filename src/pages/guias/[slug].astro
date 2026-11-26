@@ -3,13 +3,19 @@ import Base from '../../layouts/Base.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import Resposta from '../../components/Resposta.astro';
 import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import { GUIAS, type Guia } from '../../lib/guias';
 import { SITE } from '../../lib/site';
+import { dataBR } from '../../lib/format';
 export function getStaticPaths() { return GUIAS.map((g) => ({ params: { slug: g.slug }, props: { g } })); }
 const { g } = Astro.props as { g: Guia };
-const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: g.titulo, description: g.desc, inLanguage: 'pt-BR', dateModified: g.atualizado, datePublished: g.atualizado, author: { '@type': 'Organization', name: SITE.editor.nome, url: `${SITE.url}/sobre/` }, publisher: { '@id': `${SITE.url}/#org` }, mainEntityOfPage: `${SITE.url}/guias/${g.slug}/` }];
-const [a, b] = g.html.split('<h2>').length > 2 ? [g.html.split('<h2>').slice(0, 2).join('<h2>'), '<h2>' + g.html.split('<h2>').slice(2).join('<h2>')] : [g.html, ''];
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: g.titulo, description: g.desc, inLanguage: 'pt-BR', datePublished: g.publicado, dateModified: g.atualizado,
+  author: { '@type': 'Organization', '@id': `${SITE.url}/#editorial`, name: SITE.editor.nome, url: `${SITE.url}/sobre/equipe-editorial/` }, publisher: { '@id': `${SITE.url}/#org` },
+  mainEntityOfPage: `${SITE.url}/guias/${g.slug}/`, image: [`${SITE.url}/og.png`] }];
+const partes = g.html.split('<h2>');
+const [a, b] = partes.length > 3 ? [partes.slice(0, 3).join('<h2>'), '<h2>' + partes.slice(3).join('<h2>')] : [g.html, ''];
+const outros = GUIAS.filter((x) => x.slug !== g.slug);
 ---
 <Base title={g.titulo} description={g.desc} schema={schema} type="article" modificado={g.atualizado}>
   <div class="narrow phero">
@@ -17,11 +23,17 @@ const [a, b] = g.html.split('<h2>').length > 2 ? [g.html.split('<h2>').slice(0, 
     <h1>{g.titulo}</h1>
     <p class="lead">{g.desc}</p>
     <Autor atualizado={g.atualizado + 'T12:00:00-03:00'} />
+    <p class="small faint" style="margin-top:6px">Publicado em {dataBR(g.publicado)} · Atualizado em {dataBR(g.atualizado)}</p>
   </div>
   <article class="narrow">
     <Resposta><p set:html={g.resposta} /></Resposta>
     <div class="prose" style="margin-top:24px" set:html={a} />
     <Ad />
     <div class="prose" set:html={b} />
+    <Faq itens={g.faq} />
+    <aside class="card" style="margin-top:28px">
+      <h2 style="font-size:1.2rem;margin-top:0">Leia também</h2>
+      <ul style="margin:0;padding-left:1.2em">{outros.map((o) => <li><a href={`/guias/${o.slug}/`}>{o.titulo}</a></li>)}</ul>
+    </aside>
   </article>
 </Base>

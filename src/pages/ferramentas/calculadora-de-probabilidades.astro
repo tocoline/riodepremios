@@ -4,6 +4,24 @@ import CalcProb from '../../components/tools/CalcProb.astro';
 ---
 <Ferramenta nome="Probabilidades" titulo="Calculadora de probabilidades das loterias" h1="Calculadora de probabilidades"
   desc="Veja a chance exata de ganhar em cada faixa de prêmio de qualquer loteria, para qualquer quantidade de números marcados."
-  resposta="A probabilidade é calculada pela fórmula hipergeométrica: combinações favoráveis divididas pelo total de combinações possíveis. Exemplo: na Mega-Sena há 50.063.860 combinações de 6 números, então uma aposta simples tem 1 chance em 50.063.860 de acertar a sena.">
+  resposta="A probabilidade é calculada pela fórmula hipergeométrica: combinações favoráveis divididas pelo total de combinações possíveis. Exemplo: na Mega-Sena há 50.063.860 combinações de 6 números, então uma aposta simples tem 1 chance em 50.063.860 de acertar a sena."
+  faq={[
+    { q: 'As probabilidades são oficiais?', a: 'São calculadas pela mesma análise combinatória usada nas tabelas oficiais da Caixa e conferidas com elas.' },
+    { q: 'Marcar mais números vale a pena?', a: 'A chance aumenta exatamente na mesma proporção do preço. Não há "desconto" na probabilidade: você paga por cada combinação a mais.' },
+    { q: 'Por que a chance na Dupla Sena é por sorteio?', a: 'Porque o mesmo bilhete concorre em dois sorteios independentes. A chance de acertar em pelo menos um deles é quase o dobro.' },
+  ]}>
   <CalcProb />
+  <div slot="depois" class="prose">
+    <h2>Como usar a calculadora</h2>
+    <p>Escolha a loteria e a quantidade de números que pretende marcar. A tabela mostra, para cada faixa de prêmio, a probabilidade em porcentagem e no formato "1 em X", além do valor da aposta e de quantas apostas simples ela equivale.</p>
+    <h2>Como a conta é feita</h2>
+    <p>Usamos a distribuição hipergeométrica: para acertar exatamente <em>k</em> números, contamos de quantas maneiras é possível escolher <em>k</em> números entre os que você marcou e o restante entre os que você não marcou, e dividimos pelo total de resultados possíveis do sorteio. Na +Milionária, a conta inclui os trevos; no Super Sete, cada coluna tem 1 chance em 10.</p>
+    <h2>Exemplos</h2>
+    <ul>
+      <li><strong>Mega-Sena com 6 números:</strong> sena 1 em 50.063.860; quina 1 em 154.518; quadra 1 em 2.332.</li>
+      <li><strong>Mega-Sena com 8 números:</strong> a aposta custa o mesmo que 28 simples, e a chance da sena sobe para 1 em 1.787.995.</li>
+      <li><strong>Lotofácil com 16 números:</strong> custa 16 apostas simples e a chance dos 15 pontos vai para 1 em 204.298.</li>
+    </ul>
+    <p>Quer comparar as loterias entre si? Veja o <a href="/guias/qual-loteria-tem-mais-chance-de-ganhar/">ranking de chances</a>.</p>
+  </div>
 </Ferramenta>

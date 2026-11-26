@@ -7,7 +7,7 @@ const quando = atualizado ? new Date(atualizado) : null;
 <div class="autor">
   <div class="av" aria-hidden="true">RP</div>
   <div>
-    <p class="nm">Por <a href="/sobre/#equipe">{SITE.editor.nome}</a>{revisado && <span class="pill ok">✓ Dados conferidos</span>}</p>
+    <p class="nm">Por <a href="/sobre/equipe-editorial/" rel="author">{SITE.editor.nome}</a>{revisado && <span class="pill ok">✓ Dados conferidos</span>}</p>
     <p class="small faint">
       {quando && <>Atualizado em <time datetime={quando.toISOString()}>{quando.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })}</time> · </>}
       <a href="/metodologia/">Fontes e metodologia</a>

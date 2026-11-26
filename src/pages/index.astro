@@ -5,6 +5,7 @@ import ResultadoCard from '../components/ResultadoCard.astro';
 import Countdown from '../components/Countdown.astro';
 import Ad from '../components/Ad.astro';
 import Faq from '../components/Faq.astro';
+import Fonte from '../components/Fonte.astro';
 import { LOTERIAS, POR_SLUG, VIRADA } from '../lib/loterias';
 import { getDB, ultimosDeTodas } from '../lib/db';
 import { reaisCurto } from '../lib/format';
@@ -80,8 +81,8 @@ const faq = [
           <span class="eyebrow">Últimos sorteios</span>
           <h2>Resultados de todas as loterias</h2>
         </div>
-        {atualizado && <p class="small faint">Última verificação: {new Date(atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })}</p>}
       </div>
+      <Fonte atualizado={atualizado} />
       <div class="grid g3">
         {LOTERIAS.filter((l) => l.slug !== 'mega-sena').map((l) => <ResultadoCard l={l} c={ult[l.slug]} />)}
       </div>

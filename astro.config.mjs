@@ -1,20 +1,11 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
-import sitemap from '@astrojs/sitemap';
 
-const SITE = 'https://www.riodepremios.com.br';
-const LOTERIAS = ['mega-sena', 'lotofacil', 'quina', 'lotomania', 'timemania', 'dupla-sena', 'dia-de-sorte', 'super-sete', 'mais-milionaria'];
-// páginas renderizadas sob demanda (não entram no sitemap automático)
-const dinamicas = [
-  '/', '/rio-de-premios/', '/rio-de-premios/resultados/', '/mega-da-virada/', '/mega-da-virada/resultados/', '/mega-da-virada/estatisticas/', '/mega-da-virada/seus-numeros/', '/mega-da-virada/bolao-online/',
-  ...LOTERIAS.flatMap((l) => [`/${l}/`, `/${l}/resultados/`, ...(l === 'super-sete' ? [] : [`/${l}/estatisticas/`])]),
-].map((p) => SITE + p);
-
+// Sitemaps são gerados pelo próprio site (src/pages/sitemap-*.xml.ts), com lastmod real.
 export default defineConfig({
-  site: SITE,
+  site: 'https://www.riodepremios.com.br',
   output: 'static',
-  trailingSlash: 'always',
+  trailingSlash: 'ignore', // a barra final é garantida pelo middleware (depois das regras do site antigo)
   adapter: cloudflare({ platformProxy: { enabled: true }, imageService: 'passthrough' }),
-  integrations: [sitemap({ customPages: dinamicas, filter: (p) => !p.includes('/api/') && !p.includes('/admin/') && !p.endsWith('/404/') })],
   build: { inlineStylesheets: 'auto' },
 });

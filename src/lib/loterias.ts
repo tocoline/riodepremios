@@ -125,6 +125,7 @@ export const VIRADA = {
   local: 'Espaço da Sorte, em São Paulo (SP)',
   premioTexto: 'mais de R$ 1 bilhão',
   premioValor: 1_000_000_000,
+  atualizado: '2026-11-26', // data da última alteração destes dados (usada no sitemap)
   prazos: [
     { quando: 'Desde 3 de novembro de 2026', o: 'Apostas abertas' },
     { quando: 'Até 15 de dezembro de 2026', o: 'Vendas paralelas (junto com os concursos regulares)' },

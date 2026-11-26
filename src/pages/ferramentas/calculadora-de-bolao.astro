@@ -4,6 +4,24 @@ import CalcBolao from '../../components/tools/CalcBolao.astro';
 ---
 <Ferramenta nome="Bolão" titulo="Calculadora de bolão: custo, cotas e prêmio por participante" h1="Calculadora de bolão"
   desc="Calcule o custo de um bolão em qualquer loteria, o valor de cada cota, a chance do grupo e quanto cada participante recebe."
-  resposta="Custo do bolão = preço de cada jogo × número de jogos. Valor da cota = custo ÷ número de cotas (mais a tarifa da lotérica, se houver). Se o grupo ganhar, cada cota recebe a mesma fração do prêmio.">
+  resposta="Custo do bolão = preço de cada jogo × número de jogos. Valor da cota = custo ÷ número de cotas (mais a tarifa da lotérica, se houver). Se o grupo ganhar, cada cota recebe a mesma fração do prêmio."
+  faq={[
+    { q: 'Como é calculado o valor da cota?', a: 'Custo total dos jogos dividido pelo número de cotas, mais a tarifa de serviço da lotérica, se houver.' },
+    { q: 'A chance do grupo considera jogos repetidos?', a: 'Não. A conta supõe jogos diferentes entre si, que é como um bolão deve ser montado.' },
+    { q: 'O prêmio por cota já desconta o imposto?', a: 'Sim, quando a opção "Descontar IR de 30%" está marcada.' },
+  ]}>
   <CalcBolao premioPadrao={10000000} />
+  <div slot="depois" class="prose">
+    <h2>Como usar a calculadora de bolão</h2>
+    <ol>
+      <li>Escolha a <strong>loteria</strong> e quantos <strong>números por jogo</strong>.</li>
+      <li>Informe a <strong>quantidade de jogos</strong> e o número de <strong>cotas</strong> (participantes).</li>
+      <li>Se o bolão for comprado na lotérica, informe a <strong>tarifa de serviço</strong> cobrada sobre a cota.</li>
+      <li>Digite um <strong>prêmio hipotético</strong> para ver quanto cada cota receberia, com ou sem o desconto de 30% de IR.</li>
+    </ol>
+    <h2>Exemplo</h2>
+    <p>Dez amigos querem jogar 5 jogos de 7 números na Mega-Sena. Cada jogo custa R$ 42,00, então o bolão sai por R$ 210,00 — R$ 21,00 por cota. A chance do grupo na sena fica em cerca de 1 em 1,43 milhão. Se o grupo ganhar um prêmio de R$ 10 milhões, cada cota recebe R$ 700 mil líquidos.</p>
+    <h2>Dicas</h2>
+    <p>Combine tudo por escrito antes da aposta e compartilhe os comprovantes. Para a Mega da Virada, use o <a href="/mega-da-virada/bolao-online/">bolão online</a>, que gera um link com os jogos e confere o resultado automaticamente. Leia também o <a href="/guias/como-fazer-bolao/">guia completo de bolão</a>.</p>
+  </div>
 </Ferramenta>

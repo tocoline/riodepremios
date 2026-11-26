@@ -3,20 +3,24 @@ export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import Crumbs from '../../components/Crumbs.astro';
 import StatsView from '../../components/StatsView.astro';
+import EstatSecoes from '../../components/EstatSecoes.astro';
 import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
 import Ad from '../../components/Ad.astro';
 import { POR_SLUG } from '../../lib/loterias';
-import { getDB, historicoDezenas } from '../../lib/db';
+import { getDB, historicoDezenas, frequenciaPorAno, anos as listarAnos, ultimos } from '../../lib/db';
 import { calcular } from '../../lib/estatisticas';
-import { pad } from '../../lib/format';
+import { pad, numero } from '../../lib/format';
 import { cachear, naoEncontrado } from '../../lib/cache';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
 cachear(Astro, 1800);
-const s = calcular(l, await historicoDezenas(getDB(Astro.locals), l));
+const db = getDB(Astro.locals);
+const [hist, porAno, anos, [ult]] = await Promise.all([historicoDezenas(db, l), frequenciaPorAno(db, l), listarAnos(db, l), ultimos(db, l, 1)]);
+const s = calcular(l, hist);
 ---
-<Base title={`Estatísticas da ${l.nome}: dezenas mais sorteadas e atrasadas`} description={`Estatísticas completas da ${l.nome}: dezenas que mais saem, mais atrasadas, mapa de frequência e combinações de pares e ímpares, atualizadas a cada concurso.`}>
+<Base title={`Estatísticas da ${l.nome}: dezenas que mais saem e atrasadas`} description={`Estatísticas da ${l.nome} com ${numero(s.total)} concursos: dezenas mais sorteadas, mais atrasadas, pares e ímpares e frequência por ano, atualizadas a cada sorteio.`} modificado={ult?.atualizado_em}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas' }]} />
     <h1>Estatísticas da {l.nome}</h1>
@@ -25,10 +29,13 @@ const s = calcular(l, await historicoDezenas(getDB(Astro.locals), l));
   <section class="wrap">
     {s.total > 0 && (
       <Resposta>
-        <p>Os números que mais saíram na {l.nome} são <strong>{s.mais.slice(0, 6).map((x) => pad(x.dezena)).join(', ')}</strong>. A dezena mais atrasada é a <strong>{pad(s.atrasadas[0].dezena)}</strong>, que não sai há {s.atrasadas[0].atraso} concursos.</p>
+        <p>Os números que mais saíram na {l.nome} são <strong>{s.mais.slice(0, 6).map((x) => pad(x.dezena)).join(', ')}</strong>. A dezena mais atrasada é a <strong>{pad(s.atrasadas[0].dezena)}</strong>, que não sai há {s.atrasadas[0].atraso} concursos. A combinação de pares e ímpares mais comum é {s.paresImpares[0]?.[0].replace('p/', ' pares e ').replace('i', ' ímpares')}.</p>
       </Resposta>
     )}
-    <div style="margin-top:22px"><StatsView l={l} s={s} /></div>
+    <Fonte atualizado={ult?.atualizado_em} />
+    <h2>Mapa de frequência</h2>
+    <StatsView l={l} s={s} />
     <Ad />
+    <EstatSecoes l={l} s={s} porAno={porAno} concursosPorAno={anos} />
   </section>
 </Base>

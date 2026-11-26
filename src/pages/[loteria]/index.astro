@@ -9,8 +9,10 @@ import TabelasLoteria from '../../components/TabelasLoteria.astro';
 import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import Autor from '../../components/Autor.astro';
+import Fonte from '../../components/Fonte.astro';
+import AnosNav from '../../components/AnosNav.astro';
 import { POR_SLUG, diasTexto } from '../../lib/loterias';
-import { getDB, ultimos } from '../../lib/db';
+import { getDB, ultimos, anos as listarAnos } from '../../lib/db';
 import { comoJogar, faqLoteria, chancePrincipal } from '../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero } from '../../lib/format';
 import { cachear, naoEncontrado } from '../../lib/cache';
@@ -19,7 +21,7 @@ import { SITE } from '../../lib/site';
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l) return naoEncontrado(Astro);
 cachear(Astro);
-const lista = await ultimos(getDB(Astro.locals), l, 11);
+const [lista, anos] = await Promise.all([ultimos(getDB(Astro.locals), l, 11), listarAnos(getDB(Astro.locals), l)]);
 const [c, ...anteriores] = lista;
 const titulo = c ? `Resultado ${l.nome} ${c.numero} de ${dataBR(c.data)} — Último sorteio` : `Resultado da ${l.nome} — Último sorteio`;
 const desc = c
@@ -38,6 +40,7 @@ const schema = [{
     <h1>Resultado da {l.nome}</h1>
     <p class="lead">{l.resumo}</p>
     <Autor atualizado={c?.atualizado_em} />
+    <Fonte atualizado={c?.atualizado_em} />
   </div>
 
   <section class="wrap lot-top">
@@ -87,6 +90,8 @@ const schema = [{
           </a>
         ))}
       </div>
+      <h3>Resultados por ano</h3>
+      <AnosNav slug={l.slug} nome={l.nome} anos={anos} />
       <p><a class="btn" href={`/${l.slug}/resultados/`}>Ver histórico completo →</a></p>
     </section>
   )}

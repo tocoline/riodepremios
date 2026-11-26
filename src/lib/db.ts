@@ -77,3 +77,32 @@ export async function anteriores(db: DB, l: Loteria, antesDe: number, limite = 1
   const rows = await all(db, 'SELECT numero, data, dezenas, acumulado, extra FROM concursos WHERE loteria=? AND numero<? ORDER BY numero DESC LIMIT ?', l.api, antesDe, limite);
   return rows.reverse().map((r) => ({ numero: r.numero as number, data: r.data as string, dezenas: (J(r.dezenas) ?? []) as number[], acumulado: !!r.acumulado, extra: J(r.extra) }));
 }
+
+// ---------- arquivo por ano / análise ----------
+export async function anos(db: DB, l: Loteria) {
+  return (await all(db, "SELECT substr(data,1,4) ano, COUNT(*) n, MIN(numero) primeiro, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos WHERE loteria=? GROUP BY ano ORDER BY ano DESC", l.api))
+    .map((r) => ({ ano: Number(r.ano), n: Number(r.n), primeiro: r.primeiro as number, ultimo: r.ultimo as number, atualizado: r.atualizado as string }));
+}
+export async function doAno(db: DB, l: Loteria, ano: number): Promise<Concurso[]> {
+  return (await all(db, 'SELECT * FROM concursos WHERE loteria=? AND data>=? AND data<=? ORDER BY numero DESC', l.api, `${ano}-01-01`, `${ano}-12-31`)).map(parse);
+}
+export async function doMes(db: DB, l: Loteria, anoMes: string) {
+  return (await all(db, 'SELECT numero, data, acumulado FROM concursos WHERE loteria=? AND substr(data,1,7)=? ORDER BY numero', l.api, anoMes))
+    .map((r) => ({ numero: r.numero as number, data: r.data as string, acumulado: !!r.acumulado }));
+}
+/** Último concurso anterior a `n` em que cada dezena saiu. */
+export async function ultimaAparicao(db: DB, l: Loteria, n: number, dezenas: number[]) {
+  if (!dezenas.length) return {} as Record<number, number>;
+  const rows = await all(db, `SELECT CAST(j.value AS INTEGER) d, MAX(c.numero) ult FROM concursos c, json_each(c.dezenas) j
+    WHERE c.loteria=? AND c.numero<? AND CAST(j.value AS INTEGER) IN (${dezenas.map(() => '?').join(',')}) GROUP BY d`, l.api, n, ...dezenas);
+  return Object.fromEntries(rows.map((r) => [Number(r.d), Number(r.ult)])) as Record<number, number>;
+}
+export async function menorNumero(db: DB, l: Loteria) {
+  const r = await all(db, 'SELECT MIN(numero) m FROM concursos WHERE loteria=?', l.api);
+  return Number(r[0]?.m ?? 0);
+}
+/** Frequência das dezenas por ano (para estatísticas). */
+export async function frequenciaPorAno(db: DB, l: Loteria) {
+  return (await all(db, `SELECT substr(c.data,1,4) ano, CAST(j.value AS INTEGER) d, COUNT(*) n FROM concursos c, json_each(c.dezenas) j
+    WHERE c.loteria=? GROUP BY ano, d`, l.api)).map((r) => ({ ano: Number(r.ano), d: Number(r.d), n: Number(r.n) }));
+}

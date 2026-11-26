@@ -1,0 +1,15 @@
+---
+interface Props { slug: string; nome: string; anos: { ano: number; n: number }[]; atual?: number }
+const { slug, nome, anos, atual } = Astro.props;
+---
+{anos.length > 0 && (
+  <nav class="anos" aria-label={`Resultados da ${nome} por ano`}>
+    {anos.map((a) => <a href={`/${slug}/resultados/${a.ano}/`} aria-current={a.ano === atual ? 'page' : undefined}>{a.ano} <span>{a.n}</span></a>)}
+  </nav>
+)}
+<style>
+  .anos { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+  .anos a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-weight: 650; font-size: .92rem; }
+  .anos a span { font-size: .72rem; font-weight: 600; color: var(--faint); }
+  .anos a:hover, .anos a[aria-current="page"] { border-color: var(--brand); color: var(--brand); }
+</style>

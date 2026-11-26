@@ -4,6 +4,24 @@ import PremioLiquido from '../../components/tools/PremioLiquido.astro';
 ---
 <Ferramenta nome="Prêmio líquido" titulo="Calculadora de prêmio líquido da loteria (com IR)" h1="Calculadora de prêmio líquido"
   desc="Descubra quanto sobra do prêmio depois do Imposto de Renda, dividido entre ganhadores ou cotas, e quanto ele rende por mês."
-  resposta="Prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Ou seja, o valor líquido é 70% do prêmio bruto.">
+  resposta="Prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Ou seja, o valor líquido é 70% do prêmio bruto."
+  faq={[
+    { q: 'O prêmio anunciado pela Caixa é bruto ou líquido?', a: 'O valor anunciado é bruto. O Imposto de Renda de 30% é retido no momento do pagamento.' },
+    { q: 'A simulação de rendimento é garantida?', a: 'Não. É uma estimativa com a taxa que você informar. Rentabilidades variam e não há recomendação de investimento.' },
+    { q: 'Prêmios pequenos pagam imposto?', a: 'Prêmios até o limite de isenção definido pela Receita Federal não sofrem retenção.' },
+  ]}>
   <PremioLiquido premioPadrao={10000000} />
+  <div slot="depois" class="prose">
+    <h2>Como usar a calculadora de prêmio líquido</h2>
+    <ol>
+      <li>Digite o <strong>prêmio bruto</strong> anunciado.</li>
+      <li>Informe entre quantos <strong>ganhadores ou cotas</strong> ele será dividido.</li>
+      <li>Mantenha a <strong>alíquota de 30%</strong> (padrão para prêmios de loteria acima do limite de isenção) ou ajuste se necessário.</li>
+      <li>Para simular rendimentos, informe a <strong>rentabilidade mensal</strong> da aplicação e o IR sobre o rendimento.</li>
+    </ol>
+    <h2>Exemplo</h2>
+    <p>Um prêmio de R$ 10 milhões dividido entre 2 ganhadores dá R$ 5 milhões brutos para cada um. Com 30% de IR, cada ganhador recebe R$ 3,5 milhões. Aplicados a 0,8% ao mês, com 15% de IR sobre o rendimento, renderiam cerca de R$ 23,8 mil por mês.</p>
+    <h2>Entenda os impostos</h2>
+    <p>O IR do prêmio é retido pela Caixa no pagamento. Depois, os rendimentos seguem as regras de cada aplicação. Saiba mais no <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">guia de Imposto de Renda sobre prêmios</a> e veja a simulação especial <a href="/mega-da-virada/quanto-rende/">quanto rende R$ 1 bilhão</a>.</p>
+  </div>
 </Ferramenta>

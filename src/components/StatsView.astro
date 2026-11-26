@@ -17,7 +17,6 @@ const esperado = s.total ? (s.total * l.sorteadas * (l.slug === 'dupla-sena' ? 2
       <div class="card stat"><span class="stat-v">{s.somaMedia}</span><span class="stat-l">soma média das dezenas</span></div>
     </div>
 
-    <h3>Mapa de frequência</h3>
     <p class="small muted">Quanto mais intensa a cor, mais vezes a dezena saiu. Frequência esperada pelo acaso: ~{esperado.toFixed(1)} vezes por dezena.</p>
     <div class="heat" style={`grid-template-columns:repeat(${l.max - l.min + 1 > 60 ? 10 : 10}, 1fr)`}>
       {s.stats.map((x) => (

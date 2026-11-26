@@ -4,6 +4,25 @@ import Gerador from '../../components/tools/Gerador.astro';
 ---
 <Ferramenta nome="Gerador de números" titulo="Gerador de números para loterias (Mega-Sena, Lotofácil, Quina...)" h1="Gerador de números da sorte"
   desc="Gere jogos aleatórios para qualquer loteria da Caixa, com números fixos, exclusões e filtros que evitam combinações populares."
-  resposta="Selecione a loteria, a quantidade de números e de jogos e clique em <strong>Gerar jogos</strong>. Os números usam o gerador criptográfico do navegador — nenhum método aumenta a chance de ganhar, mas jogos bem espalhados reduzem o risco de dividir o prêmio.">
+  resposta="Selecione a loteria, a quantidade de números e de jogos e clique em <strong>Gerar jogos</strong>. Os números usam o gerador criptográfico do navegador — nenhum método aumenta a chance de ganhar, mas jogos bem espalhados reduzem o risco de dividir o prêmio."
+  faq={[
+    { q: 'Os números gerados aumentam a chance de ganhar?', a: 'Não. Todas as combinações têm a mesma probabilidade. O gerador ajuda a escolher rapidamente e a evitar combinações populares.' },
+    { q: 'O gerador é realmente aleatório?', a: 'Sim. Ele usa o gerador criptográfico do seu navegador (crypto.getRandomValues).' },
+    { q: 'Posso gerar jogos para a +Milionária e o Dia de Sorte?', a: 'Sim. O gerador sorteia também os trevos da +Milionária e o Mês da Sorte do Dia de Sorte.' },
+  ]}>
   <Gerador />
+  <div slot="depois" class="prose">
+    <h2>Como usar o gerador</h2>
+    <ol>
+      <li>Escolha a <strong>loteria</strong> e a <strong>quantidade de números</strong> por jogo.</li>
+      <li>Defina <strong>quantos jogos</strong> quer gerar (até 50).</li>
+      <li>Opcional: informe <strong>números fixos</strong> (que entram em todos os jogos) e <strong>números para excluir</strong>.</li>
+      <li>Mantenha marcados os filtros de <strong>equilíbrio entre pares e ímpares</strong> e <strong>sem sequências</strong>, se quiser jogos mais "espalhados".</li>
+      <li>Clique em <strong>Gerar jogos</strong> e use <strong>Copiar</strong> para levar os números para onde quiser.</li>
+    </ol>
+    <h2>Para que servem os filtros</h2>
+    <p>Os filtros não aumentam a chance de acertar — nenhuma estratégia faz isso. Eles servem para evitar combinações que muita gente joga, como sequências (01-02-03…) ou só números baixos. Quando uma combinação popular é sorteada, o prêmio é dividido entre mais ganhadores; um jogo bem espalhado reduz esse risco.</p>
+    <h2>Exemplo</h2>
+    <p>Para um bolão de Mega-Sena com 10 jogos de 6 números, com o 7 em todos: escolha Mega-Sena, 6 números, 10 jogos, e digite <code>7</code> em "Números fixos". O gerador cria 10 combinações diferentes contendo o 7.</p>
+  </div>
 </Ferramenta>

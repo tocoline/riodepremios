@@ -13,6 +13,9 @@ export const SITE = {
 };
 
 // IDs públicos (aparecem no HTML de qualquer site com anúncios). Podem ser trocados por variáveis de ambiente no Pages.
+// Data da última revisão do conteúdo editorial fixo (guias, páginas institucionais) — usada no sitemap
+export const CONTEUDO_ATUALIZADO = '2026-11-26';
+
 export const adsense = {
   client: (import.meta.env.PUBLIC_ADSENSE_CLIENT as string | undefined) || 'ca-pub-7489608946923439',
   slot: (import.meta.env.PUBLIC_ADSENSE_SLOT as string | undefined) || '5634434194',

@@ -3,28 +3,46 @@ export const prerender = false;
 import Base from '../../../layouts/Base.astro';
 import Crumbs from '../../../components/Crumbs.astro';
 import Bolas from '../../../components/Bolas.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import AnosNav from '../../../components/AnosNav.astro';
+import EstatSecoes from '../../../components/EstatSecoes.astro';
 import Ad from '../../../components/Ad.astro';
-import { POR_SLUG } from '../../../lib/loterias';
-import { getDB, lista } from '../../../lib/db';
-import { dataBR, reaisCurto } from '../../../lib/format';
+import { POR_SLUG, diasTexto } from '../../../lib/loterias';
+import { getDB, lista as listar, anos as listarAnos, historicoDezenas, frequenciaPorAno } from '../../../lib/db';
+import { calcular } from '../../../lib/estatisticas';
+import { dataBR, reaisCurto, numero, pad } from '../../../lib/format';
 import { cachear, naoEncontrado } from '../../../lib/cache';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l) return naoEncontrado(Astro);
-cachear(Astro);
-const pagina = Math.max(1, Number(Astro.url.searchParams.get('pagina')) || 1);
-const POR = 30;
-const { itens, total } = await lista(getDB(Astro.locals), l, pagina, POR);
-const paginas = Math.max(1, Math.ceil(total / POR));
-const sufixo = pagina > 1 ? ` — página ${pagina}` : '';
+// paginação antiga (?pagina= / ?page=) aponta para a página canônica
+if (Astro.url.searchParams.has('pagina') || Astro.url.searchParams.has('page')) return Astro.redirect(`/${l.slug}/resultados/`, 301);
+cachear(Astro, 600);
+const db = getDB(Astro.locals);
+const [{ itens, total }, anos, hist, porAno] = await Promise.all([listar(db, l, 1, 30), listarAnos(db, l), historicoDezenas(db, l), l.tipo !== 'colunas' ? frequenciaPorAno(db, l) : Promise.resolve([])]);
+const s = calcular(l, hist);
+const ult = itens[0];
+const dig = l.tipo === 'colunas' ? 1 : 2;
 ---
-<Base title={`Todos os resultados da ${l.nome}${sufixo}`} description={`Histórico completo de resultados da ${l.nome}: todos os concursos com dezenas sorteadas, datas e prêmios.`} noindex={pagina > 1}>
+<Base title={`Resultados da ${l.nome}: todos os concursos por ano`} description={`Histórico de resultados da ${l.nome}: ${numero(total)} concursos com dezenas, datas e prêmios, organizados por ano, mais as dezenas que mais saem e as mais atrasadas.`} modificado={ult?.atualizado_em}>
   <div class="wrap phero">
-    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Todos os resultados' }]} />
-    <h1>Todos os resultados da {l.nome}</h1>
-    <p class="lead">{total ? `${total.toLocaleString('pt-BR')} concursos no nosso banco de dados, do mais recente ao mais antigo.` : 'O histórico está sendo sincronizado automaticamente.'}</p>
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados' }]} />
+    <h1>Resultados da {l.nome}</h1>
+    <p class="lead">Todos os concursos da {l.nome} organizados por ano, com as dezenas sorteadas, os prêmios e as estatísticas do histórico.</p>
   </div>
   <section class="wrap">
+    <Resposta>
+      {ult ? <p>O último resultado da {l.nome} é o do <a href={`/${l.slug}/concurso/${ult.numero}/`}><strong>concurso {ult.numero}</strong></a> ({dataBR(ult.data)}): <strong>{ult.dezenas.map((d) => pad(d, dig)).join(' - ')}</strong>. Os sorteios acontecem às {diasTexto(l)}, às 20h. Nosso arquivo tem <strong>{numero(total)} concursos</strong>, organizados por ano abaixo.</p>
+           : <p>O histórico da {l.nome} está sendo sincronizado automaticamente.</p>}
+    </Resposta>
+    <Fonte atualizado={ult?.atualizado_em} />
+
+    <h2>Resultados por ano</h2>
+    <p class="muted">Escolha o ano para ver a lista completa de concursos, com dezenas e prêmios.</p>
+    <AnosNav slug={l.slug} nome={l.nome} anos={anos} />
+
+    <h2>Últimos 30 resultados</h2>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Concurso</th><th>Data</th><th>Dezenas</th><th>Situação</th><th class="num">Prêmio principal</th></tr></thead>
@@ -33,7 +51,7 @@ const sufixo = pagina > 1 ? ` — página ${pagina}` : '';
             <tr>
               <td><a href={`/${l.slug}/concurso/${c.numero}/`}><strong>{c.numero}</strong></a></td>
               <td>{dataBR(c.data)}</td>
-              <td><Bolas dezenas={c.dezenas} cor={l.cor} tam="sm" digitos={l.tipo === 'colunas' ? 1 : 2} /></td>
+              <td><Bolas dezenas={c.dezenas} cor={l.cor} tam="sm" digitos={dig} /></td>
               <td>{c.acumulado ? <span class="pill hot">Acumulou</span> : <span class="pill ok">Ganhador</span>}</td>
               <td class="num">{c.premiacoes[0]?.ganhadores ? reaisCurto(c.premiacoes[0].premio) : '—'}</td>
             </tr>
@@ -41,14 +59,8 @@ const sufixo = pagina > 1 ? ` — página ${pagina}` : '';
         </tbody>
       </table>
     </div>
-    {paginas > 1 && (
-      <nav class="pg" aria-label="Paginação">
-        {pagina > 1 && <a class="btn btn-sm" href={`?pagina=${pagina - 1}`} rel="prev">← Mais recentes</a>}
-        <span class="small faint">Página {pagina} de {paginas}</span>
-        {pagina < paginas && <a class="btn btn-sm" href={`?pagina=${pagina + 1}`} rel="next">Mais antigos →</a>}
-      </nav>
-    )}
     <Ad />
+    <EstatSecoes l={l} s={s} porAno={porAno} concursosPorAno={anos} faqExtra={[{ q: `Onde vejo resultados antigos da ${l.nome}?`, a: `Na seção "Resultados por ano" desta página: cada ano tem a lista completa de concursos, com dezenas e prêmios.` }]} />
   </section>
 </Base>
-<style> .pg { display: flex; gap: 12px; justify-content: center; align-items: center; margin: 22px 0; } td .balls { flex-wrap: nowrap; } </style>
+<style> td .balls { flex-wrap: nowrap; } </style>
