@@ -62,7 +62,7 @@ const ferramentas = [
   ['/mega-da-virada/resultados/', '🏆', 'Todos os resultados', 'Histórico completo, ano a ano'],
 ];
 ---
-<Base title={`Mega da Virada ${VIRADA.ano}: prêmio de ${VIRADA.premioTexto}, data, horário e prazos`} description={`Mega da Virada ${VIRADA.ano}, concurso ${VIRADA.concurso}: prêmio estimado em ${VIRADA.premioTexto}, sorteio em ${VIRADA.dataCurta} às ${VIRADA.hora}. Prazos de aposta, chances, calculadora de bolão, estatísticas e resultados anteriores.`} schema={schema} type="article">
+<Base title={`Mega da Virada ${VIRADA.ano}: prêmio de R$ 1 bilhão, data e prazos`} description={`Mega da Virada ${VIRADA.ano}, concurso ${VIRADA.concurso}: prêmio estimado em ${VIRADA.premioTexto}, sorteio em ${VIRADA.dataCurta} às ${VIRADA.hora}. Prazos de aposta, chances, calculadora de bolão, estatísticas e resultados anteriores.`} schema={schema} type="article">
   <ViradaHero grande titulo={`Mega da Virada <span>${VIRADA.ano}</span>`} sub="O maior prêmio do ano não acumula: alguém vai levar. Aqui você encontra tudo para jogar informado — das chances reais ao bolão, das estatísticas ao histórico completo.">
     <div class="vh-prize">
       <span>Prêmio estimado · concurso {VIRADA.concurso}</span><strong>{VIRADA.premioTexto.replace(/^mais de /, '+ de ')}</strong>

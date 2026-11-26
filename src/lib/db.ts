@@ -61,13 +61,14 @@ export async function lista(db: DB, l: Loteria, pagina = 1, porPagina = 30) {
   return { itens: rows.map(parse), total: Number(tot[0]?.n ?? 0) };
 }
 
+const SO_VIRADA = "AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')";
 export async function especiais(db: DB, l: Loteria): Promise<Concurso[]> {
-  return (await all(db, 'SELECT * FROM concursos WHERE loteria=? AND especial=1 ORDER BY numero DESC', l.api)).map(parse);
+  return (await all(db, `SELECT * FROM concursos WHERE loteria=? AND especial=1 ${l.api === 'megasena' ? SO_VIRADA : ''} ORDER BY numero DESC`, l.api)).map(parse);
 }
 
 /** Todas as dezenas (leve) para estatísticas. */
 export async function historicoDezenas(db: DB, l: Loteria, apenasEspeciais = false) {
-  const rows = await all(db, `SELECT numero, data, dezenas, dezenas2 FROM concursos WHERE loteria=? ${apenasEspeciais ? 'AND especial=1' : ''} ORDER BY numero ASC`, l.api);
+  const rows = await all(db, `SELECT numero, data, dezenas, dezenas2 FROM concursos WHERE loteria=? ${apenasEspeciais ? `AND especial=1 ${l.api === 'megasena' ? SO_VIRADA : ''}` : ''} ORDER BY numero ASC`, l.api);
   return rows.map((r) => ({ numero: r.numero as number, data: r.data as string, dezenas: J(r.dezenas) as number[], dezenas2: J(r.dezenas2) as number[] | null }));
 }
 
