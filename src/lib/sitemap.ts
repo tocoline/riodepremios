@@ -3,6 +3,14 @@ import { LOTERIAS, POR_API, VIRADA } from './loterias';
 import { GUIAS } from './guias';
 import { SITE, CONTEUDO_ATUALIZADO } from './site';
 import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios';
+import { anos as listarAnos } from './db';
+
+/** Anos completos de cada loteria (os incompletos ficam fora do sitemap e noindex). */
+async function anosCompletos(db: any) {
+  const r: Record<string, { ano: number; ult: string }[]> = {};
+  await Promise.all(LOTERIAS.map(async (l) => { r[l.api] = (await listarAnos(db, l)).filter((a) => a.completo).map((a) => ({ ano: a.ano, ult: a.atualizado })); }));
+  return r;
+}
 
 export type Url = { loc: string; lastmod: string };
 const d10 = (s?: string | null) => (s ? s.slice(0, 10) : CONTEUDO_ATUALIZADO);
@@ -22,6 +30,7 @@ export async function paginas(db: any): Promise<Url[]> {
   const porLot = await q(db, 'SELECT loteria, MAX(atualizado_em) a FROM concursos GROUP BY loteria');
   const atu = Object.fromEntries(porLot.map((r) => [r.loteria, d10(r.a)]));
   const anos = await q(db, "SELECT loteria, substr(data,1,4) ano, MAX(data) ult FROM concursos GROUP BY loteria, ano");
+  const completos = await anosCompletos(db);
   const geral = max(...Object.values(atu) as string[]);
   const fixo = CONTEUDO_ATUALIZADO;
   const u: Url[] = [
@@ -34,7 +43,8 @@ export async function paginas(db: any): Promise<Url[]> {
     const a = atu[l.api] ?? fixo;
     u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo });
     if (l.tipo !== 'colunas') u.push({ loc: `/${l.slug}/estatisticas/`, lastmod: a });
-    for (const r of anos.filter((x) => x.loteria === l.api).sort((x, y) => Number(y.ano) - Number(x.ano))) u.push({ loc: `/${l.slug}/resultados/${r.ano}/`, lastmod: d10(r.ult) });
+    const ok = new Set((completos[l.api] ?? []).map((a) => a.ano));
+    for (const r of anos.filter((x) => x.loteria === l.api && ok.has(Number(x.ano))).sort((x, y) => Number(y.ano) - Number(x.ano))) u.push({ loc: `/${l.slug}/resultados/${r.ano}/`, lastmod: d10(r.ult) });
   }
   const viradas = await q(db, "SELECT MAX(data) d FROM concursos WHERE loteria='megasena' AND especial=1");
   const vir = max(VIRADA.atualizado, viradas[0]?.d);
@@ -64,9 +74,12 @@ export async function concursos(db: any): Promise<Url[]> {
   const entrouNoAr = p - 1 >= RP.baseEdicao ? dataEdicao(p - 1) : RP.publicado;
   for (const n of edicoesPublicadas().reverse()) u.push({ loc: `/rio-de-premios/edicao/${n}/`, lastmod: n < p ? dataEdicao(n) : entrouNoAr });
   // concursos já sorteados
+  const completos = await anosCompletos(db);
+  const ok = Object.fromEntries(Object.entries(completos).map(([k, v]) => [k, new Set(v.map((a) => a.ano))]));
   const rows = await q(db, 'SELECT loteria, numero, data, atualizado_em FROM concursos ORDER BY loteria, numero DESC LIMIT 48000');
   for (const r of rows) {
     if (!POR_API[r.loteria]) continue;
+    if (!ok[r.loteria]?.has(Number(r.data.slice(0, 4)))) continue; // ano ainda incompleto: fica fora até completar
     const recente = hoje - Date.parse(r.data) < 3 * 864e5; // rateio pode ser atualizado nos primeiros dias
     u.push({ loc: `/${POR_API[r.loteria].slug}/concurso/${r.numero}/`, lastmod: recente ? max(r.data, r.atualizado_em) : r.data });
   }

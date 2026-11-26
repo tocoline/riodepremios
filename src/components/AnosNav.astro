@@ -1,6 +1,7 @@
 ---
-interface Props { slug: string; nome: string; anos: { ano: number; n: number }[]; atual?: number }
-const { slug, nome, anos, atual } = Astro.props;
+interface Props { slug: string; nome: string; anos: { ano: number; n: number; completo?: boolean }[]; atual?: number }
+const { slug, nome, atual } = Astro.props;
+const anos = Astro.props.anos.filter((a) => a.completo !== false || a.ano === atual);
 ---
 {anos.length > 0 && (
   <nav class="anos" aria-label={`Resultados da ${nome} por ano`}>

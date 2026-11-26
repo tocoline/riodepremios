@@ -4,25 +4,31 @@ import Faq from './Faq.astro';
 import type { Loteria } from '../lib/loterias';
 import { calcular } from '../lib/estatisticas';
 import { pad, numero } from '../lib/format';
-interface Props { l: Loteria; s: ReturnType<typeof calcular>; porAno: { ano: number; d: number; n: number }[]; concursosPorAno: { ano: number; n: number }[]; faqExtra?: { q: string; a: string }[] }
+interface Props { l: Loteria; s: ReturnType<typeof calcular>; porAno: { ano: number; d: number; n: number }[]; concursosPorAno: { ano: number; n: number; completo?: boolean }[]; faqExtra?: { q: string; a: string }[] }
 const { l, s, porAno, concursosPorAno, faqExtra = [] } = Astro.props;
 const universo = l.max - l.min + 1;
 const esperado = s.total ? (s.total * l.sorteadas * (l.slug === 'dupla-sena' ? 2 : 1)) / universo : 0;
 const pct = (v: number, t: number) => (t ? ((v / t) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : '0') + '%';
 const totPI = s.paresImpares.reduce((a, b) => a + b[1], 0);
-const anos = concursosPorAno.map((a) => {
+const anos = concursosPorAno.filter((a) => a.completo !== false).map((a) => {
   const top = porAno.filter((x) => x.ano === a.ano).sort((x, y) => y.n - x.n || x.d - y.d).slice(0, 5);
   return { ...a, top };
 });
-const faq = [
-  { q: `Quais números mais saem na ${l.nome}?`, a: s.total ? `Considerando ${numero(s.total)} concursos, as dezenas mais sorteadas são ${s.mais.slice(0, 6).map((x) => `${pad(x.dezena)} (${x.vezes} vezes)`).join(', ')}.` : 'As estatísticas aparecem assim que o histórico for sincronizado.' },
-  { q: `Qual é a dezena mais atrasada da ${l.nome}?`, a: s.total ? `A dezena ${pad(s.atrasadas[0].dezena)} é a mais atrasada: não sai há ${s.atrasadas[0].atraso} concursos.` : 'Aguardando o histórico.' },
+const temDezenas = s.total > 0 && l.tipo !== 'colunas' && s.mais.length > 0;
+const faq = l.tipo === 'colunas' ? [
+  { q: `Como funciona o resultado da ${l.nome}?`, a: 'O sorteio define um número de 0 a 9 para cada uma das 7 colunas. Ganha quem acerta de 3 a 7 colunas, considerando a posição de cada número.' },
+  { q: 'Qual a chance de acertar as 7 colunas?', a: 'Com uma aposta simples (um número por coluna), a chance é de 1 em 10.000.000.' },
+  { q: 'Jogar nos números que mais saem aumenta a chance?', a: 'Não. Cada sorteio é independente e cada número tem a mesma chance em cada coluna.' },
+  ...faqExtra,
+] : [
+  { q: `Quais números mais saem na ${l.nome}?`, a: temDezenas ? `Considerando ${numero(s.total)} concursos, as dezenas mais sorteadas são ${s.mais.slice(0, 6).map((x) => `${pad(x.dezena)} (${x.vezes} vezes)`).join(', ')}.` : 'As estatísticas aparecem assim que o histórico for sincronizado.' },
+  { q: `Qual é a dezena mais atrasada da ${l.nome}?`, a: temDezenas ? `A dezena ${pad(s.atrasadas[0].dezena)} é a mais atrasada: não sai há ${s.atrasadas[0].atraso} concursos.` : 'Aguardando o histórico.' },
   { q: 'Jogar nas dezenas que mais saem aumenta a chance?', a: 'Não. Cada sorteio é independente e todas as dezenas têm a mesma probabilidade em cada concurso. As estatísticas descrevem o passado e ajudam a montar jogos variados, mas não preveem resultados.' },
   { q: 'Com que frequência as estatísticas são atualizadas?', a: 'Automaticamente, a cada novo concurso. Os dados vêm dos resultados oficiais da Caixa Econômica Federal.' },
   ...faqExtra,
 ];
 ---
-{s.total > 0 && l.tipo !== 'colunas' && (
+{temDezenas && (
   <>
     <section class="es-sec">
       <h2>Dezenas mais sorteadas</h2>

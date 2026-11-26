@@ -14,7 +14,7 @@ import Analise from '../../../components/Analise.astro';
 import Fonte from '../../../components/Fonte.astro';
 import { sincronizar } from '../../../lib/sincronizar';
 import { POR_SLUG, DIAS, diasTexto, VIRADA, MESES } from '../../../lib/loterias';
-import { getDB, concurso, vizinhos, ultimos, anteriores, ultimaAparicao, menorNumero, doMes } from '../../../lib/db';
+import { getDB, concurso, vizinhos, ultimos, anteriores, ultimaAparicao, menorNumero, doMes, anoCompleto } from '../../../lib/db';
 import { gerarPalpites, frequencias } from '../../../lib/palpites';
 import { chancePrincipal } from '../../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero, pad } from '../../../lib/format';
@@ -41,10 +41,12 @@ const [ant, aparicoes, menor, mesmoMes] = c ? await Promise.all([
   concurso(db, l, n - 1), ultimaAparicao(db, l, n, l.tipo === 'colunas' ? [] : c.dezenas), menorNumero(db, l), doMes(db, l, c.data.slice(0, 7)),
 ]) : [null, {}, 0, []];
 const anoC = c ? Number(c.data.slice(0, 4)) : 0;
+// concursos de anos ainda incompletos no arquivo ficam fora do índice até o histórico ser completado
+const indexavel = c ? await anoCompleto(db, l, anoC) : true;
 const mesC = c ? Number(c.data.slice(5, 7)) : 0;
 const palpites = gerarPalpites(l, n, hist);
 const viz = c ? await vizinhos(db, l, n) : { anterior: ult!.numero, proximo: null };
-cachear(Astro, c ? (Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 86400 : 300) : 300);
+cachear(Astro, c ? (Date.now() - new Date(c.data).getTime() > 7 * 864e5 ? 21600 : 300) : 300);
 
 const dig = l.tipo === 'colunas' ? 1 : 2;
 const dataSorteio = c ? c.data : ehVirada ? VIRADA.data.slice(0, 10) : prox!.proximo_data;
@@ -92,7 +94,7 @@ const faqPre = prox ? [
   { q: 'Onde assistir ao sorteio?', a: 'Os sorteios são transmitidos ao vivo pelos canais oficiais da Caixa nas redes sociais. Se preferir, acompanhe por aqui: a página é atualizada sozinha quando o resultado sai.' },
 ] : [];
 ---
-<Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado}>
+<Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado} noindex={!indexavel}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, ...(c ? [{ nome: String(anoC), url: `/${l.slug}/resultados/${anoC}/` }] : []), { nome: `Concurso ${n}` }]} />
     {c?.especial && <span class="pill hot">✦ Concurso especial</span>}

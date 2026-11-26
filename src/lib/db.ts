@@ -79,9 +79,33 @@ export async function anteriores(db: DB, l: Loteria, antesDe: number, limite = 1
 }
 
 // ---------- arquivo por ano / análise ----------
+/**
+ * Anos com concursos. `completo` = o ano não tem buracos (n = último − primeiro + 1) e emenda com
+ * o ano anterior e o seguinte (ou começa no concurso 1 / termina no último concurso). Só anos completos
+ * entram na navegação e no sitemap; os demais ficam noindex até o coletor completar o histórico.
+ */
 export async function anos(db: DB, l: Loteria) {
-  return (await all(db, "SELECT substr(data,1,4) ano, COUNT(*) n, MIN(numero) primeiro, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos WHERE loteria=? GROUP BY ano ORDER BY ano DESC", l.api))
-    .map((r) => ({ ano: Number(r.ano), n: Number(r.n), primeiro: r.primeiro as number, ultimo: r.ultimo as number, atualizado: r.atualizado as string }));
+  const lista = (await all(db, "SELECT substr(data,1,4) ano, COUNT(*) n, MIN(numero) primeiro, MAX(numero) ultimo, MAX(atualizado_em) atualizado FROM concursos WHERE loteria=? GROUP BY ano ORDER BY ano DESC", l.api))
+    .map((r) => ({ ano: Number(r.ano), n: Number(r.n), primeiro: r.primeiro as number, ultimo: r.ultimo as number, atualizado: r.atualizado as string, completo: false }));
+  lista.forEach((a, i) => {
+    const seguinte = lista[i - 1], anterior = lista[i + 1];
+    const semBuracos = a.n === a.ultimo - a.primeiro + 1;
+    const emendaAntes = anterior ? anterior.ultimo === a.primeiro - 1 : a.primeiro === 1;
+    const emendaDepois = seguinte ? seguinte.primeiro === a.ultimo + 1 : true;
+    a.completo = semBuracos && emendaAntes && emendaDepois;
+  });
+  return lista;
+}
+/** Completude de um único ano (consulta leve, usada na página do concurso). */
+export async function anoCompleto(db: DB, l: Loteria, ano: number) {
+  const r = (await all(db, 'SELECT COUNT(*) n, MIN(numero) primeiro, MAX(numero) ultimo FROM concursos WHERE loteria=? AND data>=? AND data<=?', l.api, `${ano}-01-01`, `${ano}-12-31`))[0];
+  if (!r || !r.n) return false;
+  if (Number(r.n) !== r.ultimo - r.primeiro + 1) return false;
+  const viz = (await all(db, 'SELECT numero, substr(data,1,4) ano FROM concursos WHERE loteria=? AND numero IN (?,?)', l.api, r.primeiro - 1, r.ultimo + 1));
+  const antes = r.primeiro === 1 || viz.some((v) => v.numero === r.primeiro - 1);
+  const ultimoGeral = Number((await all(db, 'SELECT MAX(numero) m FROM concursos WHERE loteria=?', l.api))[0]?.m ?? 0);
+  const depois = r.ultimo === ultimoGeral || viz.some((v) => v.numero === r.ultimo + 1);
+  return antes && depois;
 }
 export async function doAno(db: DB, l: Loteria, ano: number): Promise<Concurso[]> {
   return (await all(db, 'SELECT * FROM concursos WHERE loteria=? AND data>=? AND data<=? ORDER BY numero DESC', l.api, `${ano}-01-01`, `${ano}-12-31`)).map(parse);

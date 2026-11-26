@@ -18,10 +18,12 @@ const ano = Number(Astro.params.ano);
 if (!l || !/^\d{4}$/.test(Astro.params.ano ?? '')) return naoEncontrado(Astro);
 const db = getDB(Astro.locals);
 const anos = await listarAnos(db, l);
-if (!anos.some((a) => a.ano === ano)) return naoEncontrado(Astro);
+const info = anos.find((a) => a.ano === ano);
+if (!info) return naoEncontrado(Astro);
+const completo = info.completo;
 const lista = await doAno(db, l, ano);
 const anoAtual = new Date().getFullYear();
-cachear(Astro, ano < anoAtual ? 86400 : 900);
+cachear(Astro, ano < anoAtual && completo ? 86400 : 900);
 
 const dig = l.tipo === 'colunas' ? 1 : 2;
 const acumulados = lista.filter((c) => c.acumulado).length;
@@ -40,13 +42,14 @@ const schema = [{
   mainEntity: { '@type': 'ItemList', numberOfItems: lista.length, itemListElement: lista.slice(0, 100).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE.url}/${l.slug}/concurso/${c.numero}/`, name: `${l.nome} ${c.numero}` })) },
 }];
 ---
-<Base title={titulo} description={desc} schema={schema} modificado={atualizado || undefined}>
+<Base title={titulo} description={desc} schema={schema} modificado={atualizado || undefined} noindex={!completo}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, { nome: String(ano) }]} />
     <h1>Resultados da {l.nome} {ano}</h1>
     <p class="lead">Lista completa dos concursos de {ano}, do mais recente ao mais antigo, com as dezenas sorteadas e o prêmio principal de cada um.</p>
   </div>
   <section class="wrap">
+    {!completo && <div class="card aviso-ano"><strong>Arquivo em atualização.</strong> Ainda estamos importando os concursos de {ano} dos dados oficiais da Caixa. A lista completa aparece aqui automaticamente nos próximos dias.</div>}
     <Resposta>
       <p>Em {ano}, a {l.nome} teve <strong>{lista.length} concursos</strong> registrados{primeiro && ultimo ? <>, do <a href={`/${l.slug}/concurso/${primeiro.numero}/`}>{primeiro.numero}</a> ({dataBR(primeiro.data)}) ao <a href={`/${l.slug}/concurso/${ultimo.numero}/`}>{ultimo.numero}</a> ({dataBR(ultimo.data)})</> : ''}. O prêmio principal acumulou em <strong>{acumulados}</strong> deles e saiu em <strong>{comGanhador.length}</strong>.{maior ? <> O maior prêmio pago por aposta foi de <strong>{reais(maior.premiacoes[0].premio)}</strong>, no <a href={`/${l.slug}/concurso/${maior.numero}/`}>concurso {maior.numero}</a>.</> : ''}</p>
     </Resposta>
@@ -79,4 +82,4 @@ const schema = [{
     <p class="small faint" style="margin-top:16px">Clique no número do concurso para ver a premiação completa, os ganhadores por cidade e a análise das dezenas.</p>
   </section>
 </Base>
-<style> td .balls { flex-wrap: nowrap; } h2 { margin-top: 28px; } </style>
+<style> .aviso-ano { margin-bottom: 16px; border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); } td .balls { flex-wrap: nowrap; } h2 { margin-top: 28px; } </style>

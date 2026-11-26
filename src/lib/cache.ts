@@ -7,5 +7,5 @@ export function cachear(Astro: { response: { headers: Headers } }, cdn = 300) {
 export async function naoEncontrado(Astro: { locals: any; url: URL }) {
   const assets = Astro.locals?.runtime?.env?.ASSETS;
   const html = assets ? await (await assets.fetch(new URL('/404.html', Astro.url))).text() : 'Página não encontrada';
-  return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60, s-maxage=60' } });
 }
