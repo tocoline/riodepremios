@@ -13,5 +13,11 @@ import Ad from '../../components/Ad.astro';
     <Resposta><p>Pela legislação, prêmios de loteria acima do limite de isenção têm <strong>30% de Imposto de Renda retido na fonte</strong>. Um prêmio bruto de R$ 100 milhões resulta em R$ 70 milhões líquidos. Ajuste os valores abaixo para o seu cenário.</p></Resposta>
     <div style="margin-top:20px"><PremioLiquido premioPadrao={500000000} /></div>
     <Ad />
+    <div class="prose">
+      <h2>Como o cálculo é feito</h2>
+      <p>O prêmio bruto é dividido pelo número de ganhadores ou cotas. Sobre cada parte, aplica-se a alíquota de Imposto de Renda (30% para prêmios de loteria acima do limite de isenção), retida pela Caixa no pagamento. Para o rendimento mensal, multiplicamos o valor líquido pela taxa informada e descontamos o IR sobre o rendimento.</p>
+      <h2>E se a Mega da Virada tiver vários ganhadores?</h2>
+      <p>O prêmio não acumula: se houver mais de uma aposta com seis acertos, o valor é dividido igualmente entre elas. Use o campo "Dividido entre" para ver como fica a sua parte. Para entender a declaração do prêmio, leia o <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">guia de Imposto de Renda sobre prêmios</a>.</p>
+    </div>
   </section>
 </Base>

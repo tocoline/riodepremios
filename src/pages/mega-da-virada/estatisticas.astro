@@ -23,7 +23,9 @@ const s = calcular(l, await historicoDezenas(getDB(Astro.locals), l, true));
     {s.total > 0 && (
       <Resposta><p>Considerando {s.total} edições da Mega da Virada, as dezenas que mais saíram foram <strong>{s.mais.slice(0, 6).map((x) => `${pad(x.dezena)} (${x.vezes}×)`).join(', ')}</strong>. Com tão poucas edições, as diferenças de frequência são estatisticamente pequenas — trate como curiosidade.</p></Resposta>
     )}
-    <div style="margin-top:22px"><StatsView l={l} s={s} rotulo="edições" /></div>
+    <h2>Frequência das dezenas nas Viradas</h2>
+    <p class="muted">Quantas vezes cada dezena saiu nos concursos especiais de fim de ano. Quanto mais intensa a cor, mais vezes a dezena foi sorteada.</p>
+    <div style="margin-top:12px"><StatsView l={l} s={s} rotulo="edições" /></div>
     <p><a href="/mega-sena/estatisticas/">Ver estatísticas de todos os concursos da Mega-Sena →</a></p>
     <Ad />
   </section>

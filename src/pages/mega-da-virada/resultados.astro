@@ -25,6 +25,7 @@ const u = viradas[0];
     ) : (
       <div class="card"><p class="muted" style="margin:0">O histórico da Mega da Virada está sendo sincronizado automaticamente e aparecerá aqui em breve.</p></div>
     )}
+    <h2>Todas as edições da Mega da Virada</h2>
     <div class="vlist">
       {viradas.map((c) => { const p = premioPrincipal(c); return (
         <a class="card card-link vi" href={`/mega-sena/concurso/${c.numero}/`}>

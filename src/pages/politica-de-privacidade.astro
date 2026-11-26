@@ -2,16 +2,33 @@
 import Pagina from '../layouts/Pagina.astro';
 import { SITE } from '../lib/site';
 ---
-<Pagina nome="Política de privacidade" titulo="Política de privacidade" desc="Como o Rio de Prêmios trata dados pessoais, cookies e publicidade, conforme a LGPD.">
-  <p>Esta política explica como o Rio de Prêmios ({SITE.url}) trata informações dos visitantes, em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
-  <h2>Dados que coletamos</h2>
-  <p>Não exigimos cadastro. As ferramentas (conferidor, gerador, calculadoras) funcionam no seu navegador e os números digitados não são armazenados em nossos servidores. Registramos dados técnicos anônimos de acesso (como páginas visitadas e tipo de navegador) para segurança e estatísticas.</p>
-  <h2>Cookies e publicidade</h2>
-  <p>Utilizamos o <strong>Google AdSense</strong> para exibir anúncios. O Google e seus parceiros podem usar cookies para exibir anúncios com base em visitas anteriores a este e a outros sites. Você pode desativar a publicidade personalizada nas <a href="https://adssettings.google.com" rel="nofollow noopener" target="_blank">Configurações de anúncios do Google</a>. Saiba mais em <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener" target="_blank">como o Google usa dados</a>.</p>
-  <p>Usamos o <strong>Google Analytics</strong> para medir a audiência de forma agregada (páginas mais visitadas, origem do tráfego). Você pode bloquear essa medição com o <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">complemento de desativação do Google Analytics</a>.</p>
-  <p>Também guardamos no seu navegador a preferência de tema (claro/escuro).</p>
+<Pagina nome="Política de privacidade" titulo="Política de privacidade do Rio de Prêmios (LGPD)" desc="Como o Rio de Prêmios trata dados pessoais, cookies, publicidade e estatísticas de acesso, em conformidade com a LGPD, e como exercer seus direitos.">
+  <p>Esta política explica como o Rio de Prêmios ({SITE.url}) trata as informações das pessoas que visitam o site, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).</p>
+  <h2>Quem é o controlador</h2>
+  <p>O controlador dos dados é o Rio de Prêmios, portal informativo independente sobre loterias. Para qualquer assunto relacionado a privacidade, inclusive para falar com o encarregado pelo tratamento de dados, escreva para <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+  <h2>Quais dados coletamos</h2>
+  <ul>
+    <li><strong>Não exigimos cadastro.</strong> O site pode ser usado sem fornecer nome, e-mail ou documentos.</li>
+    <li><strong>Ferramentas:</strong> conferidor, gerador, calculadoras, "números da sorte" e bolão online funcionam no seu navegador. Os números e nomes digitados não são enviados nem armazenados em nossos servidores. No bolão online e nos números da sorte, os dados ficam apenas no link, e só são compartilhados se você decidir enviá-lo.</li>
+    <li><strong>Dados técnicos de acesso:</strong> como qualquer site, nossos servidores e o provedor de infraestrutura (Cloudflare) registram dados técnicos, como endereço IP, tipo de navegador e páginas acessadas, para segurança, prevenção de abusos e funcionamento do serviço.</li>
+    <li><strong>Contato por e-mail:</strong> se você nos escrever, usamos seu e-mail apenas para responder.</li>
+  </ul>
+  <h2>Cookies e tecnologias semelhantes</h2>
+  <ul>
+    <li><strong>Publicidade (Google AdSense):</strong> o Google e seus parceiros podem usar cookies para exibir anúncios com base em visitas anteriores a este e a outros sites. Você pode desativar a publicidade personalizada nas <a href="https://adssettings.google.com" rel="nofollow noopener" target="_blank">Configurações de anúncios do Google</a>. Saiba mais em <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener" target="_blank">como o Google usa dados</a>.</li>
+    <li><strong>Estatísticas (Google Analytics):</strong> medimos a audiência de forma agregada — páginas mais visitadas, origem do tráfego, tipo de dispositivo. É possível bloquear essa medição com o <a href="https://tools.google.com/dlpage/gaoptout" rel="nofollow noopener" target="_blank">complemento de desativação do Google Analytics</a>.</li>
+    <li><strong>Preferências:</strong> guardamos no seu navegador a escolha de tema (claro ou escuro).</li>
+  </ul>
+  <h2>Bases legais</h2>
+  <p>Tratamos dados com base no legítimo interesse (segurança, estatísticas agregadas e funcionamento do site), no consentimento, quando aplicável a cookies de publicidade personalizada, e no atendimento a solicitações que você nos fizer.</p>
+  <h2>Compartilhamento</h2>
+  <p>Não vendemos dados pessoais. Os dados técnicos são processados pelos fornecedores necessários ao funcionamento do site — Cloudflare (hospedagem e segurança) e Google (publicidade e estatísticas) —, que seguem suas próprias políticas de privacidade.</p>
+  <h2>Retenção</h2>
+  <p>Mantemos dados técnicos de acesso apenas pelo tempo necessário às finalidades acima ou exigido por lei. Mensagens de contato são mantidas enquanto forem necessárias para o atendimento.</p>
   <h2>Seus direitos</h2>
-  <p>Você pode solicitar informações, correção ou exclusão de dados pessoais pelo e-mail <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+  <p>Pela LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade ou eliminação de dados pessoais, além de informações sobre compartilhamento e revogação de consentimento. Envie o pedido para <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).</p>
+  <h2>Menores de idade</h2>
+  <p>O conteúdo do site trata de loterias, proibidas para menores de 18 anos, e não é direcionado a crianças e adolescentes.</p>
   <h2>Alterações</h2>
-  <p>Esta política pode ser atualizada; a data da última revisão aparece no topo da página.</p>
+  <p>Esta política pode ser atualizada. A data da última revisão aparece no topo da página.</p>
 </Pagina>
