@@ -7,12 +7,13 @@ import Ad from '../components/Ad.astro';
 import Faq from '../components/Faq.astro';
 import Fonte from '../components/Fonte.astro';
 import { LOTERIAS, POR_SLUG, VIRADA } from '../lib/loterias';
-import { getDB, ultimosDeTodas } from '../lib/db';
+import { getDB, ultimosDeTodas, dbFalhou } from '../lib/db';
 import { reaisCurto } from '../lib/format';
 import { cachear } from '../lib/cache';
 
 cachear(Astro);
 const ult = await ultimosDeTodas(getDB(Astro.locals));
+if (dbFalhou(getDB(Astro.locals))) Astro.response.headers.set('Cache-Control', 'no-store');
 const mega = ult['mega-sena'];
 const acumVirada = mega?.acumulado_especial;
 const atualizado = Object.values(ult).map((c) => c.atualizado_em).sort().at(-1);

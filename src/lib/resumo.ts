@@ -3,6 +3,7 @@
 // (mudou o último número) ou a cada 6 horas (enquanto o coletor completa o histórico).
 import type { Loteria } from './loterias';
 import { calcular } from './estatisticas';
+import { marcarFalha } from './db';
 
 export interface AnoInfo { ano: number; n: number; primeiro: number; ultimo: number; atualizado: string; ult: string; completo: boolean }
 export interface Resumo {
@@ -73,5 +74,5 @@ export async function resumo(db: any, l: Loteria): Promise<Resumo | null> {
       memoria.set(l.api, { r, em: Date.now() });
     }
     return r;
-  } catch (e) { console.error('resumo', String(e)); return null; }
+  } catch (e) { console.error('resumo', String(e)); marcarFalha(db); return null; }
 }

@@ -12,11 +12,11 @@ import Autor from '../../components/Autor.astro';
 import Fonte from '../../components/Fonte.astro';
 import AnosNav from '../../components/AnosNav.astro';
 import { POR_SLUG, diasTexto } from '../../lib/loterias';
-import { getDB, ultimos } from '../../lib/db';
+import { getDB, ultimos, dbFalhou } from '../../lib/db';
 import { resumo } from '../../lib/resumo';
 import { comoJogar, faqLoteria, chancePrincipal } from '../../lib/conteudo';
 import { dataBR, reais, reaisCurto, numero } from '../../lib/format';
-import { cachear, naoEncontrado } from '../../lib/cache';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
 import { SITE } from '../../lib/site';
 
 const l = POR_SLUG[Astro.params.loteria!];
@@ -24,6 +24,7 @@ if (!l) return naoEncontrado(Astro);
 cachear(Astro);
 const [lista, r] = await Promise.all([ultimos(getDB(Astro.locals), l, 11), resumo(getDB(Astro.locals), l)]);
 const anos = r?.anos ?? [];
+if (!lista.length && dbFalhou(getDB(Astro.locals))) return indisponivel();
 const [c, ...anteriores] = lista;
 const titulo = c ? `Resultado ${l.nome} ${c.numero} de ${dataBR(c.data)} — Último sorteio` : `Resultado da ${l.nome} — Último sorteio`;
 const desc = c

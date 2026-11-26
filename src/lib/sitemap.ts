@@ -4,6 +4,7 @@ import { GUIAS } from './guias';
 import { SITE, CONTEUDO_ATUALIZADO } from './site';
 import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios';
 import { resumo, type Resumo } from './resumo';
+import { marcarFalha } from './db';
 
 /** Resumos de todas as loterias (1 linha lida por loteria). */
 async function resumos(db: any) {
@@ -22,7 +23,7 @@ export function xml(urls: Url[]) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `<url><loc>${SITE.url}${u.loc}</loc><lastmod>${semFuturo(u.lastmod)}</lastmod></url>`).join('\n')}\n</urlset>`;
 }
 async function q(db: any, sql: string, ...b: any[]) {
-  try { return ((await db.prepare(sql).bind(...b).all()).results ?? []) as any[]; } catch { return []; }
+  try { return ((await db.prepare(sql).bind(...b).all()).results ?? []) as any[]; } catch { marcarFalha(db); return []; }
 }
 
 /** Páginas (não concursos): fixas, hubs, arquivos por ano, Rio de Prêmios. */

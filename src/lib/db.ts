@@ -31,6 +31,7 @@ function parse(r: any): Concurso {
 const falhas = new WeakSet<object>();
 /** true se alguma consulta desta conexão falhou (ex.: limite diário do D1) — páginas devem responder 503, não 404. */
 export function dbFalhou(db: DB) { return !db || falhas.has(db as object); }
+export function marcarFalha(db: DB) { if (db) falhas.add(db as object); }
 async function all(db: DB, q: string, ...binds: any[]): Promise<any[]> {
   if (!db) return [];
   try { const r = await db.prepare(q).bind(...binds).all(); return r.results ?? []; }
