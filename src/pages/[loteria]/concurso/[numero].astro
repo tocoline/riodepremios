@@ -54,9 +54,12 @@ if (ehVirada) seguidas = 0;
 const premio = ehVirada ? VIRADA.premioValor : prox?.proximo_numero === n ? prox?.proximo_estimativa : null;
 const premioTxt = ehVirada ? VIRADA.premioTexto : premio ? reaisCurto(premio) : null;
 
+const ESPECIAIS: Record<string, string> = { 'mega-sena': 'Mega da Virada', lotofacil: 'Lotofácil da Independência', quina: 'Quina de São João', 'dupla-sena': 'Dupla de Páscoa' };
+const nomeEspecial = c?.especial ? ESPECIAIS[l.slug] : undefined;
+const anoEspecial = c ? Number(c.data.slice(0, 4)) - (l.slug === 'mega-sena' && c.data.slice(5, 7) === '01' ? 1 : 0) : 0;
 const titulo = c
-  ? `Resultado ${l.nome} ${n} de ${dataBR(c.data)}: dezenas sorteadas${c.especial ? ' (Mega da Virada)' : ''}`
-  : ehVirada ? `Mega da Virada ${VIRADA.ano}: resultado do concurso ${n} (${VIRADA.dataCurta}), palpites e prêmio de ${premioTxt}` : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premioTxt ? ` e prêmio de ${premioTxt}` : ' e horário'}`;
+  ? nomeEspecial ? `${nomeEspecial} ${anoEspecial}: resultado do concurso ${n}` : `Resultado ${l.nome} ${n} de ${dataBR(c.data)}: dezenas sorteadas`
+  : ehVirada ? `Mega da Virada ${VIRADA.ano}: resultado do concurso ${n} (${VIRADA.dataCurta}), palpites e prêmio de ${premioTxt}` : `Resultado ${l.nome} ${n} (${dataCurta}): palpites${premioTxt ? ` e ${premioTxt}` : ' e horário'}`;
 const desc = c
   ? `${l.nome} ${n} (${dataBR(c.data)}): ${dz}. ${c.acumulado ? 'Acumulou.' : 'Teve ganhador.'} Premiação, ganhadores por cidade e como foram os palpites.`
   : `${ehVirada ? `Mega da Virada ${VIRADA.ano}, ` : ''}${l.nome} concurso ${n}: sorteio ${diaSemana}, ${dataBR(dataSorteio)}, às ${horaTxt}.${premioTxt ? ` Prêmio estimado de ${premioTxt}.` : ''} Palpites estatísticos, dezenas quentes e atrasadas e resultado ao vivo nesta página.`;
