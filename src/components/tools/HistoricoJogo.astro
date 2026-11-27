@@ -38,7 +38,7 @@ const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : 
 
   type Hist = { faixas: number[]; dig: number; n: number[]; d: string[]; z: string[]; p: number[][]; z2?: string[]; p2?: number[][] };
   const cacheHist: Record<string, Promise<Hist>> = {};
-  const carregar = (slug: string) => (cacheHist[slug] ??= fetch(`/api/historico.json?loteria=${slug}`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); }));
+  const carregar = (slug: string) => (cacheHist[slug] ??= fetch(`/api/historico.json?loteria=${slug}&v=2`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); }));
   const dataBR = (s: string) => s.split('-').reverse().join('/');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const dec = (s: string, dig: number) => { const r: number[] = []; for (let i = 0; i < s.length; i += dig) r.push(Number(s.slice(i, i + dig))); return r; };
@@ -98,7 +98,7 @@ const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : 
       const universo = l.max - l.min + 1;
       // quantas apostas simples de cada faixa um jogo com k números rende com `a` acertos
       const rende = (hits: number) => fx.map((a) => (colunas || l.tipo === 'fixo' || k === m ? (hits === a ? 1 : 0) : (a <= hits && m - a <= k - hits ? C(hits, a) * C(k - hits, m - a) : 0)));
-      const qt = Array(nf).fill(0), val = Array(nf).fill(0), semValor = Array(nf).fill(0);
+      const qt = Array(nf).fill(0), val = Array(nf).fill(0), semValor = Array(nf).fill(0), existe = Array(nf).fill(0);
       const eventos: { c: number; d: string; s: number; hits: number; v: number; desc: string; sv: boolean }[] = [];
       const freq = new Map<number, number>(); j.forEach((x) => freq.set(x, 0));
       const distHits = new Map<number, number>();
@@ -112,8 +112,9 @@ const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : 
         if (hits === melhor && melhores.length < 12) melhores.push(i);
         if (hits === l.sorteadas) exato.push({ c: h.n[i], d: h.d[i] });
         const r = rende(hits); let v = 0; const partes: string[] = []; let sv = false;
+        premios.forEach((v, f) => { if (v >= 0) existe[f]++; });
         r.forEach((q, f) => {
-          if (!q) return;
+          if (!q || premios[f] < 0) return; // faixa que ainda não existia naquele concurso
           qt[f] += q;
           if (premios[f]) { val[f] += q * premios[f]; v += q * premios[f]; } else { semValor[f] += q; sv = true; }
           partes.push(`${q > 1 ? q + '× ' : ''}${l.faixas[f].label}`);
@@ -126,7 +127,7 @@ const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : 
       }
       // esperado pelo acaso
       const pHits = (a: number) => (colunas ? C(7, a) * 0.1 ** a * 0.9 ** (7 - a) : (C(l.sorteadas, a) * C(universo - l.sorteadas, k - a)) / C(universo, k));
-      const esperado = fx.map((_, f) => { let e = 0; for (let a = 0; a <= Math.min(k, l.sorteadas); a++) e += pHits(a) * rende(a)[f]; return e * sorteios; });
+      const esperado = fx.map((_, f) => { let e = 0; for (let a = 0; a <= Math.min(k, l.sorteadas); a++) e += pHits(a) * rende(a)[f]; return e * existe[f]; });
       const total = val.reduce((a, b) => a + b, 0);
       const vezes = eventos.length;
       const apostas = colunas ? 1 : C(k, m);
@@ -147,13 +148,15 @@ const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : 
         <div class="stat"><span class="stat-l">Concursos conferidos</span><span class="stat-v">${int(h.n.length)}</span><span class="small faint">do ${primeiro} ao ${ultimoC}</span></div>
         <div class="stat"><span class="stat-l">Vezes premiado</span><span class="stat-v">${int(vezes)}</span><span class="small faint">${vezes ? `1 a cada ${int(sorteios / vezes)} sorteios` : 'nenhuma'}</span></div>
         <div class="stat res"><span class="stat-l">Teria ganho</span><span class="stat-v">${brl(total)}</span><span class="small faint">valores da época</span></div>
-        <div class="stat"><span class="stat-l">Último prêmio</span><span class="stat-v">${ultimo ? ultimo.c : '—'}</span><span class="small faint">${ultimo ? `${dataBR(ultimo.d)} · há ${int(desdeUltimo!)} concursos` : 'nunca premiado'}</span></div>
+        <div class="stat"><span class="stat-l">Último prêmio</span><span class="stat-v">${ultimo ? ultimo.c : '—'}</span><span class="small faint">${ultimo ? `${dataBR(ultimo.d)} · ${desdeUltimo ? `há ${int(desdeUltimo)} concurso${desdeUltimo > 1 ? 's' : ''}` : 'no último concurso'}` : 'nunca premiado'}</span></div>
       </div>`;
       // faixas
       html += `<h3>Prêmios por faixa</h3><div class="table-wrap"><table><thead><tr><th>Faixa</th><th class="num">Vezes</th><th class="num">Esperado pelo acaso</th><th class="num">Valor somado</th></tr></thead><tbody>`;
       fx.forEach((_, f) => { html += `<tr><td>${l.faixas[f].label}</td><td class="num"><strong>${int(qt[f])}</strong></td><td class="num">${esperado[f] >= 10 ? int(esperado[f]) : esperado[f].toLocaleString('pt-BR', { maximumFractionDigits: esperado[f] < 0.1 ? 4 : 1 })}</td><td class="num">${val[f] ? brl(val[f]) : '—'}${semValor[f] ? `<br><span class="small faint">+${semValor[f]} sem valor definido*</span>` : ''}</td></tr>`; });
       html += `</tbody></table></div>`;
       if (semValor.some(Boolean)) html += `<p class="small faint">* Naquele concurso ninguém acertou essa faixa, então não há valor oficial de rateio — o prêmio teria sido seu (ou dividido com você).</p>`;
+      const parcial = fx.map((_, f) => existe[f] < sorteios ? f : -1).filter((f) => f >= 0);
+      if (parcial.length) html += `<p class="small faint">${parcial.map((f) => l.faixas[f].label).join(', ')}: faixa${parcial.length > 1 ? 's' : ''} criada${parcial.length > 1 ? 's' : ''} depois do início da loteria (ou sem rateio publicado em alguns concursos). Contamos só os concursos em que ela${parcial.length > 1 ? 's' : ''} existia${parcial.length > 1 ? 'm' : ''}: ${parcial.map((f) => int(existe[f])).join(', ')} de ${int(sorteios)} sorteios.</p>`;
       // custo
       html += `<p class="hj-custo">Jogando esse ${k > m && !colunas ? 'jogo' : 'mesmo jogo'} em todos os ${int(h.n.length)} concursos, a aposta custaria hoje <strong>${brl(custo)}</strong> (${int(apostas)} × ${brl(l.preco)} por concurso, preço atual). Os prêmios acima estão em valores da época, sem correção — compare com cuidado: o objetivo é mostrar a frequência real dos prêmios, não sugerir lucro.</p>`;
       // eventos

@@ -2,7 +2,7 @@
 // usado pela ferramenta "meus números já saíram?". Cache longo no CDN: o banco só é lido em cache miss.
 // GET /api/historico.json?loteria=mega-sena
 // Formato: n = números dos concursos, d = datas, z = dezenas concatenadas (2 dígitos; 1 no Super Sete, na ordem das colunas),
-// z2 = 2º sorteio (Dupla Sena), p/p2 = prêmio por aposta de cada faixa (ordem de `faixas`; 0 = sem ganhador ou sem dado).
+// z2 = 2º sorteio (Dupla Sena), p/p2 = prêmio por aposta de cada faixa (ordem de `faixas`; 0 = sem ganhador, -1 = faixa inexistente naquele concurso).
 import type { APIRoute } from 'astro';
 import { POR_SLUG } from '../../lib/loterias';
 import { getDB } from '../../lib/db';
@@ -21,10 +21,12 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const dig = l.tipo === 'colunas' ? 1 : 2;
   const cod = (ds: number[]) => ds.map((x) => String(x).padStart(dig, '0')).join('');
   const dupla = l.slug === 'dupla-sena';
-  // valor por aposta de cada faixa; a faixa é identificada pelo número no texto ("5 acertos") ou, sem número, pela posição
+  // valor por aposta de cada faixa: 0 = faixa sem ganhador; -1 = faixa que não existia (ou sem dado) naquele concurso.
+  // A faixa é identificada pelo número no texto ("5 acertos") ou, quando o texto não tem número, pela posição.
   const valores = (lista: { descricao?: string; premio: number; ganhadores: number }[]) => l.faixas.map((f, i) => {
     const x = lista.find((r) => Number((/^\s*(\d+)/.exec(r.descricao ?? '') ?? [])[1]) === f.acertos) ?? (/^\s*\d/.test(lista[i]?.descricao ?? '') ? undefined : lista[i]);
-    return x && x.ganhadores ? Math.round(x.premio * 100) / 100 : 0;
+    if (!x) return -1;
+    return x.ganhadores ? Math.round(x.premio * 100) / 100 : 0;
   });
   const n: number[] = [], d: string[] = [], z: string[] = [], z2: string[] = [], p: number[][] = [], p2: number[][] = [];
   for (const r of rows) {
@@ -36,7 +38,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     if (dupla) {
       let d2: number[] = []; try { d2 = r.dezenas2 ? JSON.parse(r.dezenas2) : []; } catch { /* sem 2º sorteio */ }
       z2.push(d2.length === 6 ? cod(d2) : '');
-      p.push(valores(pr.slice(0, nf))); p2.push(valores(pr.slice(nf, 2 * nf)));
+      // Dupla Sena: faixas 1 a 4 = 1º sorteio, 5 a 8 = 2º (concursos antigos omitem algumas)
+      const porFaixa = pr.some((x) => Number(x.faixa) > 0);
+      p.push(valores(porFaixa ? pr.filter((x) => Number(x.faixa) <= nf) : pr.slice(0, nf)));
+      p2.push(valores(porFaixa ? pr.filter((x) => Number(x.faixa) > nf) : pr.slice(nf, 2 * nf)));
     } else p.push(valores(pr));
   }
   return Response.json({ loteria: l.slug, faixas: l.faixas.map((f) => f.acertos), dig, n, d, z, p, ...(dupla ? { z2, p2 } : {}) }, {
