@@ -91,6 +91,16 @@ export function legado(caminho: string): Acao {
   if (comBarra === '/termos-de-uso/') return { tipo: 'redirect', para: '/termos/' };
   if (comBarra === '/sobre-nos/' || comBarra === '/quem-somos/') return { tipo: 'redirect', para: '/sobre/' };
 
+  // páginas antigas do Rio de Prêmios (raiz do site) → seção nova
+  const seg1 = p.split('/')[1] ?? '';
+  const REAIS = new Set(['rio-de-premios', 'mega-da-virada', 'guias', 'ferramentas', 'estatisticas', 'sobre', 'autores', 'api', ...LOTERIAS.map((l) => l.slug)]);
+  if (!REAIS.has(seg1)) {
+    if (/^\/[^/]*(comprar|bilhete|cadastr|pontos?-de-venda|onde-comprar)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/bilhete-e-cadastro/' };
+    if (/^\/[^/]*(resgat|premio-rio|retirar-premio)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/como-resgatar/' };
+    if (/^\/[^/]*(como-funciona|regulamento|o-que-e)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/como-funciona/' };
+    if (/^\/[^/]*(resultado-rio|rio-de-premios|riodepremios|sorteio-rio|edicao)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/' };
+  }
+
   // /tag/... e /author/... do WordPress
   if (/^\/author\/[^/]+/.test(p)) return { tipo: 'redirect', para: '/autores/cinthia-carla-pereira/' };
   if (/^\/tag\/[^/]+/.test(p)) return { tipo: 'redirect', para: '/' };
