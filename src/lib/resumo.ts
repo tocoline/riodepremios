@@ -27,7 +27,7 @@ export interface Resumo {
   faixas: FaixaInfo[];                     // prêmios por faixa nos últimos concursos
   faixasJanela: { de: number; ate: number; acumulou: number };
 }
-const VERSAO = 3; // aumente para forçar o recálculo quando o formato mudar
+const VERSAO = 4; // aumente para forçar o recálculo quando o formato mudar
 
 const IDADE_MAX = 6 * 3600e3;
 const TABELA = 'CREATE TABLE IF NOT EXISTS resumo (loteria TEXT PRIMARY KEY, ultimo INTEGER, calculado_em TEXT, dados TEXT)';
@@ -74,6 +74,7 @@ async function calcularResumo(db: any, l: Loteria): Promise<Resumo | null> {
       const u = geo.ufs[uf] ?? (geo.ufs[uf] = { ganhadores: 0, premiacoes: 0, cidades: [], recentes: [] });
       u.ganhadores += n; u.premiacoes++;
       u.recentes.unshift([row.numero, row.data, cid, premio]); if (u.recentes.length > 15) u.recentes.pop();
+      if (!cid) continue; // concursos antigos às vezes informam só o estado: conta no estado, não no ranking de cidades
       const k = uf + '|' + cid.toUpperCase();
       const c = porCidade.get(k) ?? [cid, uf, 0]; c[2] += n; porCidade.set(k, c);
     }
