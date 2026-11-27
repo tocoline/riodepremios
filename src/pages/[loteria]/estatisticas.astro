@@ -24,7 +24,7 @@ const s = r?.s ?? calcular(l, []);
 const porAno = r?.porAno ?? [];
 const anos = r?.anos ?? [];
 ---
-<Base title={`Estatísticas da ${l.nome}: dezenas que mais saem e atrasadas`} description={`Estatísticas da ${l.nome} com ${numero(s.total)} concursos: dezenas mais sorteadas, mais atrasadas, pares e ímpares e frequência por ano, atualizadas a cada sorteio.`} modificado={ult?.atualizado_em}>
+<Base title={`Estatísticas da ${l.nome}: frequência, pares e ímpares`} description={`Estatísticas da ${l.nome} com ${numero(s.total)} concursos: dezenas mais sorteadas, mais atrasadas, pares e ímpares e frequência por ano, atualizadas a cada sorteio.`} modificado={ult?.atualizado_em}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas' }]} />
     <h1>Estatísticas da {l.nome}</h1>
@@ -37,9 +37,12 @@ const anos = r?.anos ?? [];
       </Resposta>
     )}
     <Fonte atualizado={ult?.atualizado_em} />
+    <p class="est-atalhos"><a class="btn btn-sm" href={`/${l.slug}/numeros-que-mais-saem/`}>Números que mais saem</a> <a class="btn btn-sm" href={`/${l.slug}/numeros-atrasados/`}>Números atrasados</a> <a class="btn btn-sm" href={`/${l.slug}/meus-numeros-ja-sairam/`}>Meus números já saíram?</a></p>
     <h2>Mapa de frequência</h2>
     <StatsView l={l} s={s} />
     <Ad />
     <EstatSecoes l={l} s={s} porAno={porAno} concursosPorAno={anos} />
   </section>
 </Base>
+
+<style> .est-atalhos { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; } </style>

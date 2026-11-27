@@ -39,6 +39,7 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - Acertei N números, ganho algo?: ${u}/{loteria}/acertei-{N}-numeros/
 - Ganhadores por cidade (todas as loterias): ${u}/ganhadores/ · ${u}/ganhadores/{uf}/ · ${u}/ganhadores/{uf}/{cidade}/
 - Ganhadores por estado e cidade: ${u}/{loteria}/ganhadores/ e ${u}/{loteria}/ganhadores/{uf}/
+- Números que mais saem (últimos 10/25/50/100 concursos, ano e histórico): ${u}/{loteria}/numeros-que-mais-saem/ · Números atrasados: ${u}/{loteria}/numeros-atrasados/ (exceto Super Sete)
 - Meus números já saíram? (jogo conferido em todos os concursos, com prêmios somados): ${u}/{loteria}/meus-numeros-ja-sairam/ (exceto +Milionária)
 - Conferir jogos: ${u}/{loteria}/conferir/ · Gerador: ${u}/{loteria}/gerador/ · Preço e chances por quantidade de números: ${u}/{loteria}/com-{N}-numeros/
 - Concursos especiais: ${u}/lotofacil-da-independencia/ · ${u}/quina-de-sao-joao/ · ${u}/dupla-de-pascoa/

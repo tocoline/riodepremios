@@ -1,0 +1,126 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Bolas from '../../components/Bolas.astro';
+import { POR_SLUG, diasTexto } from '../../lib/loterias';
+import { getDB, ultimos, dbFalhou } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { contar } from '../../lib/frequencia';
+import { pad, numero, dataBR } from '../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const [r, rec] = await Promise.all([resumo(db, l), ultimos(db, l, 100)]);
+if (!r || !rec.length) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 1800);
+
+const s = r.s;
+const ult = rec[0];
+const dupla = l.slug === 'dupla-sena';
+const universo = l.max - l.min + 1;
+const sorteiosPor = dupla ? 2 : 1;
+const janelas = [10, 25, 50, 100].filter((w) => w <= rec.length).map((w) => {
+  const f = contar(l, rec.slice(0, w));
+  return { w, f, esperado: (w * sorteiosPor * l.sorteadas) / universo, de: rec[w - 1].numero, ate: rec[0].numero };
+});
+const j50 = janelas.find((j) => j.w === 50) ?? janelas.at(-1)!;
+const j100 = janelas.at(-1)!;
+const ano = Number(ult.data.slice(0, 4));
+const concAno = r.anos.find((a) => a.ano === ano)?.n ?? 0;
+const topAno = r.porAno.filter((x) => x.ano === ano).sort((a, b) => b.n - a.n || a.d - b.d);
+const anoAnt = r.anos.find((a) => a.ano === ano - 1 && a.completo);
+const topAnoAnt = anoAnt ? r.porAno.filter((x) => x.ano === ano - 1).sort((a, b) => b.n - a.n || a.d - b.d).slice(0, 10) : [];
+const qtdTop = Math.min(l.sorteadas, 10);
+const esperadoTotal = (s.total * sorteiosPor * l.sorteadas) / universo;
+const qd = l.sorteadas / universo;
+const dp2 = 2 * Math.sqrt(s.total * sorteiosPor * qd * (1 - qd));
+const dentro = s.stats.filter((x) => Math.abs(x.vezes - esperadoTotal) <= dp2).length;
+const rec100 = new Map(j100.f.map((x) => [x.dezena, x.vezes]));
+const tabela = [...s.stats].sort((a, b) => b.vezes - a.vezes || a.dezena - b.dezena);
+const pct = (v: number, t: number) => ((v / t) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+const lista = (xs: number[]) => xs.map((d) => pad(d)).join(', ');
+// dezenas que aparecem no topo das três visões (geral, 100 e 50 últimos)
+const topG = new Set(s.mais.slice(0, 10).map((x) => x.dezena));
+const consistentes = j50.f.slice(0, 10).map((x) => x.dezena).filter((d) => topG.has(d) && j100.f.slice(0, 10).some((x) => x.dezena === d));
+
+const titulo = `Números que mais saem na ${l.nome}: ranking ${ano}`;
+const desc = `As dezenas que mais saem na ${l.nome} nos últimos 10, 25, 50 e 100 concursos, em ${ano} e em ${numero(s.total)} sorteios. Atualizado após o concurso ${ult.numero}.`;
+const url = `${SITE.url}/${l.slug}/numeros-que-mais-saem/`;
+const faq = [
+  { q: `Quais são os números que mais saem na ${l.nome}?`, a: `Em toda a história (${numero(s.total)} concursos), os mais sorteados são ${s.mais.slice(0, 6).map((x) => `${pad(x.dezena)} (${numero(x.vezes)} vezes)`).join(', ')}. Nos últimos 50 concursos, os que mais saíram foram ${lista(j50.f.slice(0, 6).map((x) => x.dezena))}.` },
+  { q: `Quais números mais saíram na ${l.nome} em ${ano}?`, a: topAno.length ? `Nos ${concAno} concursos de ${ano} até agora, lideram ${topAno.slice(0, 6).map((x) => `${pad(x.d)} (${x.n} vezes)`).join(', ')}.` : `Ainda não há concursos suficientes em ${ano}.` },
+  { q: 'Jogar nos números que mais saem aumenta a chance de ganhar?', a: `Não. Em cada sorteio, todas as ${universo} dezenas têm exatamente a mesma chance. As diferenças de frequência são flutuações normais do acaso e não se mantêm de forma previsível. O ranking ajuda a conhecer o histórico, mas não prevê o próximo resultado.` },
+  { q: 'Com que frequência o ranking é atualizado?', a: `Automaticamente, minutos depois de cada sorteio da ${l.nome} (${diasTexto(l)}, às 20h). Esta versão inclui o concurso ${ult.numero}, de ${dataBR(ult.data)}.` },
+];
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: '2026-11-27', dateModified: ult.atualizado_em, mainEntityOfPage: url, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={ult.atualizado_em}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas', url: `/${l.slug}/estatisticas/` }, { nome: 'Números que mais saem' }]} />
+    <h1>Números que mais saem na {l.nome}</h1>
+    <p class="lead">Ranking das dezenas mais sorteadas nos últimos concursos, em {ano} e em toda a história — atualizado após o concurso {ult.numero} ({dataBR(ult.data)}).</p>
+    <Autor atualizado={ult.atualizado_em} modo="auto" />
+  </div>
+  <article class="wrap" style="max-width:980px">
+    <Resposta>
+      <p>Os números que mais saem na {l.nome} em toda a história são <strong>{lista(s.mais.slice(0, 6).map((x) => x.dezena))}</strong>, em {numero(s.total)} concursos. Nos <strong>últimos {j50.w} concursos</strong> (do {j50.de} ao {j50.ate}), os mais sorteados foram <strong>{lista(j50.f.slice(0, 6).map((x) => x.dezena))}</strong>{topAno.length ? <>, e em {ano} lideram <strong>{lista(topAno.slice(0, 6).map((x) => x.d))}</strong></> : ''}. Lembre-se: isso descreve o passado — no próximo sorteio, todas as dezenas têm a mesma chance.</p>
+    </Resposta>
+    <Fonte atualizado={ult.atualizado_em} />
+
+    <h2>Mais sorteados nos últimos concursos</h2>
+    <div class="grid g2 nm-jan">
+      {janelas.map((j) => (
+        <div class="card">
+          <p class="nm-l">Últimos {j.w} concursos <span class="faint">· {j.de} a {j.ate}</span></p>
+          <Bolas dezenas={j.f.slice(0, qtdTop).map((x) => x.dezena)} cor={l.cor} tam="sm" />
+          <p class="small faint" style="margin:8px 0 0">{j.f.slice(0, qtdTop).map((x) => `${pad(x.dezena)}: ${x.vezes}×`).join(' · ')}</p>
+          <p class="small faint" style="margin:4px 0 0">Média esperada por dezena: {j.esperado.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} vezes.</p>
+        </div>
+      ))}
+    </div>
+
+    {topAno.length > 0 && (
+      <>
+        <h2>Números que mais saíram na {l.nome} em {ano}</h2>
+        <p class="muted">{concAno} concursos em {ano} até o {ult.numero}{dupla ? ' (contando o 1º sorteio)' : ''}:</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Dezena</th><th class="num">Vezes em {ano}</th>{topAnoAnt.length > 0 && <th class="num">Posição em {ano - 1}</th>}</tr></thead>
+          <tbody>{topAno.slice(0, 10).map((x, i) => {
+            const posAnt = topAnoAnt.findIndex((y) => y.d === x.d);
+            return <tr><td>{i + 1}º</td><td><a href={`/${l.slug}/dezenas/${pad(x.d)}/`}><strong>{pad(x.d)}</strong></a></td><td class="num">{x.n}</td>{topAnoAnt.length > 0 && <td class="num">{posAnt >= 0 ? `${posAnt + 1}º` : 'fora do top 10'}</td>}</tr>;
+          })}</tbody>
+        </table></div>
+        {topAnoAnt.length > 0 && <p class="small faint">Em {ano - 1}, os mais sorteados foram {lista(topAnoAnt.slice(0, 6).map((x) => x.d))}. Repare como o ranking muda de um ano para o outro.</p>}
+      </>
+    )}
+
+    <Ad />
+
+    <h2>Ranking de todos os tempos</h2>
+    <p class="muted">{numero(s.total)} concursos, do 1 ao {s.ultimoNum}{dupla ? ', somando os dois sorteios de cada concurso' : ''}. Média esperada: {numero(Math.round(esperadoTotal))} vezes por dezena.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Dezena</th><th class="num">Vezes</th><th class="num">% dos {dupla ? 'sorteios' : 'concursos'}</th><th class="num">Últimos 100</th><th class="num">Última vez</th></tr></thead>
+      <tbody>{tabela.map((x, i) => <tr><td>{i + 1}º</td><td><a href={`/${l.slug}/dezenas/${pad(x.dezena)}/`}><strong>{pad(x.dezena)}</strong></a></td><td class="num">{numero(x.vezes)}</td><td class="num">{pct(x.vezes, s.total * sorteiosPor)}%</td><td class="num">{rec100.get(x.dezena) ?? 0}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>{x.ultimo}</a> : '—'}</td></tr>)}</tbody>
+    </table></div>
+
+    <div class="prose">
+      <h2>O que o ranking mostra (e o que não mostra)</h2>
+      <p>A dezena que mais saiu ({pad(s.mais[0].dezena)}, {numero(s.mais[0].vezes)} vezes) e a que menos saiu ({pad(s.menos[0].dezena)}, {numero(s.menos[0].vezes)} vezes) parecem muito diferentes, mas a estatística explica: em {numero(s.total * sorteiosPor)} sorteios aleatórios, o normal é cada dezena variar cerca de <strong>±{numero(Math.round(dp2))} vezes</strong> em torno da média de {numero(Math.round(esperadoTotal))} (dois desvios-padrão). Na {l.nome}, <strong>{dentro} das {universo} dezenas</strong> estão dentro dessa faixa — o esperado para sorteios sem nenhum vício é cerca de 95%.</p>
+      <p>Prova disso é que os rankings mudam conforme a janela de tempo.{consistentes.length ? <> Só {consistentes.length === 1 ? 'a dezena' : 'as dezenas'} <strong>{lista(consistentes)}</strong> {consistentes.length === 1 ? 'aparece' : 'aparecem'} ao mesmo tempo entre as 10 mais do histórico, dos últimos 100 e dos últimos 50 concursos.</> : ' Nenhuma dezena aparece ao mesmo tempo entre as 10 mais do histórico, dos últimos 100 e dos últimos 50 concursos.'} Se houvesse dezenas “viciadas”, elas liderariam em todas as janelas.</p>
+      <h2>Como usar estas estatísticas</h2>
+      <p>Muitos apostadores gostam de misturar dezenas frequentes com outras pouco sorteadas, ou de evitar repetir o último resultado. Não há problema em usar o ranking como critério de escolha — só não espere que ele aumente a chance. Uma dica que de fato ajuda: evite sequências e datas de aniversário (números até 31), muito usadas; se ganhar, você divide o prêmio com menos gente.</p>
+      <p>Veja também as <a href={`/${l.slug}/numeros-atrasados/`}>dezenas mais atrasadas da {l.nome}</a>, as <a href={`/${l.slug}/estatisticas/`}>estatísticas completas</a> (pares e ímpares, frequência por ano) e confira se o jogo que você sempre faz <a href={`/${l.slug}/meus-numeros-ja-sairam/`}>já saiu alguma vez</a>. Para montar jogos, use o <a href={`/${l.slug}/gerador/`}>gerador da {l.nome}</a>.</p>
+    </div>
+    <Faq itens={faq} />
+  </article>
+</Base>
+<style> .nm-jan { margin: 12px 0 6px; } .nm-l { margin: 0 0 10px; font-weight: 700; } h2 { margin-top: 30px; } .g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); } </style>

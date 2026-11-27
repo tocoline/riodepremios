@@ -27,7 +27,7 @@ const top = [...r.s.stats].sort((a, b) => b.vezes - a.vezes)[0];
     <p class="lead">Escolha um número para ver quantas vezes saiu, quando foi a última vez, o atraso e as dezenas que mais aparecem junto com ele.</p>
   </div>
   <section class="wrap">
-    <Resposta><p>Em {numero(r.total)} concursos da {l.nome}, a dezena que mais saiu foi a <a href={`/${l.slug}/dezenas/${pad(top.dezena)}/`}><strong>{pad(top.dezena)}</strong></a> ({numero(top.vezes)} vezes). Cada dezena tem a mesma chance em todo sorteio; as diferenças de frequência são naturais do acaso.</p></Resposta>
+    <Resposta><p>Em {numero(r.total)} concursos da {l.nome}, a dezena que mais saiu foi a <a href={`/${l.slug}/dezenas/${pad(top.dezena)}/`}><strong>{pad(top.dezena)}</strong></a> ({numero(top.vezes)} vezes). Cada dezena tem a mesma chance em todo sorteio; as diferenças de frequência são naturais do acaso. Veja o ranking dos <a href={`/${l.slug}/numeros-que-mais-saem/`}>números que mais saem</a> e dos <a href={`/${l.slug}/numeros-atrasados/`}>números atrasados</a>.</p></Resposta>
     <Fonte atualizado={r.atualizado} />
     <h2>Escolha a dezena</h2>
     <div class="dz-grid">

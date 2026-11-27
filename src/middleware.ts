@@ -1,5 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { legado } from './lib/legado';
+import { indexnow } from './lib/indexnow';
+import { getDB } from './lib/db';
 
 const GONE = '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Conteúdo removido</title><p>Este conteúdo foi removido. <a href="/">Ver os resultados das loterias</a>.</p></html>';
 
@@ -16,6 +18,9 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   }
 
   const res = await next();
+  // avisa os buscadores (IndexNow) quando entra resultado novo — em segundo plano, com intervalo mínimo
+  const rt = (ctx.locals as any)?.runtime;
+  if (rt?.ctx?.waitUntil) rt.ctx.waitUntil(indexnow(getDB(ctx.locals), ctx.url.host));
   // endereços *.pages.dev são cópias técnicas: não devem ser indexados
   if (ctx.url.hostname.endsWith('.pages.dev')) {
     const r = new Response(res.body, res);

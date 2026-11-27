@@ -1,0 +1,95 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Bolas from '../../components/Bolas.astro';
+import { POR_SLUG, diasTexto } from '../../lib/loterias';
+import { getDB, ultimos, dbFalhou } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { pSair } from '../../lib/frequencia';
+import { pad, numero, dataBR } from '../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const [r, rec] = await Promise.all([resumo(db, l), ultimos(db, l, 1)]);
+const ult = rec[0];
+if (!r || !ult) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 1800);
+
+const s = r.s;
+const universo = l.max - l.min + 1;
+const p = pSair(l);                        // chance de uma dezena sair em um concurso
+const intervaloTeorico = 1 / p;            // concursos, em média, entre duas aparições
+const pAtraso = (a: number) => (1 - p) ** a; // chance de ficar a concursos seguidos sem sair
+const lista = [...s.stats].sort((a, b) => b.atraso - a.atraso || a.dezena - b.dezena).map((x) => ({
+  ...x, intervalo: x.vezes ? s.total / x.vezes : Infinity, relativo: x.atraso / intervaloTeorico,
+}));
+const top = lista.slice(0, Math.min(10, l.sorteadas + 4));
+const maisAtr = lista[0];
+const saiuUltimo = ult.dezenas.slice().sort((a, b) => a - b);
+const fmtPct = (x: number) => (x * 100).toLocaleString('pt-BR', { maximumFractionDigits: x < 0.01 ? 3 : 1 });
+const mediana = Math.round(Math.log(0.5) / Math.log(1 - p)); // metade das sequências sem sair passa disso
+const acimaDe = (k: number) => lista.filter((x) => x.atraso >= k).length;
+const limiar = Math.max(3, Math.round(intervaloTeorico * 3));
+
+const titulo = `Números atrasados da ${l.nome}: dezenas que não saem`;
+const desc = `As dezenas mais atrasadas da ${l.nome} após o concurso ${ult.numero}: a ${pad(maisAtr.dezena)} não sai há ${maisAtr.atraso} concursos. Veja o ranking completo e se o atraso é incomum.`;
+const url = `${SITE.url}/${l.slug}/numeros-atrasados/`;
+const faq = [
+  { q: `Quais são os números mais atrasados da ${l.nome}?`, a: `Após o concurso ${ult.numero}, as dezenas mais atrasadas são ${top.slice(0, 6).map((x) => `${pad(x.dezena)} (${x.atraso} concursos)`).join(', ')}.` },
+  { q: 'Número atrasado tem mais chance de sair?', a: `Não. Os sorteios não têm memória: no próximo concurso, a dezena ${pad(maisAtr.dezena)} tem a mesma chance de qualquer outra — ${fmtPct(p)}%. Acreditar que um número "está para sair" é a chamada falácia do apostador.` },
+  { q: `De quanto em quanto tempo cada dezena sai na ${l.nome}?`, a: `Em média, uma dezena sai a cada ${intervaloTeorico.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} concursos. Mas ficar bem mais tempo sem sair é comum: metade das sequências passa de ${mediana} concurso${mediana === 1 ? '' : 's'}.` },
+  { q: 'Quando o ranking é atualizado?', a: `Automaticamente após cada sorteio da ${l.nome} (${diasTexto(l)}, às 20h). Esta versão inclui o concurso ${ult.numero}, de ${dataBR(ult.data)}.` },
+];
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: '2026-11-27', dateModified: ult.atualizado_em, mainEntityOfPage: url, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={ult.atualizado_em}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas', url: `/${l.slug}/estatisticas/` }, { nome: 'Números atrasados' }]} />
+    <h1>Números atrasados da {l.nome}</h1>
+    <p class="lead">Há quantos concursos cada dezena não sai — atualizado após o concurso {ult.numero} ({dataBR(ult.data)}).</p>
+    <Autor atualizado={ult.atualizado_em} modo="auto" />
+  </div>
+  <article class="wrap" style="max-width:980px">
+    <Resposta>
+      <p>A dezena mais atrasada da {l.nome} é a <strong>{pad(maisAtr.dezena)}</strong>, que não sai há <strong>{maisAtr.atraso} concursos</strong> (desde o <a href={`/${l.slug}/concurso/${maisAtr.ultimo}/`}>concurso {maisAtr.ultimo}</a>). Em seguida vêm {top.slice(1, 6).map((x, i) => <>{i > 0 && (i === 4 ? ' e ' : ', ')}<strong>{pad(x.dezena)}</strong> ({x.atraso})</>)}. A chance de uma dezena ficar {maisAtr.atraso} concursos seguidos sem sair é de {fmtPct(pAtraso(maisAtr.atraso))}% — mas, no próximo sorteio, ela continua com a mesma chance de todas: {fmtPct(p)}%.</p>
+    </Resposta>
+    <Fonte atualizado={ult.atualizado_em} />
+
+    <h2>As mais atrasadas agora</h2>
+    <div class="card at-top">
+      <Bolas dezenas={top.map((x) => x.dezena)} cor={l.cor} />
+      <p class="small faint" style="margin:10px 0 0">{top.map((x) => `${pad(x.dezena)}: ${x.atraso}`).join(' · ')} concursos sem sair</p>
+    </div>
+    <p class="small muted">Saíram no último concurso ({ult.numero}): {saiuUltimo.map((d) => pad(d)).join(', ')}{ult.dezenas2 ? <> e, no 2º sorteio, {ult.dezenas2.slice().sort((a, b) => a - b).map((d) => pad(d)).join(', ')}</> : ''} — atraso zero.</p>
+
+    <h2>O atraso é incomum?</h2>
+    <p class="muted">Na {l.nome}, cada dezena tem {fmtPct(p)}% de chance de sair em cada concurso{l.slug === 'dupla-sena' ? ' (contando os dois sorteios)' : ''}, ou seja, sai em média a cada {intervaloTeorico.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} concursos. A coluna “chance de um atraso assim” mostra a probabilidade de uma dezena qualquer passar tantos concursos seguidos sem sair:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Dezena</th><th class="num">Concursos sem sair</th><th class="num">Último sorteio</th><th class="num">Vezes que já saiu</th><th class="num">Chance de um atraso assim</th></tr></thead>
+      <tbody>{lista.map((x, i) => <tr class:list={[x.relativo >= 3 && 'at-hl']}><td>{i + 1}º</td><td><a href={`/${l.slug}/dezenas/${pad(x.dezena)}/`}><strong>{pad(x.dezena)}</strong></a></td><td class="num"><strong>{x.atraso}</strong></td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>{x.ultimo}</a> : '—'}</td><td class="num">{numero(x.vezes)}</td><td class="num">{x.atraso ? `${fmtPct(pAtraso(x.atraso))}%` : '—'}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Destacadas: dezenas com atraso de pelo menos 3 vezes o intervalo médio. Com {universo} dezenas, é normal que algumas estejam nessa situação a qualquer momento — hoje são {acimaDe(limiar)}.</p>
+
+    <Ad />
+
+    <div class="prose">
+      <h2>Número atrasado está “para sair”?</h2>
+      <p>Não — e entender isso evita muita aposta mal pensada. As bolas não sabem há quanto tempo não são sorteadas: a cada concurso, o globo é o mesmo e todas as {universo} dezenas têm exatamente {fmtPct(p)}% de chance. A ideia de que um número atrasado “está devendo” tem nome: <strong>falácia do apostador</strong>.</p>
+      <p>Atrasos longos também não são sinal de defeito. Com {universo} dezenas competindo, sempre haverá algumas no fim da fila. A matemática prevê que metade das sequências sem sair passa de {mediana} concurso{mediana === 1 ? '' : 's'}, e que atrasos de {limiar} concursos ou mais aconteçam em cerca de {fmtPct(pAtraso(limiar))}% das vezes. É o que se vê na tabela acima.</p>
+      <h2>Então para que serve o ranking?</h2>
+      <p>Para conhecer o histórico e, se você gosta, variar os critérios ao montar jogos — há quem prefira misturar atrasadas com dezenas que saíram recentemente. Isso não muda a chance de ganhar, mas pode tornar a aposta mais divertida. Para dividir o prêmio com menos gente, o que ajuda de verdade é evitar escolhas muito populares, como sequências e datas.</p>
+      <p>Veja também os <a href={`/${l.slug}/numeros-que-mais-saem/`}>números que mais saem na {l.nome}</a>, as <a href={`/${l.slug}/estatisticas/`}>estatísticas completas</a>, a <a href={`/${l.slug}/dezenas/`}>página de cada dezena</a> e descubra se o seu jogo <a href={`/${l.slug}/meus-numeros-ja-sairam/`}>já saiu alguma vez</a>.</p>
+    </div>
+    <Faq itens={faq} />
+  </article>
+</Base>
+<style> .at-top { margin: 12px 0 8px; } tr.at-hl td { background: color-mix(in srgb, var(--brand) 10%, transparent); } h2 { margin-top: 30px; } </style>

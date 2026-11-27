@@ -53,7 +53,7 @@ export async function paginas(db: any): Promise<Url[]> {
       u.push({ loc: `/${l.slug}/dezenas/`, lastmod: a });
       for (let d = l.min; d <= l.max; d++) u.push({ loc: `/${l.slug}/dezenas/${String(d).padStart(2, '0')}/`, lastmod: a });
     }
-    if (l.tipo !== 'colunas') u.push({ loc: `/${l.slug}/estatisticas/`, lastmod: a });
+    if (l.tipo !== 'colunas') u.push({ loc: `/${l.slug}/estatisticas/`, lastmod: a }, { loc: `/${l.slug}/numeros-que-mais-saem/`, lastmod: a }, { loc: `/${l.slug}/numeros-atrasados/`, lastmod: a });
     for (const a of (res[l.api]?.anos ?? []).filter((x) => x.completo)) u.push({ loc: `/${l.slug}/resultados/${a.ano}/`, lastmod: d10(a.ult) });
   }
   const viradas = await q(db, "SELECT MAX(data) d FROM concursos WHERE loteria='megasena' AND especial=1");
