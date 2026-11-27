@@ -1,0 +1,50 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { getDB, dbFalhou } from '../../lib/db';
+import { garantirGeo, topCidades, MIN_PREMIOS } from '../../lib/geo';
+import { UFS, cidadeBonita } from '../../lib/ufs';
+import { LOTERIAS } from '../../lib/loterias';
+import { numero } from '../../lib/format';
+import { cachear, indisponivel } from '../../lib/cache';
+const db = getDB(Astro.locals);
+await garantirGeo(db, (Astro.locals as any).runtime?.ctx);
+const top = await topCidades(db, 50);
+if (!top.length && dbFalhou(db)) return indisponivel();
+cachear(Astro, 21600);
+---
+<Base title="Cidades que mais ganharam na loteria: ranking de ganhadores" description="As cidades e estados com mais prêmios principais nas loterias da Caixa — Mega-Sena, Lotofácil, Quina e outras —, com página de cada cidade e os últimos ganhadores.">
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: 'Ganhadores por cidade' }]} />
+    <h1>Cidades que mais ganharam na loteria</h1>
+    <p class="lead">Ranking das cidades com mais prêmios principais somando todas as loterias da Caixa, a partir da lista oficial de municípios dos ganhadores.</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    {top[0] && <Resposta><p>A cidade com mais prêmios principais nas loterias da Caixa é <strong>{cidadeBonita(top[0].nome)} ({top[0].uf})</strong>, com {numero(top[0].total)} prêmios, seguida de {top.slice(1, 4).map((c) => `${cidadeBonita(c.nome)} (${c.uf})`).join(', ')}. Cidades maiores aparecem no topo porque concentram mais apostas — a chance de cada aposta é a mesma em qualquer lugar.</p></Resposta>}
+    <Fonte />
+    <h2>Top 50 cidades</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Cidade</th><th>Estado</th><th class="num">Prêmios principais</th></tr></thead>
+      <tbody>{top.map((c, i) => <tr><td>{i + 1}</td><td><a href={`/ganhadores/${c.uf.toLowerCase()}/${c.slug}/`}>{cidadeBonita(c.nome)}</a></td><td><a href={`/ganhadores/${c.uf.toLowerCase()}/`}>{UFS[c.uf]}</a></td><td class="num">{numero(c.total)}</td></tr>)}</tbody>
+    </table></div>
+    <Ad />
+    <h2>Ganhadores por estado</h2>
+    <div class="ufs">{Object.entries(UFS).map(([uf, n]) => <a href={`/ganhadores/${uf.toLowerCase()}/`}>{n}</a>)}</div>
+    <div class="prose">
+      <h2>Ranking por loteria</h2>
+      <p>{LOTERIAS.map((l, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/ganhadores/`}>{l.nome}</a></>)}</p>
+      <h2>Como o ranking é feito</h2>
+      <p>Somamos, para cada município, as apostas que acertaram a faixa principal de cada loteria, conforme a lista de cidades divulgada pela Caixa em cada concurso. Prêmios de apostas feitas pela internet não têm cidade e ficam de fora. Cidades com pelo menos {MIN_PREMIOS} prêmios têm página própria.</p>
+    </div>
+    <Faq itens={[
+      { q: 'Qual a cidade que mais ganha na loteria?', a: top[0] ? `${cidadeBonita(top[0].nome)} (${top[0].uf}), com ${numero(top[0].total)} prêmios principais somando todas as loterias.` : '—' },
+      { q: 'Existe cidade da sorte?', a: 'Não. A chance de cada aposta é igual em todo o país. Cidades grandes ganham mais porque fazem muito mais apostas.' },
+    ]} />
+  </section>
+</Base>
+<style> .ufs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 20px; } .ufs a { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-size: .88rem; font-weight: 600; } .ufs a:hover { border-color: var(--brand); color: var(--brand); } </style>

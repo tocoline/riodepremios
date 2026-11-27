@@ -11,6 +11,7 @@ import { POR_SLUG, LOTERIAS } from '../../../lib/loterias';
 import { getDB, dbFalhou } from '../../../lib/db';
 import { resumo } from '../../../lib/resumo';
 import { UFS, NO, cidadeBonita } from '../../../lib/ufs';
+import { slugCidade, MIN_PREMIOS } from '../../../lib/geo';
 import { dataBR, reais, numero } from '../../../lib/format';
 import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
 import { SITE } from '../../../lib/site';
@@ -47,7 +48,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: ti
     <h2>Cidades {no === 'em' ? 'de' : no === 'na' ? 'da' : 'do'} {nome} que mais ganharam</h2>
     <div class="table-wrap"><table>
       <thead><tr><th>#</th><th>Cidade</th><th class="num">Prêmios principais</th></tr></thead>
-      <tbody>{u.cidades.map(([c, n], i) => <tr><td>{i + 1}</td><td>{cidadeBonita(c)}</td><td class="num">{numero(n)}</td></tr>)}</tbody>
+      <tbody>{u.cidades.map(([c, n], i) => <tr><td>{i + 1}</td><td>{n >= MIN_PREMIOS ? <a href={`/ganhadores/${UF.toLowerCase()}/${slugCidade(c)}/`}>{cidadeBonita(c)}</a> : cidadeBonita(c)}</td><td class="num">{numero(n)}</td></tr>)}</tbody>
     </table></div>
     <Ad />
     {u.recentes.length > 0 && (

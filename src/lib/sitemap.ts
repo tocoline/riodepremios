@@ -6,6 +6,7 @@ import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios
 import { resumo, type Resumo } from './resumo';
 import { SIGNOS } from './signos';
 import { faixaAcertos } from './acertos';
+import { cidadesComPagina } from './geo';
 import { marcarFalha } from './db';
 
 /** Resumos de todas as loterias (1 linha lida por loteria). */
@@ -62,6 +63,8 @@ export async function paginas(db: any): Promise<Url[]> {
   for (const pg of ['horario-e-onde-assistir/', ...[1, 2, 3, 4, 5, 6].map((k) => `acertei-${k}-numeros/`), ...[5, 10, 15, 20, 25, 30, 50, 100].map((n) => `bolao-de-${n}-pessoas/`)]) u.push({ loc: `/mega-da-virada/${pg}`, lastmod: vir });
   const eds = await q(db, "SELECT data, atualizado_em FROM concursos WHERE loteria='megasena' AND especial=1 AND data >= '2008-12-31' AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')");
   for (const e of eds) { const a = Number(e.data.slice(0, 4)) - (e.data.slice(5, 7) === '01' ? 1 : 0); u.push({ loc: `/mega-da-virada/${a}/`, lastmod: d10(e.data) }); }
+  const cps = await cidadesComPagina(db);
+  if (cps.length) { u.push({ loc: '/ganhadores/', lastmod: geral }); for (const uf of new Set(cps.map((c) => c.uf))) u.push({ loc: `/ganhadores/${uf.toLowerCase()}/`, lastmod: geral }); for (const c of cps) u.push({ loc: `/ganhadores/${c.uf.toLowerCase()}/${c.slug}/`, lastmod: geral }); }
   for (const sg of SIGNOS) u.push({ loc: `/mega-da-virada/palpites-por-signo/${sg.slug}/`, lastmod: fixo });
   const prox = proximaEdicao();
   const rpAtu = dataEdicao(prox - 1);

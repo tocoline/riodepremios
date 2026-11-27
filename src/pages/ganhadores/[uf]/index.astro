@@ -1,0 +1,60 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { garantirGeo, cidadesDaUF, MIN_PREMIOS } from '../../../lib/geo';
+import { resumo } from '../../../lib/resumo';
+import { UFS, NO, cidadeBonita } from '../../../lib/ufs';
+import { LOTERIAS } from '../../../lib/loterias';
+import { numero } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+const UF = (Astro.params.uf ?? '').toUpperCase();
+if (!UFS[UF] || Astro.params.uf !== UF.toLowerCase()) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+await garantirGeo(db, (Astro.locals as any).runtime?.ctx);
+const cids = await cidadesDaUF(db, UF);
+if (!cids.length) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 21600);
+const res = await Promise.all(LOTERIAS.map(async (l) => ({ l, u: (await resumo(db, l))?.geo?.ufs[UF] })));
+const porLot = res.filter((x) => x.u).sort((a, b) => b.u!.ganhadores - a.u!.ganhadores);
+const total = cids.reduce((a, c) => a + c.total, 0);
+const nome = UFS[UF], no = NO[UF];
+const comPagina = cids.filter((c) => c.total >= MIN_PREMIOS);
+const de = no === 'em' ? 'de' : no === 'na' ? 'da' : 'do';
+---
+<Base title={`Ganhadores da loteria ${no} ${nome}: cidades e prêmios`} description={`Cidades ${de} ${nome} com prêmios principais da Mega-Sena, Lotofácil, Quina e outras loterias: ${numero(total)} prêmios em ${numero(cids.length)} municípios. Ranking e últimos ganhadores.`}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: 'Ganhadores por cidade', url: '/ganhadores/' }, { nome }]} />
+    <h1>Ganhadores da loteria {no} {nome}</h1>
+    <p class="lead">Todas as cidades {de} {nome} com prêmios principais nas loterias da Caixa.</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>{no === 'em' ? 'Em' : no === 'na' ? 'Na' : 'No'} {nome}, <strong>{numero(cids.length)} municípios</strong> já tiveram ganhadores de prêmios principais nas loterias da Caixa, somando <strong>{numero(total)} prêmios</strong> com cidade informada. A cidade com mais prêmios é <strong>{cidadeBonita(cids[0].nome)}</strong> ({numero(cids[0].total)}).{porLot[0] && <> A loteria com mais ganhadores no estado é a {porLot[0].l.nome} ({numero(porLot[0].u!.ganhadores)}).</>}</p></Resposta>
+    <Fonte />
+    {porLot.length > 0 && (
+      <>
+        <h2>Prêmios principais por loteria</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Loteria</th><th class="num">Ganhadores {no} {nome}</th><th>Ranking</th></tr></thead>
+          <tbody>{porLot.map(({ l, u }) => <tr><td>{l.nome}</td><td class="num">{numero(u!.ganhadores)}</td><td><a href={`/${l.slug}/ganhadores/${UF.toLowerCase()}/`}>ver {l.nome} {no} {nome}</a></td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    <Ad />
+    <h2>Cidades {de} {nome} com prêmios</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Cidade</th><th class="num">Prêmios principais</th></tr></thead>
+      <tbody>{cids.slice(0, 300).map((c, i) => <tr><td>{i + 1}</td><td>{c.total >= MIN_PREMIOS ? <a href={`/ganhadores/${UF.toLowerCase()}/${c.slug}/`}>{cidadeBonita(c.nome)}</a> : cidadeBonita(c.nome)}</td><td class="num">{numero(c.total)}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">{numero(comPagina.length)} cidades com {MIN_PREMIOS} ou mais prêmios têm página própria com o detalhamento por loteria.</p>
+    <Faq itens={[
+      { q: `Qual cidade ${de} ${nome} mais ganhou na loteria?`, a: `${cidadeBonita(cids[0].nome)}, com ${numero(cids[0].total)} prêmios principais somando todas as loterias.` },
+      { q: `Quantas cidades ${de} ${nome} já tiveram ganhadores?`, a: `${numero(cids.length)} municípios, com ${numero(total)} prêmios principais com cidade informada.` },
+    ]} />
+  </section>
+</Base>

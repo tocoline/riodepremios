@@ -1,0 +1,66 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { garantirGeo, cidade, cidadesDaUF, MIN_PREMIOS, NOMES_LOT } from '../../../lib/geo';
+import { UFS, cidadeBonita } from '../../../lib/ufs';
+import { dataBR, reais, numero } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+import { SITE } from '../../../lib/site';
+const UF = (Astro.params.uf ?? '').toUpperCase();
+const slug = Astro.params.cidade ?? '';
+if (!UFS[UF] || Astro.params.uf !== UF.toLowerCase() || !/^[a-z0-9-]+$/.test(slug)) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+await garantirGeo(db, (Astro.locals as any).runtime?.ctx);
+const c = await cidade(db, UF, slug);
+if (!c) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+if (c.total < MIN_PREMIOS) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const nome = cidadeBonita(c.nome);
+const lots = Object.entries(c.porLoteria).filter(([api]) => NOMES_LOT[api]).sort((a, b) => b[1].n - a[1].n);
+const ultimos = lots.flatMap(([api, v]) => v.ultimos.map(([n, d, p]) => ({ api, n, d, p }))).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 12);
+const ult = ultimos[0];
+const vizinhas = (await cidadesDaUF(db, UF)).filter((x) => x.slug !== slug && x.total >= MIN_PREMIOS);
+const pos = vizinhas.filter((x) => x.total > c.total).length + 1;
+const mega = c.porLoteria['megasena'];
+const titulo = `Ganhadores da loteria em ${nome} (${UF}): Mega-Sena, Lotofácil e mais`;
+const desc = `${nome} (${UF}) já teve ${numero(c.total)} prêmios principais nas loterias da Caixa${mega ? `, sendo ${numero(mega.n)} da Mega-Sena` : ''}. Veja os ganhadores por loteria e os prêmios mais recentes.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/ganhadores/${UF.toLowerCase()}/${slug}/`, about: { '@type': 'City', name: nome, containedInPlace: { '@type': 'State', name: UFS[UF] } }, isPartOf: { '@id': `${SITE.url}/#site` } }];
+---
+<Base title={titulo} description={desc} schema={schema}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: 'Ganhadores por cidade', url: '/ganhadores/' }, { nome: UFS[UF], url: `/ganhadores/${UF.toLowerCase()}/` }, { nome }]} />
+    <h1>Ganhadores da loteria em {nome} ({UF})</h1>
+    <p class="lead">Prêmios principais das loterias da Caixa que saíram para apostas de {nome}.</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p><strong>{nome}</strong> já teve <strong>{numero(c.total)} prêmios principais</strong> nas loterias da Caixa{lots.length > 1 ? <>, em {lots.length} modalidades diferentes</> : ''}{mega ? <> — {numero(mega.n)} deles na Mega-Sena</> : ''}. É a <strong>{pos}ª cidade</strong> com mais prêmios em {UFS[UF]}.{ult && <> O prêmio mais recente foi da {NOMES_LOT[ult.api].nome}, no <a href={`/${NOMES_LOT[ult.api].slug}/concurso/${ult.n}/`}>concurso {ult.n}</a> ({dataBR(ult.d)}).</>}</p></Resposta>
+    <Fonte />
+    <h2>Prêmios em {nome} por loteria</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Loteria</th><th>Faixa principal</th><th class="num">Ganhadores em {nome}</th></tr></thead>
+      <tbody>{lots.map(([api, v]) => <tr><td><a href={`/${NOMES_LOT[api].slug}/ganhadores/${UF.toLowerCase()}/`}>{NOMES_LOT[api].nome}</a></td><td>{NOMES_LOT[api].faixas[0].label}</td><td class="num">{numero(v.n)}</td></tr>)}</tbody>
+    </table></div>
+    <Ad />
+    <h2>Últimos ganhadores em {nome}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Data</th><th>Loteria</th><th>Concurso</th><th class="num">Prêmio por aposta</th></tr></thead>
+      <tbody>{ultimos.map((x) => <tr><td>{dataBR(x.d)}</td><td>{NOMES_LOT[x.api].nome}</td><td><a href={`/${NOMES_LOT[x.api].slug}/concurso/${x.n}/`}>{x.n}</a></td><td class="num">{x.p ? reais(x.p) : '—'}</td></tr>)}</tbody>
+    </table></div>
+    <div class="prose">
+      <h2>{nome} tem mais sorte?</h2>
+      <p>Não existe cidade da sorte: cada aposta tem a mesma chance em qualquer lugar do Brasil. O número de prêmios de uma cidade acompanha, principalmente, o tamanho da população e a quantidade de apostas feitas nas suas lotéricas. O primeiro prêmio principal registrado em {nome} no nosso histórico é de {dataBR(c.primeiro)}.</p>
+      {vizinhas.length > 0 && <><h2>Outras cidades de {UFS[UF]}</h2><p>{vizinhas.slice(0, 15).map((x, i) => <>{i > 0 && ' · '}<a href={`/ganhadores/${UF.toLowerCase()}/${x.slug}/`}>{cidadeBonita(x.nome)}</a></>)} · <a href={`/ganhadores/${UF.toLowerCase()}/`}>todas</a></p></>}
+    </div>
+    <Faq itens={[
+      { q: `Quantas pessoas já ganharam na loteria em ${nome}?`, a: `${numero(c.total)} apostas de ${nome} acertaram a faixa principal de alguma loteria da Caixa, segundo a lista oficial de cidades dos ganhadores.` },
+      ...(mega ? [{ q: `Quantas vezes a Mega-Sena saiu em ${nome}?`, a: `${numero(mega.n)} vez(es)${mega.ultimos[0] ? `; a mais recente no concurso ${mega.ultimos[0][0]}, em ${dataBR(mega.ultimos[0][1])}` : ''}.` }] : []),
+      { q: `Qual foi o último prêmio de loteria em ${nome}?`, a: ult ? `${NOMES_LOT[ult.api].nome}, concurso ${ult.n}, em ${dataBR(ult.d)}${ult.p ? `, com ${reais(ult.p)} por aposta` : ''}.` : '—' },
+    ]} />
+  </section>
+</Base>

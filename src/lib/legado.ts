@@ -93,7 +93,7 @@ export function legado(caminho: string): Acao {
 
   // páginas antigas do Rio de Prêmios (raiz do site) → seção nova
   const seg1 = p.split('/')[1] ?? '';
-  const REAIS = new Set(['rio-de-premios', 'mega-da-virada', 'lotofacil-da-independencia', 'quina-de-sao-joao', 'dupla-de-pascoa', 'guias', 'ferramentas', 'estatisticas', 'sobre', 'autores', 'api', ...LOTERIAS.map((l) => l.slug)]);
+  const REAIS = new Set(['ganhadores', 'rio-de-premios', 'mega-da-virada', 'lotofacil-da-independencia', 'quina-de-sao-joao', 'dupla-de-pascoa', 'guias', 'ferramentas', 'estatisticas', 'sobre', 'autores', 'api', ...LOTERIAS.map((l) => l.slug)]);
   if (!REAIS.has(seg1)) {
     if (/^\/[^/]*(comprar|bilhete|cadastr|pontos?-de-venda|onde-comprar)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/bilhete-e-cadastro/' };
     if (/^\/[^/]*(resgat|premio-rio|retirar-premio)[^/]*\/?$/.test(p)) return { tipo: 'redirect', para: '/rio-de-premios/como-resgatar/' };
