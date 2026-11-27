@@ -41,7 +41,8 @@ export async function paginas(db: any): Promise<Url[]> {
   ];
   for (const l of LOTERIAS) {
     const a = atu[l.api] ?? fixo;
-    u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a });
+    u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a }, { loc: `/${l.slug}/conferir/`, lastmod: a }, { loc: `/${l.slug}/gerador/`, lastmod: fixo });
+    if (l.tipo === 'padrao') for (let n = l.escolhaMin; n <= l.escolhaMax; n++) u.push({ loc: `/${l.slug}/com-${n}-numeros/`, lastmod: fixo });
     if (l.tipo !== 'colunas' && res[l.api]) {
       u.push({ loc: `/${l.slug}/dezenas/`, lastmod: a });
       for (let d = l.min; d <= l.max; d++) u.push({ loc: `/${l.slug}/dezenas/${String(d).padStart(2, '0')}/`, lastmod: a });
@@ -53,6 +54,7 @@ export async function paginas(db: any): Promise<Url[]> {
   const vir = max(VIRADA.atualizado, viradas[0]?.d);
   for (const p of ['', 'resultados/', 'estatisticas/', 'calculadora-de-bolao/', 'simulador/', 'gerador/', 'premio-liquido/', 'como-apostar/', 'seus-numeros/', 'bolao-online/', 'quanto-rende/', 'quanto-custa-apostar/', 'premios-por-acertos/', 'como-jogar-online/', 'o-que-comprar/', 'palpites-por-signo/'])
     u.push({ loc: `/mega-da-virada/${p}`, lastmod: p === 'resultados/' || p === 'estatisticas/' ? max(viradas[0]?.d) : vir });
+  for (const [pg, api] of [['lotofacil-da-independencia', 'lotofacil'], ['quina-de-sao-joao', 'quina'], ['dupla-de-pascoa', 'duplasena']]) u.push({ loc: `/${pg}/`, lastmod: atu[api] ?? fixo });
   for (const sg of SIGNOS) u.push({ loc: `/mega-da-virada/palpites-por-signo/${sg.slug}/`, lastmod: fixo });
   const prox = proximaEdicao();
   const rpAtu = dataEdicao(prox - 1);

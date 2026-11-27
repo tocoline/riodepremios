@@ -1,0 +1,62 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Bolas from '../../components/Bolas.astro';
+import Fonte from '../../components/Fonte.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Conferidor from '../../components/tools/Conferidor.astro';
+import { POR_SLUG, diasTexto } from '../../lib/loterias';
+import { getDB, ultimos } from '../../lib/db';
+import { dataBR, pad } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l) return naoEncontrado(Astro);
+cachear(Astro, 600);
+const [c] = await ultimos(getDB(Astro.locals), l, 1);
+const dig = l.tipo === 'colunas' ? 1 : 2;
+const exemplo = l.tipo === 'colunas' ? '4 0 7 1 9 3 8' : l.tipo === 'trevos' ? '03 11 22 30 41 48 | 2 5' : Array.from({ length: l.escolhaMin }, (_, i) => pad(l.min + Math.round((i * (l.max - l.min)) / l.escolhaMin) + 1)).join(' ');
+const titulo = `Conferir ${l.nome}: confira seu jogo${c ? ` do concurso ${c.numero}` : ''}`;
+const desc = `Confira seus jogos da ${l.nome} online e grátis${c ? `, com o resultado do concurso ${c.numero} (${dataBR(c.data)})` : ''}. Digite um ou vários jogos e veja na hora os acertos e se foram premiados.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebApplication', name: `Conferidor da ${l.nome}`, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Qualquer navegador', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/conferir/` }];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={c?.atualizado_em}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Conferir' }]} />
+    <h1>Conferir {l.nome}</h1>
+    <p class="lead">Digite seus jogos e veja na hora quantos números você acertou{c ? ` no concurso ${c.numero}` : ''} ou em qualquer concurso anterior.</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    {c && (
+      <div class="card ult" style={`--c:${l.cor}`}>
+        <p class="lbl">Último resultado · concurso {c.numero} · {dataBR(c.data)}</p>
+        <Bolas dezenas={c.dezenas} cor={l.cor} digitos={dig} />
+        {c.dezenas2 && <><p class="lbl" style="margin-top:10px">2º sorteio</p><Bolas dezenas={c.dezenas2} cor={l.cor2} /></>}
+        {c.extra?.trevos && <p class="small muted" style="margin:8px 0 0">Trevos: {c.extra.trevos.join(' e ')}</p>}
+        <a class="small" href={`/${l.slug}/concurso/${c.numero}/`}>Ver premiação completa →</a>
+      </div>
+    )}
+    <div style="margin-top:16px"><Conferidor fixa={l.slug} /></div>
+    <Fonte atualizado={c?.atualizado_em} />
+    <Ad />
+    <Resposta><p>Para conferir a {l.nome}, digite seus números no campo acima — um jogo por linha — e clique em <strong>Conferir agora</strong>. Deixe o concurso em branco para usar o último sorteio{c ? ` (${c.numero})` : ''}. A {l.nome} sorteia às {diasTexto(l)}, às 20h, e o resultado aparece aqui minutos depois.</p></Resposta>
+    <div class="prose" style="margin-top:20px">
+      <h2>Como preencher</h2>
+      <p>Separe os números com espaço, vírgula ou traço. Exemplo de jogo da {l.nome}: <code>{exemplo}</code>. Você pode colar vários jogos de uma vez, como os de um bolão.</p>
+      <h2>Quando um jogo é premiado na {l.nome}</h2>
+      <p>A {l.nome} paga prêmios para {l.faixas.map((f) => f.label.toLowerCase()).join(', ')}. O conferidor destaca os números acertados e indica quando o jogo entra em alguma faixa. Veja <a href={`/${l.slug}/premios/`}>quanto paga cada faixa</a>.</p>
+      <h2>Conferir concursos anteriores</h2>
+      <p>Digite o número do concurso no campo "Concurso". Todos os resultados estão no <a href={`/${l.slug}/resultados/`}>arquivo da {l.nome} por ano</a>.</p>
+    </div>
+    <Faq itens={[
+      { q: `Como conferir o resultado da ${l.nome}?`, a: 'Digite seus jogos no conferidor desta página e clique em "Conferir agora". Os acertos aparecem destacados e o sistema indica se a aposta foi premiada.' },
+      { q: 'O conferidor vale como comprovante?', a: 'Não. É uma conferência informativa. Para receber prêmios, valide o bilhete em uma lotérica ou no app Loterias Caixa.' },
+      { q: 'Meus números ficam salvos?', a: 'Não. A conferência acontece no seu navegador.' },
+    ]} />
+  </section>
+</Base>
+<style> .ult { display: flex; flex-direction: column; gap: 10px; border-top: 3px solid var(--c); } .lbl { margin: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); font-weight: 700; } </style>

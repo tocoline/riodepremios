@@ -1,4 +1,5 @@
 ---
+import { LOTERIAS } from '../../lib/loterias';
 import Ferramenta from '../../layouts/Ferramenta.astro';
 import Gerador from '../../components/tools/Gerador.astro';
 ---
@@ -12,6 +13,7 @@ import Gerador from '../../components/tools/Gerador.astro';
   ]}>
   <Gerador />
   <div slot="depois" class="prose">
+    <p><strong>Gerador por loteria:</strong> {LOTERIAS.map((l, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/gerador/`}>{l.nome}</a></>)}</p>
     <h2>Como usar o gerador</h2>
     <ol>
       <li>Escolha a <strong>loteria</strong> e a <strong>quantidade de números</strong> por jogo.</li>

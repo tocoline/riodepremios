@@ -24,6 +24,8 @@ if (!l) return naoEncontrado(Astro);
 cachear(Astro);
 const [lista, r] = await Promise.all([ultimos(getDB(Astro.locals), l, 11), resumo(getDB(Astro.locals), l)]);
 const anos = r?.anos ?? [];
+const ESPECIAIS: Record<string, [string, string]> = { lotofacil: ['/lotofacil-da-independencia/', 'Lotofácil da Independência'], quina: ['/quina-de-sao-joao/', 'Quina de São João'], 'dupla-sena': ['/dupla-de-pascoa/', 'Dupla de Páscoa'], 'mega-sena': ['/mega-da-virada/', 'Mega da Virada'] };
+const especial = ESPECIAIS[l.slug];
 if (!lista.length && dbFalhou(getDB(Astro.locals))) return indisponivel();
 const [c, ...anteriores] = lista;
 const titulo = c ? `Resultado ${l.nome} ${c.numero} de ${dataBR(c.data)} — Último sorteio` : `Resultado da ${l.nome} — Último sorteio`;
@@ -104,6 +106,10 @@ const schema = [{
     <div class="grid g3">
       <a class="card card-link" href={`/${l.slug}/premios/`}><strong>Quanto paga cada faixa</strong><p class="small muted" style="margin:4px 0 0">Prêmio médio, mínimo e máximo nos últimos concursos</p></a>
       {l.tipo !== 'colunas' && <a class="card card-link" href={`/${l.slug}/dezenas/`}><strong>Todas as dezenas</strong><p class="small muted" style="margin:4px 0 0">Quantas vezes cada número saiu e há quanto tempo</p></a>}
+      <a class="card card-link" href={`/${l.slug}/conferir/`}><strong>Conferir {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Confira seus jogos com o último resultado</p></a>
+      <a class="card card-link" href={`/${l.slug}/gerador/`}><strong>Gerador da {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Jogos aleatórios em segundos</p></a>
+      {l.tipo === 'padrao' && <a class="card card-link" href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}><strong>Apostar com mais números</strong><p class="small muted" style="margin:4px 0 0">Preço e chances de {l.escolhaMin} a {l.escolhaMax} números</p></a>}
+      {especial && <a class="card card-link" href={especial[0]}><strong>{especial[1]}</strong><p class="small muted" style="margin:4px 0 0">O concurso especial que não acumula</p></a>}
       <a class="card card-link" href="/guias/horario-dos-sorteios-das-loterias/"><strong>Horários dos sorteios</strong><p class="small muted" style="margin:4px 0 0">Dias, horário e até quando apostar</p></a>
     </div>
   </section>

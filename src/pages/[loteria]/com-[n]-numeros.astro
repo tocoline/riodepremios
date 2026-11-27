@@ -1,0 +1,103 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG } from '../../lib/loterias';
+import { custo, probabilidade, chance, C } from '../../lib/math';
+import { getDB } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { reais, numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+const n = Number(Astro.params.n);
+// só loterias em que o apostador escolhe quantos números marcar (padrão)
+if (!l || l.tipo !== 'padrao' || !/^\d{1,2}$/.test(Astro.params.n ?? '') || n < l.escolhaMin || n > l.escolhaMax) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const r = await resumo(getDB(Astro.locals), l);
+
+const m = l.escolhaMin;                 // tamanho da aposta simples
+const preco = custo(l, n);
+const simples = C(n, m);
+const faixas = l.faixas.map((f) => f.acertos);
+const chances = l.faixas.map((f) => ({ label: f.label, k: f.acertos, c: chance(probabilidade(l, f.acertos, n)) }));
+const principal = chances[0];
+// Quantos prêmios de cada faixa um jogo de n números rende se acertar k dezenas:
+// combinações de m números com exatamente j acertos = C(k, j) × C(n − k, m − j)
+const kMin = Math.min(...faixas);
+const linhasK = Array.from({ length: Math.min(n, l.sorteadas) - kMin + 1 }, (_, i) => Math.min(n, l.sorteadas) - i);
+const premiosCom = (k: number) => faixas.map((j) => ({ j, q: j <= k ? C(k, j) * C(n - k, m - j) : 0 }));
+const ultimoValor = (j: number) => r?.faixas?.find((f) => f.descricao.startsWith(`${j} acerto`))?.ultimoValor ?? null;
+const ant = n > l.escolhaMin ? n - 1 : null, prox = n < l.escolhaMax ? n + 1 : null;
+const vezesMaior = simples; // chance da faixa principal cresce na mesma proporção das combinações
+const titulo = `${l.nome} com ${n} números: valor, chances e prêmios`;
+const desc = `Quanto custa jogar ${n} números na ${l.nome} (${reais(preco)}), a chance de acertar cada faixa e quantos prêmios você ganha se acertar. Tabela calculada com exatidão.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/com-${n}-numeros/`, dateModified: CONTEUDO_ATUALIZADO, isPartOf: { '@id': `${SITE.url}/#site` } }];
+const fmtP = (p: { j: number; q: number }[]) => p.filter((x) => x.q).map((x) => `${numero(x.q)} × ${x.j} acertos`).join(' + ') || '—';
+---
+<Base title={titulo} description={desc} schema={schema}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Como jogar', url: `/${l.slug}/como-jogar/` }, { nome: `Com ${n} números` }]} />
+    <h1>{l.nome} com {n} números</h1>
+    <p class="lead">Quanto custa, qual a chance de ganhar e quantos prêmios uma aposta de {n} números rende quando acerta.</p>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>Uma aposta de <strong>{n} números na {l.nome}</strong> custa <strong>{reais(preco)}</strong> e equivale a <strong>{numero(simples)} {simples === 1 ? 'aposta simples' : 'apostas simples'}</strong> de {m} números. A chance de acertar a faixa principal ({principal.label.toLowerCase()}) é de <strong>1 em {numero(principal.c)}</strong>{n > m ? <> — {numero(vezesMaior)} vezes maior que a de uma aposta simples, exatamente na proporção do preço</> : ''}.</p></Resposta>
+
+    <div class="grid g4 cn-stats">
+      <div class="stat res"><span class="stat-l">Valor da aposta</span><span class="stat-v">{reais(preco)}</span></div>
+      <div class="stat res"><span class="stat-l">Apostas simples</span><span class="stat-v">{numero(simples)}</span></div>
+      <div class="stat res"><span class="stat-l">Chance da principal</span><span class="stat-v">1 em {numero(principal.c)}</span></div>
+      <div class="stat res"><span class="stat-l">Custo por apostador (bolão de 10)</span><span class="stat-v">{reais(preco / 10)}</span></div>
+    </div>
+
+    <h2>Chance de ganhar cada faixa com {n} números</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Faixa</th><th class="num">Chance com {n} números</th><th class="num">Chance com aposta simples</th></tr></thead>
+      <tbody>{chances.map((x) => <tr><td>{x.label}</td><td class="num">1 em {numero(x.c)}</td><td class="num">1 em {numero(chance(probabilidade(l, x.k, m)))}</td></tr>)}</tbody>
+    </table></div>
+
+    {n > m && (
+      <>
+        <h2>Quantos prêmios você ganha se acertar</h2>
+        <p class="muted">Um jogo de {n} números é conferido como {numero(simples)} apostas de {m}. Quando ele acerta, várias dessas combinações podem ser premiadas ao mesmo tempo:</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Se acertar</th><th>Prêmios que o jogo recebe</th></tr></thead>
+          <tbody>{linhasK.map((k) => <tr><td><strong>{k} dezenas</strong></td><td>{fmtP(premiosCom(k))}</td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    {l.slug === 'lotofacil' && (ultimoValor(11) || ultimoValor(12) || ultimoValor(13)) && (
+      <p class="small muted">Valores pagos no último concurso: {[11, 12, 13].filter((j) => ultimoValor(j)).map((j) => `${j} acertos = ${reais(ultimoValor(j)!)}`).join(' · ')}. As faixas de 11, 12 e 13 acertos têm prêmio fixo; 14 e 15 variam conforme o número de ganhadores. <a href="/lotofacil/premios/">Veja quanto paga cada faixa</a>.</p>
+    )}
+    <Ad />
+    <div class="prose">
+      <h2>Vale a pena jogar {n} números na {l.nome}?</h2>
+      <p>{n === m
+        ? <>A aposta simples é a forma mais barata de jogar na {l.nome}. Com {reais(preco)}, você concorre com uma única combinação. Para aumentar a chance, é possível marcar até {l.escolhaMax} números — cada número a mais multiplica o preço e a chance na mesma proporção.</>
+        : <>Marcar {n} números não muda a matemática: você paga por {numero(simples)} combinações e tem {numero(simples)} vezes mais chance na faixa principal. A vantagem real está nas faixas menores — quando o jogo acerta, ele costuma render vários prêmios de uma vez, como mostra a tabela acima.</>}</p>
+      <p>{preco >= 500
+        ? <>Por custar {reais(preco)}, essa aposta costuma ser feita em <strong>bolão</strong>. Dividida entre 10 pessoas, cada uma paga {reais(preco / 10)}; entre 20, {reais(preco / 20)}. Simule na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a>.</>
+        : <>Com {reais(preco)}, a aposta cabe no orçamento de muita gente, mas também pode ser dividida num bolão para reduzir o custo por pessoa. Simule na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a>.</>}</p>
+      <h2>Como fazer a aposta</h2>
+      <p>Marque {n} números no volante da lotérica ou selecione {n} dezenas no app Loterias Caixa e no portal Loterias Online. O sistema calcula o valor automaticamente. Depois do sorteio, confira o jogo no <a href={`/${l.slug}/conferir/`}>conferidor da {l.nome}</a>.</p>
+    </div>
+    <nav class="cn-nav" aria-label="Outras quantidades">
+      {ant && <a class="btn btn-sm" href={`/${l.slug}/com-${ant}-numeros/`}>← {ant} números</a>}
+      {prox && <a class="btn btn-sm" href={`/${l.slug}/com-${prox}-numeros/`}>{prox} números →</a>}
+    </nav>
+    <p class="small muted">Todas as quantidades: {Array.from({ length: l.escolhaMax - l.escolhaMin + 1 }, (_, i) => l.escolhaMin + i).map((x, i) => <>{i > 0 && ' · '}{x === n ? <strong>{x}</strong> : <a href={`/${l.slug}/com-${x}-numeros/`}>{x}</a>}</>)}</p>
+    <Faq itens={[
+      { q: `Quanto custa jogar ${n} números na ${l.nome}?`, a: `${reais(preco)}, o equivalente a ${numero(simples)} apostas simples de ${reais(l.preco)}.` },
+      { q: `Qual a chance de ganhar na ${l.nome} com ${n} números?`, a: `A chance de ${principal.label.toLowerCase()} é de 1 em ${numero(principal.c)}. ${chances.slice(1).map((x) => `${x.label}: 1 em ${numero(x.c)}`).join('; ')}.` },
+      ...(n > m ? [{ q: `Se eu acertar ${faixas[0]} dezenas jogando ${n} números, quanto ganho?`, a: `O jogo recebe ${fmtP(premiosCom(faixas[0]))}. O valor de cada prêmio depende do rateio do concurso.` }] : []),
+    ]} />
+  </section>
+</Base>
+<style> .cn-stats { margin: 18px 0 8px; } .cn-nav { display: flex; gap: 10px; margin: 20px 0 8px; } h2 { margin-top: 28px; } </style>

@@ -1,4 +1,5 @@
 ---
+import { LOTERIAS } from '../../lib/loterias';
 import Ferramenta from '../../layouts/Ferramenta.astro';
 import Conferidor from '../../components/tools/Conferidor.astro';
 ---
@@ -13,6 +14,7 @@ import Conferidor from '../../components/tools/Conferidor.astro';
   ]}>
   <Conferidor />
   <div slot="depois" class="prose">
+    <p><strong>Conferidor por loteria:</strong> {LOTERIAS.map((l, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/conferir/`}>{l.nome}</a></>)}</p>
     <h2>Como usar o conferidor</h2>
     <ol>
       <li><strong>Escolha a loteria</strong> no seletor (Mega-Sena, Lotofácil, Quina e as demais).</li>

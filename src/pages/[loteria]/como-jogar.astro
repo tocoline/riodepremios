@@ -38,6 +38,7 @@ const schema = [{
       <ul>{l.dicas.map((d) => <li>{d}</li>)}<li>Guarde o comprovante: ele é o único documento que garante o prêmio. O prazo para resgate é de 90 dias após o sorteio.</li></ul>
     </div>
     <Ad />
+    {l.tipo === 'padrao' && <p class="muted">Preço, chances e prêmios por quantidade de números: {Array.from({ length: l.escolhaMax - l.escolhaMin + 1 }, (_, i) => l.escolhaMin + i).map((n, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/com-${n}-numeros/`}>{n} números</a></>)}</p>}
     <h2>Prêmios e probabilidades</h2>
     <TabelasLoteria l={l} />
   </section>

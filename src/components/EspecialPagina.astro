@@ -1,0 +1,83 @@
+---
+// Página de concurso especial (Lotofácil da Independência, Quina de São João, Dupla de Páscoa)
+import Base from '../layouts/Base.astro';
+import Crumbs from './Crumbs.astro';
+import Resposta from './Resposta.astro';
+import Bolas from './Bolas.astro';
+import Fonte from './Fonte.astro';
+import Autor from './Autor.astro';
+import Faq from './Faq.astro';
+import Ad from './Ad.astro';
+import { POR_SLUG } from '../lib/loterias';
+import { getDB, especiais } from '../lib/db';
+import { chancePrincipal } from '../lib/conteudo';
+import { dataBR, reais, reaisCurto, numero } from '../lib/format';
+import { cachear } from '../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../lib/site';
+interface Props { slug: string; nome: string; epoca: string; motivo: string; url: string }
+const { slug, nome, epoca, motivo, url } = Astro.props;
+const l = POR_SLUG[slug];
+cachear(Astro, 3600);
+const eds = await especiais(getDB(Astro.locals), l);
+const ultima = eds[0];
+const principal = (c: (typeof eds)[number]) => { const [a, b] = c.premiacoes; return a?.ganhadores ? { faixa: a.descricao, g: a.ganhadores, p: a.premio } : b ? { faixa: b.descricao, g: b.ganhadores, p: b.premio } : null; };
+const recorde = [...eds].map((c) => ({ c, p: principal(c) })).filter((x) => x.p).sort((a, b) => b.p!.p * b.p!.g - a.p!.p * a.p!.g)[0];
+const titulo = `${nome}: resultados, prêmio e como funciona`;
+const desc = `Tudo sobre a ${nome}: quando é sorteada, como funciona o prêmio que não acumula e os resultados de ${eds.length ? `${eds.length} edições anteriores` : 'edições anteriores'}, com dezenas e ganhadores.`;
+const ano = (c: (typeof eds)[number]) => c.data.slice(0, 4);
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', dateModified: ultima?.atualizado_em ?? CONTEUDO_ATUALIZADO, mainEntityOfPage: `${SITE.url}${url}`, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={ultima?.atualizado_em}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome }]} />
+    <span class="eyebrow" style={`color:${l.cor}`}>Concurso especial · {epoca}</span>
+    <h1>{nome}</h1>
+    <p class="lead">O concurso especial da {l.nome} que não acumula: como funciona, quando acontece e todos os resultados anteriores.</p>
+    <Autor atualizado={ultima?.atualizado_em ?? CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>A <strong>{nome}</strong> é o concurso especial anual da {l.nome}, realizado {epoca}. A principal diferença para um concurso comum é que o prêmio principal <strong>não acumula</strong>: se ninguém acertar a faixa principal, o valor passa para a faixa seguinte. A aposta custa o mesmo de um concurso normal ({reais(l.preco)} na aposta mínima), e a chance da faixa principal é de 1 em {numero(chancePrincipal(l))}.{ultima ? <> A edição mais recente foi a de {ano(ultima)}, concurso <a href={`/${l.slug}/concurso/${ultima.numero}/`}>{ultima.numero}</a>.</> : ''}</p></Resposta>
+    {ultima && (
+      <div class="card ult" style={`--c:${l.cor}`}>
+        <p class="lbl">Último resultado · {nome} {ano(ultima)} · concurso {ultima.numero} · {dataBR(ultima.data)}</p>
+        <Bolas dezenas={ultima.dezenas} cor={l.cor} />
+        {ultima.dezenas2 && <><p class="lbl" style="margin-top:8px">2º sorteio</p><Bolas dezenas={ultima.dezenas2} cor={l.cor2} /></>}
+        {principal(ultima) && <p class="small muted" style="margin:6px 0 0">{numero(principal(ultima)!.g)} aposta(s) na faixa "{principal(ultima)!.faixa}", com {reais(principal(ultima)!.p)} para cada.</p>}
+      </div>
+    )}
+    <Fonte atualizado={ultima?.atualizado_em} />
+    <div class="prose">
+      <h2>Como funciona a {nome}</h2>
+      <p>{motivo} As regras de aposta são as mesmas da {l.nome} comum: os mesmos números, as mesmas faixas de prêmio e os mesmos preços. Uma parte da arrecadação dos concursos regulares ao longo do ano é reservada para formar o prêmio do concurso especial, que por isso costuma ser bem maior que o de um concurso comum.</p>
+      <h3>O prêmio não acumula</h3>
+      <p>Se nenhuma aposta acertar a faixa principal, o valor é dividido entre os acertadores da faixa seguinte. Por isso se diz que, no concurso especial, "alguém sempre leva".</p>
+      <h2>Quando acontece</h2>
+      <p>A {nome} é sorteada {epoca}. A data exata e o prêmio estimado de cada edição são divulgados pela Caixa algumas semanas antes; as apostas costumam abrir com antecedência e correr em paralelo aos concursos regulares. Acompanhe a página da <a href={`/${l.slug}/`}>{l.nome}</a> para ver o próximo concurso.</p>
+    </div>
+    <Ad />
+    {eds.length > 0 && (
+      <>
+        <h2>Resultados de todas as edições</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Ano</th><th>Concurso</th><th>Dezenas</th><th class="num">Ganhadores (faixa principal paga)</th><th class="num">Prêmio por aposta</th></tr></thead>
+          <tbody>{eds.map((c) => { const p = principal(c); return <tr><td>{ano(c)}</td><td><a href={`/${l.slug}/concurso/${c.numero}/`}>{c.numero}</a></td><td><Bolas dezenas={c.dezenas} cor={l.cor} tam="sm" /></td><td class="num">{p ? `${numero(p.g)} (${p.faixa})` : '—'}</td><td class="num">{p ? reais(p.p) : '—'}</td></tr>; })}</tbody>
+        </table></div>
+        {recorde && <p class="small muted">Maior prêmio total pago na faixa principal registrada: {reaisCurto(recorde.p!.p * recorde.p!.g)}, na edição de {ano(recorde.c)}.</p>}
+      </>
+    )}
+    <div class="prose">
+      <h2>Dicas para a próxima edição</h2>
+      <ul>
+        <li>Veja o preço de apostas maiores, como <a href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}>{l.nome} com {l.escolhaMin + 1} números</a>.</li>
+        <li>Monte jogos aleatórios no <a href={`/${l.slug}/gerador/`}>gerador da {l.nome}</a> e confira depois no <a href={`/${l.slug}/conferir/`}>conferidor</a>.</li>
+        <li>Concursos especiais atraem muitos apostadores: evite combinações populares para não dividir o prêmio com tanta gente.</li>
+      </ul>
+    </div>
+    <Faq itens={[
+      { q: `Quando é a ${nome}?`, a: `A ${nome} acontece ${epoca}. A data exata de cada edição é divulgada pela Caixa.` },
+      { q: `A ${nome} acumula?`, a: 'Não. Sem acertadores da faixa principal, o prêmio vai para os acertadores da faixa seguinte.' },
+      { q: `Quanto custa apostar na ${nome}?`, a: `O mesmo de um concurso comum da ${l.nome}: ${reais(l.preco)} na aposta mínima.` },
+    ]} />
+  </section>
+</Base>
+<style> .ult { display: flex; flex-direction: column; gap: 8px; border-top: 3px solid var(--c); margin-top: 16px; } .lbl { margin: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); font-weight: 700; } h2 { margin-top: 28px; } </style>

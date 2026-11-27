@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import Gerador from '../../components/tools/Gerador.astro';
+import { LOTERIAS, type Loteria } from '../../lib/loterias';
+import { reais } from '../../lib/format';
+import { SITE } from '../../lib/site';
+
+export function getStaticPaths() { return LOTERIAS.map((l) => ({ params: { loteria: l.slug }, props: { l } })); }
+const { l } = Astro.props as { l: Loteria };
+const titulo = `Gerador de números da ${l.nome}: jogos aleatórios grátis`;
+const desc = `Gere jogos aleatórios para a ${l.nome} em segundos: escolha quantos números e quantos jogos, fixe ou exclua dezenas e evite sequências. Grátis e sem cadastro.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebApplication', name: `Gerador da ${l.nome}`, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Qualquer navegador', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/gerador/` }];
+const regra = l.tipo === 'colunas' ? 'um número de 0 a 9 em cada uma das 7 colunas' : l.tipo === 'trevos' ? '6 números de 1 a 50 e 2 trevos de 1 a 6' : l.escolhaMin === l.escolhaMax ? `${l.escolhaMin} números entre ${String(l.min).padStart(2, '0')} e ${l.max}` : `de ${l.escolhaMin} a ${l.escolhaMax} números entre ${l.min} e ${l.max}`;
+---
+<Base title={titulo} description={desc} schema={schema}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Gerador de números' }]} />
+    <h1>Gerador de números da {l.nome}</h1>
+    <p class="lead">Jogos aleatórios prontos para apostar, com filtros para fugir das combinações mais populares.</p>
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Gerador fixa={l.slug} />
+    <Ad />
+    <Resposta><p>O gerador cria jogos da {l.nome} com {regra}, usando o gerador aleatório criptográfico do seu navegador. A aposta mínima custa {reais(l.preco)}. Nenhum gerador aumenta a chance de ganhar — todas as combinações têm a mesma probabilidade —, mas jogos bem espalhados reduzem o risco de dividir o prêmio com muita gente.</p></Resposta>
+    <div class="prose" style="margin-top:20px">
+      <h2>Como usar</h2>
+      <ol>
+        {l.tipo === 'padrao' && <li>Escolha quantos números quer em cada jogo (de {l.escolhaMin} a {l.escolhaMax}). Veja o preço de cada opção em <a href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}>{l.nome} com {l.escolhaMin + 1} números</a>.</li>}
+        <li>Defina quantos jogos quer gerar.</li>
+        <li>Se quiser, fixe números que devem aparecer em todos os jogos ou exclua os que não quer.</li>
+        <li>Clique em <strong>Gerar jogos</strong> e use <strong>Copiar</strong> para levar os números para o app da Caixa ou para o grupo do bolão.</li>
+      </ol>
+      <h2>Por que usar números aleatórios</h2>
+      <p>Muitas pessoas escolhem datas de aniversário, sequências e desenhos no volante. Quando uma dessas combinações é sorteada, o prêmio é dividido entre muitos ganhadores. Jogos aleatórios, bem distribuídos pelo volante, fogem desse padrão.</p>
+      <p>Depois do sorteio, confira os jogos no <a href={`/${l.slug}/conferir/`}>conferidor da {l.nome}</a> e veja as <a href={`/${l.slug}/${l.tipo === 'colunas' ? 'resultados' : 'estatisticas'}/`}>{l.tipo === 'colunas' ? 'resultados anteriores' : 'estatísticas das dezenas'}</a>.</p>
+    </div>
+    <Faq itens={[
+      { q: `O gerador da ${l.nome} aumenta a chance de ganhar?`, a: 'Não. Todas as combinações têm a mesma probabilidade. O gerador ajuda a escolher rapidamente e a evitar combinações populares.' },
+      { q: 'Os números são realmente aleatórios?', a: 'Sim. O gerador usa a função criptográfica do navegador (crypto.getRandomValues).' },
+      { q: 'Posso gerar vários jogos para um bolão?', a: 'Sim, até 50 jogos de uma vez, sem repetir combinações.' },
+    ]} />
+  </section>
+</Base>
