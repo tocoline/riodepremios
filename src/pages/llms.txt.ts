@@ -36,6 +36,8 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 ## Dezenas e prêmios
 - Página de cada dezena: ${u}/{loteria}/dezenas/{NN}/ (quantas vezes saiu, última vez, atraso, companheiras) · índice: ${u}/{loteria}/dezenas/
 - Quanto paga cada faixa: ${u}/{loteria}/premios/
+- Acertei N números, ganho algo?: ${u}/{loteria}/acertei-{N}-numeros/
+- Ganhadores por estado e cidade: ${u}/{loteria}/ganhadores/ e ${u}/{loteria}/ganhadores/{uf}/
 - Conferir jogos: ${u}/{loteria}/conferir/ · Gerador: ${u}/{loteria}/gerador/ · Preço e chances por quantidade de números: ${u}/{loteria}/com-{N}-numeros/
 - Concursos especiais: ${u}/lotofacil-da-independencia/ · ${u}/quina-de-sao-joao/ · ${u}/dupla-de-pascoa/
 

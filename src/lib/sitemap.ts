@@ -5,6 +5,7 @@ import { SITE, CONTEUDO_ATUALIZADO } from './site';
 import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios';
 import { resumo, type Resumo } from './resumo';
 import { SIGNOS } from './signos';
+import { faixaAcertos } from './acertos';
 import { marcarFalha } from './db';
 
 /** Resumos de todas as loterias (1 linha lida por loteria). */
@@ -43,6 +44,9 @@ export async function paginas(db: any): Promise<Url[]> {
     const a = atu[l.api] ?? fixo;
     u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a }, { loc: `/${l.slug}/conferir/`, lastmod: a }, { loc: `/${l.slug}/gerador/`, lastmod: fixo });
     if (l.tipo === 'padrao') for (let n = l.escolhaMin; n <= l.escolhaMax; n++) u.push({ loc: `/${l.slug}/com-${n}-numeros/`, lastmod: fixo });
+    for (const k of faixaAcertos(l)) u.push({ loc: `/${l.slug}/acertei-${k}-numeros/`, lastmod: a });
+    const geo = res[l.api]?.geo;
+    if (geo?.concursosComCidade) { u.push({ loc: `/${l.slug}/ganhadores/`, lastmod: a }); for (const uf of Object.keys(geo.ufs)) u.push({ loc: `/${l.slug}/ganhadores/${uf.toLowerCase()}/`, lastmod: a }); }
     if (l.tipo !== 'colunas' && res[l.api]) {
       u.push({ loc: `/${l.slug}/dezenas/`, lastmod: a });
       for (let d = l.min; d <= l.max; d++) u.push({ loc: `/${l.slug}/dezenas/${String(d).padStart(2, '0')}/`, lastmod: a });

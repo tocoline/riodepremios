@@ -13,6 +13,7 @@ import { getDB, ultimos } from '../../lib/db';
 import { dataBR, pad } from '../../lib/format';
 import { cachear, naoEncontrado } from '../../lib/cache';
 import { SITE } from '../../lib/site';
+import { faixaAcertos } from '../../lib/acertos';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l) return naoEncontrado(Astro);
@@ -49,6 +50,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'WebApplication', n
       <p>Separe os números com espaço, vírgula ou traço. Exemplo de jogo da {l.nome}: <code>{exemplo}</code>. Você pode colar vários jogos de uma vez, como os de um bolão.</p>
       <h2>Quando um jogo é premiado na {l.nome}</h2>
       <p>A {l.nome} paga prêmios para {l.faixas.map((f) => f.label.toLowerCase()).join(', ')}. O conferidor destaca os números acertados e indica quando o jogo entra em alguma faixa. Veja <a href={`/${l.slug}/premios/`}>quanto paga cada faixa</a>.</p>
+      {faixaAcertos(l).length > 0 && <p>Acertou alguns números? {faixaAcertos(l).map((x, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/acertei-${x}-numeros/`}>acertei {x}</a></>)}</p>}
       <h2>Conferir concursos anteriores</h2>
       <p>Digite o número do concurso no campo "Concurso". Todos os resultados estão no <a href={`/${l.slug}/resultados/`}>arquivo da {l.nome} por ano</a>.</p>
     </div>

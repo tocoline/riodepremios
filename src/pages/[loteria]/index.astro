@@ -106,6 +106,7 @@ const schema = [{
     <div class="grid g3">
       <a class="card card-link" href={`/${l.slug}/premios/`}><strong>Quanto paga cada faixa</strong><p class="small muted" style="margin:4px 0 0">Prêmio médio, mínimo e máximo nos últimos concursos</p></a>
       {l.tipo !== 'colunas' && <a class="card card-link" href={`/${l.slug}/dezenas/`}><strong>Todas as dezenas</strong><p class="small muted" style="margin:4px 0 0">Quantas vezes cada número saiu e há quanto tempo</p></a>}
+      <a class="card card-link" href={`/${l.slug}/ganhadores/`}><strong>Ganhadores por estado</strong><p class="small muted" style="margin:4px 0 0">Estados e cidades que mais ganharam</p></a>
       <a class="card card-link" href={`/${l.slug}/conferir/`}><strong>Conferir {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Confira seus jogos com o último resultado</p></a>
       <a class="card card-link" href={`/${l.slug}/gerador/`}><strong>Gerador da {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Jogos aleatórios em segundos</p></a>
       {l.tipo === 'padrao' && <a class="card card-link" href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}><strong>Apostar com mais números</strong><p class="small muted" style="margin:4px 0 0">Preço e chances de {l.escolhaMin} a {l.escolhaMax} números</p></a>}

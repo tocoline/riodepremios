@@ -8,8 +8,17 @@ import { marcarFalha } from './db';
 export interface AnoInfo { ano: number; n: number; primeiro: number; ultimo: number; atualizado: string; ult: string; completo: boolean }
 export interface DezenaInfo { companheiras: [number, number][]; recentes: [number, string][] }
 export interface FaixaInfo { descricao: string; concursos: number; comGanhador: number; media: number; minimo: number; maximo: number; maxNumero: number | null; ultimoValor: number | null }
+export interface Ganhos { ganhadores: number; premiacoes: number }
+export interface Geo {
+  coberturaDesde: number | null;          // primeiro concurso com cidade informada
+  concursosComCidade: number;
+  online: number;                          // ganhadores por canal eletrônico (internet)
+  ufs: Record<string, Ganhos & { cidades: [string, number][]; recentes: [number, string, string, number][] }>;
+  cidades: [string, string, number][];     // [cidade, UF, ganhadores] — ranking geral
+}
 export interface Resumo {
   versao: number;
+  geo?: Geo;
   total: number; primeiro: number; ultimo: number; atualizado: string; calculadoEm: string;
   s: ReturnType<typeof calcular>;
   porAno: { ano: number; d: number; n: number }[];
@@ -18,7 +27,7 @@ export interface Resumo {
   faixas: FaixaInfo[];                     // prêmios por faixa nos últimos concursos
   faixasJanela: { de: number; ate: number; acumulou: number };
 }
-const VERSAO = 2; // aumente para forçar o recálculo quando o formato mudar
+const VERSAO = 3; // aumente para forçar o recálculo quando o formato mudar
 
 const IDADE_MAX = 6 * 3600e3;
 const TABELA = 'CREATE TABLE IF NOT EXISTS resumo (loteria TEXT PRIMARY KEY, ultimo INTEGER, calculado_em TEXT, dados TEXT)';
@@ -45,11 +54,33 @@ function anosDe(rows: { numero: number; data: string; atualizado_em: string }[])
 }
 
 async function calcularResumo(db: any, l: Loteria): Promise<Resumo | null> {
-  const { results } = await db.prepare('SELECT numero, data, dezenas, dezenas2, atualizado_em FROM concursos WHERE loteria=? ORDER BY numero ASC').bind(l.api).all();
+  const { results } = await db.prepare('SELECT numero, data, dezenas, dezenas2, atualizado_em, cidades_ganhadoras, premiacoes FROM concursos WHERE loteria=? ORDER BY numero ASC').bind(l.api).all();
   if (!results?.length) return null;
   const hist = results.map((r: any) => ({ numero: r.numero, data: r.data, atualizado_em: r.atualizado_em, dezenas: JSON.parse(r.dezenas) as number[], dezenas2: r.dezenas2 ? JSON.parse(r.dezenas2) as number[] : null }));
   const porAnoMap = new Map<string, number>();
   if (l.tipo !== 'colunas') for (const c of hist) for (const d of c.dezenas) { const k = c.data.slice(0, 4) + ':' + d; porAnoMap.set(k, (porAnoMap.get(k) ?? 0) + 1); }
+  // ganhadores da faixa principal por UF e cidade
+  const geo: Geo = { coberturaDesde: null, concursosComCidade: 0, online: 0, ufs: {}, cidades: [] };
+  const porCidade = new Map<string, [string, string, number]>();
+  for (const row of results as any[]) {
+    const cs = row.cidades_ganhadoras ? JSON.parse(row.cidades_ganhadoras) : null;
+    if (!cs?.length) continue;
+    geo.concursosComCidade++; if (geo.coberturaDesde === null) geo.coberturaDesde = row.numero;
+    const premio = (JSON.parse(row.premiacoes || '[]')[0]?.premio ?? 0) as number;
+    for (const g of cs) {
+      const uf = String(g.uf || '').toUpperCase().trim(); const cid = String(g.cidade || '').trim();
+      const n = Number(g.ganhadores) || 1;
+      if (!/^[A-Z]{2}$/.test(uf) || uf === 'BR' || /canal|eletr|internet/i.test(cid)) { geo.online += n; continue; }
+      const u = geo.ufs[uf] ?? (geo.ufs[uf] = { ganhadores: 0, premiacoes: 0, cidades: [], recentes: [] });
+      u.ganhadores += n; u.premiacoes++;
+      u.recentes.unshift([row.numero, row.data, cid, premio]); if (u.recentes.length > 15) u.recentes.pop();
+      const k = uf + '|' + cid.toUpperCase();
+      const c = porCidade.get(k) ?? [cid, uf, 0]; c[2] += n; porCidade.set(k, c);
+    }
+  }
+  geo.cidades = [...porCidade.values()].sort((a, b) => b[2] - a[2]).slice(0, 60);
+  for (const [uf, u] of Object.entries(geo.ufs)) u.cidades = [...porCidade.values()].filter((c) => c[1] === uf).sort((a, b) => b[2] - a[2]).slice(0, 25).map((c) => [c[0], c[2]]);
+
   // dezenas companheiras e últimas aparições
   const dezenas: Record<number, DezenaInfo> = {};
   if (l.tipo !== 'colunas') {
@@ -91,7 +122,7 @@ async function calcularResumo(db: any, l: Loteria): Promise<Resumo | null> {
   const nums = (rat as any[]).map((r) => r.numero);
 
   return {
-    versao: VERSAO, dezenas, faixas, faixasJanela: { de: nums.length ? Math.min(...nums) : 0, ate: nums.length ? Math.max(...nums) : 0, acumulou },
+    versao: VERSAO, geo, dezenas, faixas, faixasJanela: { de: nums.length ? Math.min(...nums) : 0, ate: nums.length ? Math.max(...nums) : 0, acumulou },
     total: hist.length, primeiro: hist[0].numero, ultimo: hist.at(-1)!.numero,
     atualizado: hist.reduce((m: string, c: any) => (c.atualizado_em > m ? c.atualizado_em : m), ''), calculadoEm: new Date().toISOString(),
     s: calcular(l, hist),

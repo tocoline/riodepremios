@@ -14,6 +14,7 @@ import { resumo } from '../../lib/resumo';
 import { reais, reaisCurto, numero } from '../../lib/format';
 import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
 import { SITE } from '../../lib/site';
+import { faixaAcertos } from '../../lib/acertos';
 
 const l = POR_SLUG[Astro.params.loteria!];
 if (!l) return naoEncontrado(Astro);
@@ -70,7 +71,8 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: ti
     <div class="prose">
       <h2>Como receber o prêmio</h2>
       <p>Prêmios menores podem ser recebidos em lotéricas; os maiores, em agências da Caixa, com o bilhete original e documento com CPF. O prazo é de 90 dias após o sorteio. Saiba mais no guia <a href="/guias/como-resgatar-premio-da-loteria/">como resgatar prêmio da loteria</a>.</p>
-      <p>Veja também os <a href={`/${l.slug}/resultados/`}>resultados da {l.nome}</a>, as <a href={`/${l.slug}/estatisticas/`}>estatísticas</a> e <a href={`/${l.slug}/como-jogar/`}>como jogar</a>.</p>
+      <p>Acertou alguns números? Veja se ganhou: {faixaAcertos(l).map((x, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/acertei-${x}-numeros/`}>acertei {x}</a></>)}.</p>
+      <p>Veja também os <a href={`/${l.slug}/resultados/`}>resultados da {l.nome}</a>, os <a href={`/${l.slug}/ganhadores/`}>ganhadores por estado</a>, as <a href={`/${l.slug}/estatisticas/`}>estatísticas</a> e <a href={`/${l.slug}/como-jogar/`}>como jogar</a>.</p>
     </div>
     <Faq itens={[
       ...secundarias.slice(0, 3).map((f) => ({ q: `Quanto paga ${curto(f.descricao).toLowerCase()} na ${l.nome}?`, a: `Nos últimos ${nConc} concursos, ${curto(f.descricao).toLowerCase()} pagou em média ${reais(f.media)} por aposta, variando de ${reais(f.minimo)} a ${reais(f.maximo)}.` })),

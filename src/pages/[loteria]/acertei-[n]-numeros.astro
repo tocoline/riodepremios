@@ -1,0 +1,105 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, diasTexto } from '../../lib/loterias';
+import { probabilidade } from '../../lib/math';
+import { getDB } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { reais, numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../../lib/site';
+import { faixaAcertos } from '../../lib/acertos';
+
+const l = POR_SLUG[Astro.params.loteria!];
+const k = Number(Astro.params.n);
+if (!l || !/^\d{1,2}$/.test(Astro.params.n ?? '') || !faixaAcertos(l).includes(k)) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const r = await resumo(getDB(Astro.locals), l);
+
+const colunas = l.tipo === 'colunas';
+const un = colunas ? (k === 1 ? 'coluna' : 'colunas') : (k === 1 ? 'número' : 'números');
+const premiadas = l.faixas.map((f) => f.acertos);
+const premiado = premiadas.includes(k);
+const menorFaixa = Math.min(...premiadas.filter((x) => x > 0));
+const p = probabilidade(l, k, l.escolhaMin);
+const pct = (x: number) => (x * 100).toLocaleString('pt-BR', { maximumFractionDigits: x < 0.001 ? 4 : x < 0.01 ? 3 : 1 });
+const umEm = (x: number) => numero(Math.round(1 / x));
+const faixa = r?.faixas?.find((f) => new RegExp(`^${k} (acertos?|colunas?)\\b`, 'i').test(f.descricao.trim()) || (k === 0 && /^(0|nenhum)/i.test(f.descricao.trim())));
+const nomeFaixa = l.faixas.find((f) => f.acertos === k)?.label;
+const todas = faixaAcertos(l);
+const outros = todas.filter((x) => x !== k);
+const tabela = (colunas ? [0, 1, 2, 3, 4, 5, 6, 7] : Array.from({ length: Math.min(l.sorteadas, l.escolhaMin) + 1 }, (_, i) => i)).map((j) => ({ j, p: probabilidade(l, j, l.escolhaMin), premio: premiadas.includes(j) }));
+const dupla = l.slug === 'dupla-sena';
+const titulo = k === 0 ? `Não acertei nenhum número na ${l.nome}: ganho? Quanto paga` : premiado ? `Acertei ${k} ${un} na ${l.nome}: quanto ganho?` : `Acertei ${k} ${un} na ${l.nome}: ganho alguma coisa?`;
+const desc = premiado
+  ? `Sim: ${k} ${un} na ${l.nome} dá prêmio${nomeFaixa ? ` (${nomeFaixa.toLowerCase()})` : ''}.${faixa?.comGanhador ? ` Nos últimos concursos, pagou em média ${reais(faixa.media)} por aposta.` : ''} Veja a chance de acertar ${k}, o último valor pago e como receber.`
+  : `Não: na ${l.nome}, a premiação começa em ${menorFaixa} ${colunas ? 'colunas' : 'acertos'}${l.slug === 'lotomania' ? ' (ou nenhum acerto)' : ''}. Acertar ${k} é comum — veja a chance exata e o que fazer com o bilhete.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: r?.atualizado ?? CONTEUDO_ATUALIZADO, mainEntityOfPage: `${SITE.url}/${l.slug}/acertei-${k}-numeros/`, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={r?.atualizado}>
+  <div class="wrap phero" style="max-width:900px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Quanto paga', url: `/${l.slug}/premios/` }, { nome: `Acertei ${k}` }]} />
+    <h1>{titulo}</h1>
+    <Autor atualizado={r?.atualizado} modo="auto" />
+  </div>
+  <article class="wrap" style="max-width:900px">
+    <Resposta>
+      {premiado
+        ? <p><strong>Sim.</strong> {k === 0 ? <>Quem não acerta nenhum número</> : <>Quem acerta {k} {un}</>} na {l.nome} ganha{nomeFaixa ? <> a faixa de <strong>{nomeFaixa.toLowerCase()}</strong></> : ' prêmio'}.{faixa?.comGanhador ? <> Nos últimos {faixa.concursos} concursos, essa faixa pagou em média <strong>{reais(faixa.media)}</strong> por aposta{faixa.ultimoValor ? <>, e no concurso mais recente com ganhadores pagou <strong>{reais(faixa.ultimoValor)}</strong></> : ''}.</> : ''} A chance de acertar exatamente {k} com a aposta mínima é de 1 em {umEm(p)}.</p>
+        : <p><strong>Não.</strong> Na {l.nome}, a premiação começa em <strong>{menorFaixa} {colunas ? 'colunas' : 'acertos'}</strong>{l.slug === 'lotomania' ? <> — ou com <strong>nenhum acerto</strong>, que também é premiado</> : ''}. Acertar {k} {un} não dá prêmio, e é {p > 0.05 ? 'muito comum' : 'relativamente comum'}: acontece em cerca de <strong>{pct(p)}%</strong> das apostas{dupla ? ' em cada sorteio' : ''}.</p>}
+    </Resposta>
+    {premiado && <Fonte atualizado={r?.atualizado} />}
+
+    {premiado && faixa?.comGanhador ? (
+      <>
+        <h2>Quanto paga {k} {un} na {l.nome}</h2>
+        <div class="grid g4 ac-st">
+          <div class="stat res"><span class="stat-l">Prêmio médio</span><span class="stat-v">{reais(faixa.media)}</span></div>
+          <div class="stat res"><span class="stat-l">Último valor pago</span><span class="stat-v">{faixa.ultimoValor ? reais(faixa.ultimoValor) : '—'}</span></div>
+          <div class="stat res"><span class="stat-l">Menor valor</span><span class="stat-v">{reais(faixa.minimo)}</span></div>
+          <div class="stat res"><span class="stat-l">Maior valor</span><span class="stat-v">{reais(faixa.maximo)}</span></div>
+        </div>
+        <p class="small faint">Valores brutos por aposta ganhadora nos últimos {faixa.concursos} concursos (rateio oficial da Caixa). Teve ganhadores em {faixa.comGanhador} deles. {faixa.maxNumero && <>O maior valor foi pago no <a href={`/${l.slug}/concurso/${faixa.maxNumero}/`}>concurso {faixa.maxNumero}</a>.</>}</p>
+      </>
+    ) : null}
+
+    <h2>Chance de acertar cada quantidade</h2>
+    <p class="muted">Com a aposta mínima da {l.nome} ({colunas ? 'um número por coluna' : `${l.escolhaMin} números`}){dupla ? ', em cada um dos dois sorteios' : ''}:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Acertos</th><th class="num">Chance</th><th>Prêmio?</th></tr></thead>
+      <tbody>{tabela.map((x) => <tr class:list={[x.j === k && 'hl']}><td>{x.j === k ? <strong>{x.j} {colunas ? 'colunas' : 'acertos'}</strong> : todas.includes(x.j) ? <a href={`/${l.slug}/acertei-${x.j}-numeros/`}>{x.j} {colunas ? 'colunas' : 'acertos'}</a> : <>{x.j} {colunas ? 'colunas' : 'acertos'}</>}</td><td class="num">{x.p > 0 ? `${pct(x.p)}% (1 em ${umEm(x.p)})` : '—'}</td><td>{x.premio ? 'sim' : 'não'}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Probabilidades calculadas por análise combinatória.</p>
+    <Ad />
+    <div class="prose">
+      {premiado ? (
+        <>
+          <h2>Como receber o prêmio</h2>
+          <p>Confira o resultado oficial e guarde o bilhete em local seguro. Prêmios menores podem ser recebidos em qualquer lotérica; os maiores, em agências da Caixa, com documento com CPF. Quem apostou pelo app pode receber prêmios menores na conta cadastrada. O prazo é de 90 dias após o sorteio — veja o guia <a href="/guias/como-resgatar-premio-da-loteria/">como resgatar prêmio da loteria</a>.</p>
+          {l.tipo === 'padrao' && <p>Se o seu jogo tinha mais de {l.escolhaMin} números, ele pode ter rendido vários prêmios ao mesmo tempo. Veja quantos em <a href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}>{l.nome} com mais números</a>.</p>}
+        </>
+      ) : (
+        <>
+          <h2>O que fazer com o bilhete</h2>
+          <p>Confira com calma antes de descartar — principalmente em bolões e jogos com mais números, onde é fácil deixar passar um prêmio. O <a href={`/${l.slug}/conferir/`}>conferidor da {l.nome}</a> checa vários jogos de uma vez.</p>
+          {l.tipo === 'padrao' && <p>Mesmo em jogos com mais de {l.escolhaMin} números, com {k} acertos nenhuma combinação chega a {menorFaixa}: não há prêmio, qualquer que seja a quantidade marcada.</p>}
+        </>
+      )}
+      <h2>Próximo sorteio</h2>
+      <p>A {l.nome} sorteia às {diasTexto(l)}, às 20h. Veja o <a href={`/${l.slug}/`}>último resultado e o próximo concurso</a>, quanto paga <a href={`/${l.slug}/premios/`}>cada faixa</a> e gere novos jogos no <a href={`/${l.slug}/gerador/`}>gerador</a>.</p>
+      <p>Outras quantidades: {outros.map((x, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/acertei-${x}-numeros/`}>acertei {x}</a></>)}</p>
+    </div>
+    <Faq itens={[
+      { q: `Acertar ${k} ${un} na ${l.nome} dá prêmio?`, a: premiado ? `Sim.${faixa?.comGanhador ? ` Nos últimos concursos, a faixa pagou em média ${reais(faixa.media)} por aposta.` : ''}` : `Não. A ${l.nome} paga a partir de ${menorFaixa} ${colunas ? 'colunas' : 'acertos'}${l.slug === 'lotomania' ? ' ou com nenhum acerto' : ''}.` },
+      { q: `A partir de quantos ${colunas ? 'colunas' : 'acertos'} se ganha na ${l.nome}?`, a: `A partir de ${menorFaixa}${l.slug === 'lotomania' ? ', além da faixa de nenhum acerto' : ''}. As faixas premiadas são: ${l.faixas.map((f) => f.label.toLowerCase()).join(', ')}.` },
+      { q: `Qual a chance de acertar ${k} ${un}?`, a: `Com a aposta mínima, ${pct(p)}% — ou 1 em ${umEm(p)}.` },
+    ]} />
+  </article>
+</Base>
+<style> tr.hl td { background: color-mix(in srgb, var(--brand) 12%, transparent); } .ac-st { margin: 12px 0 6px; } h2 { margin-top: 28px; } </style>

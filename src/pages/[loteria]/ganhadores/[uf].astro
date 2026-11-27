@@ -1,0 +1,76 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { POR_SLUG, LOTERIAS } from '../../../lib/loterias';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { resumo } from '../../../lib/resumo';
+import { UFS, NO, cidadeBonita } from '../../../lib/ufs';
+import { dataBR, reais, numero } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+import { SITE } from '../../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+const UF = (Astro.params.uf ?? '').toUpperCase();
+if (!l || !UFS[UF] || Astro.params.uf !== UF.toLowerCase()) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const r = await resumo(db, l);
+if (!r) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+const g = r.geo; const u = g?.ufs[UF];
+if (!g || !u) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const ranking = Object.entries(g.ufs).sort((a, b) => b[1].ganhadores - a[1].ganhadores);
+const pos = ranking.findIndex(([x]) => x === UF) + 1;
+const nome = UFS[UF], no = NO[UF];
+const [cid1] = u.cidades;
+const ult = u.recentes[0];
+const vizinhos = ranking.slice(Math.max(0, pos - 3), pos + 2).filter(([x]) => x !== UF);
+const titulo = `Ganhadores da ${l.nome} ${no} ${nome}: cidades e prêmios`;
+const desc = `${l.nome} ${no} ${nome}: ${numero(u.ganhadores)} prêmios principais desde o concurso ${g.coberturaDesde}, ${pos}º estado do ranking.${cid1 ? ` ${cidadeBonita(cid1[0])} lidera com ${numero(cid1[1])}.` : ''} Veja as cidades e os últimos ganhadores.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/ganhadores/${UF.toLowerCase()}/`, dateModified: r.atualizado, isPartOf: { '@id': `${SITE.url}/#site` }, about: { '@type': 'State', name: nome } }];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={r.atualizado}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Ganhadores por estado', url: `/${l.slug}/ganhadores/` }, { nome }]} />
+    <h1>Ganhadores da {l.nome} {no} {nome}</h1>
+    <p class="lead">Cidades {no === 'em' ? 'de' : no === 'na' ? 'da' : 'do'} {nome} com prêmios principais da {l.nome} e os ganhadores mais recentes.</p>
+    <Autor atualizado={r.atualizado} modo="auto" />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>{no === 'em' ? 'Em' : no === 'na' ? 'Na' : 'No'} {nome}, a {l.nome} teve <strong>{numero(u.ganhadores)} prêmios principais</strong> desde o concurso {g.coberturaDesde} — é o <strong>{pos}º estado</strong> com mais ganhadores. {cid1 && <>A cidade com mais prêmios é <strong>{cidadeBonita(cid1[0])}</strong> ({numero(cid1[1])}).</>} {ult && <>O ganhador mais recente foi no <a href={`/${l.slug}/concurso/${ult[0]}/`}>concurso {ult[0]}</a> ({dataBR(ult[1])}), em {cidadeBonita(ult[2])}.</>}</p></Resposta>
+    <Fonte atualizado={r.atualizado} />
+    <h2>Cidades {no === 'em' ? 'de' : no === 'na' ? 'da' : 'do'} {nome} que mais ganharam</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Cidade</th><th class="num">Prêmios principais</th></tr></thead>
+      <tbody>{u.cidades.map(([c, n], i) => <tr><td>{i + 1}</td><td>{cidadeBonita(c)}</td><td class="num">{numero(n)}</td></tr>)}</tbody>
+    </table></div>
+    <Ad />
+    {u.recentes.length > 0 && (
+      <>
+        <h2>Últimos ganhadores {no} {nome}</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Concurso</th><th>Data</th><th>Cidade</th><th class="num">Prêmio por aposta</th></tr></thead>
+          <tbody>{u.recentes.map(([n, d, c, p]) => <tr><td><a href={`/${l.slug}/concurso/${n}/`}>{n}</a></td><td>{dataBR(d)}</td><td>{cidadeBonita(c)}</td><td class="num">{p ? reais(p) : '—'}</td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    <div class="prose">
+      <h2>Quem aposta {no} {nome} tem mais sorte?</h2>
+      <p>Não. A chance de cada aposta é a mesma em qualquer lugar do Brasil. A posição de cada estado no ranking reflete principalmente a quantidade de apostas feitas ali — quanto mais gente aposta, mais prêmios aparecem.</p>
+      <h2>Outros estados</h2>
+      <p>{vizinhos.map(([x, v], i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/ganhadores/${x.toLowerCase()}/`}>{UFS[x]} ({numero(v.ganhadores)})</a></>)} · <a href={`/${l.slug}/ganhadores/`}>ranking completo</a></p>
+      <h2>Ganhadores de outras loterias</h2>
+      <p>{LOTERIAS.filter((x) => x.slug !== l.slug).map((x, i) => <>{i > 0 && ' · '}<a href={`/${x.slug}/ganhadores/`}>{x.nome}</a></>)}</p>
+    </div>
+    <Faq itens={[
+      { q: `Quantas pessoas já ganharam na ${l.nome} ${no} ${nome}?`, a: `${numero(u.ganhadores)} apostas acertaram a faixa principal desde o concurso ${g.coberturaDesde}.` },
+      { q: `Qual cidade ${no === 'em' ? 'de' : no === 'na' ? 'da' : 'do'} ${nome} mais ganhou na ${l.nome}?`, a: cid1 ? `${cidadeBonita(cid1[0])}, com ${numero(cid1[1])} prêmios principais.` : '—' },
+      { q: `Quando foi o último ganhador ${no} ${nome}?`, a: ult ? `No concurso ${ult[0]}, em ${dataBR(ult[1])}, em ${cidadeBonita(ult[2])}.` : '—' },
+    ]} />
+  </section>
+</Base>

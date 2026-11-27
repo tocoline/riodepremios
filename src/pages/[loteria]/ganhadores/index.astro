@@ -1,0 +1,73 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { resumo } from '../../../lib/resumo';
+import { UFS, NO, cidadeBonita } from '../../../lib/ufs';
+import { numero } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+import { SITE } from '../../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const r = await resumo(db, l);
+if (!r) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+const g = r.geo;
+if (!g || !g.concursosComCidade) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const ufs = Object.entries(g.ufs).sort((a, b) => b[1].ganhadores - a[1].ganhadores);
+const total = ufs.reduce((a, [, u]) => a + u.ganhadores, 0) + g.online;
+const pct = (n: number) => ((n / total) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+const [top] = ufs; const topCid = g.cidades[0];
+const semGanhador = Object.keys(UFS).filter((uf) => !g.ufs[uf]);
+const principal = l.faixas[0].label.toLowerCase();
+const titulo = `Ganhadores da ${l.nome} por estado e cidade: quem mais ganhou`;
+const desc = `Quais estados e cidades mais ganharam na ${l.nome}: ${numero(total)} prêmios principais desde o concurso ${g.coberturaDesde}. ${top ? `${UFS[top[0]]} lidera com ${numero(top[1].ganhadores)}.` : ''} Ranking completo e página de cada estado.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/ganhadores/`, dateModified: r.atualizado, isPartOf: { '@id': `${SITE.url}/#site` } }];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={r.atualizado}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Ganhadores por estado' }]} />
+    <h1>Ganhadores da {l.nome} por estado e cidade</h1>
+    <p class="lead">Onde saíram os prêmios principais ({principal}) da {l.nome}, de acordo com a lista oficial de cidades dos ganhadores.</p>
+    <Autor atualizado={r.atualizado} modo="auto" />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>Desde o concurso {g.coberturaDesde}, a {l.nome} teve <strong>{numero(total)} prêmios principais</strong> com local informado. {top && <><strong>{UFS[top[0]]}</strong> é o estado com mais ganhadores ({numero(top[1].ganhadores)}, ou {pct(top[1].ganhadores)}).</>} {topCid && <>A cidade campeã é <strong>{cidadeBonita(topCid[0])} ({topCid[1]})</strong>, com {numero(topCid[2])} prêmios.</>} {g.online ? <>Outros {numero(g.online)} foram para apostas feitas pela internet.</> : ''}</p></Resposta>
+    <Fonte atualizado={r.atualizado} />
+
+    <h2>Ranking dos estados</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Estado</th><th class="num">Ganhadores</th><th class="num">% do total</th><th>Cidade com mais prêmios</th></tr></thead>
+      <tbody>{ufs.map(([uf, u], i) => <tr><td>{i + 1}</td><td><a href={`/${l.slug}/ganhadores/${uf.toLowerCase()}/`}><strong>{UFS[uf] ?? uf}</strong></a></td><td class="num">{numero(u.ganhadores)}</td><td class="num">{pct(u.ganhadores)}</td><td>{u.cidades[0] ? `${cidadeBonita(u.cidades[0][0])} (${u.cidades[0][1]})` : '—'}</td></tr>)}
+        {g.online > 0 && <tr><td>—</td><td>Internet (canal eletrônico)</td><td class="num">{numero(g.online)}</td><td class="num">{pct(g.online)}</td><td>—</td></tr>}
+      </tbody>
+    </table></div>
+    <Ad />
+    <h2>Cidades que mais ganharam na {l.nome}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Cidade</th><th>UF</th><th class="num">Prêmios principais</th></tr></thead>
+      <tbody>{g.cidades.slice(0, 30).map(([c, uf, n], i) => <tr><td>{i + 1}</td><td>{cidadeBonita(c)}</td><td><a href={`/${l.slug}/ganhadores/${uf.toLowerCase()}/`}>{uf}</a></td><td class="num">{numero(n)}</td></tr>)}</tbody>
+    </table></div>
+    <div class="prose">
+      <h2>Por que alguns estados ganham mais?</h2>
+      <p>Não existe estado ou cidade "da sorte": cada aposta tem exatamente a mesma chance, em qualquer lugar do país. Estados mais populosos e com mais lotéricas — como São Paulo, Minas Gerais e Rio de Janeiro — simplesmente vendem muito mais apostas e, por isso, acumulam mais prêmios. Proporcionalmente ao número de apostas, a chance é igual para todos.</p>
+      {semGanhador.length > 0 && semGanhador.length < 27 && <p>Estados sem prêmio principal registrado no período: {semGanhador.map((uf) => UFS[uf]).join(', ')}.</p>}
+      <h2>De onde vêm esses dados</h2>
+      <p>A Caixa divulga, para cada concurso, a lista de municípios das apostas que acertaram a faixa principal. O ranking soma essas listas desde o concurso {g.coberturaDesde} ({numero(g.concursosComCidade)} concursos com ganhadores e local informado) e é atualizado automaticamente a cada sorteio.</p>
+    </div>
+    <Faq itens={[
+      { q: `Qual estado mais ganhou na ${l.nome}?`, a: top ? `${UFS[top[0]]}, com ${numero(top[1].ganhadores)} prêmios principais desde o concurso ${g.coberturaDesde}.` : 'Ainda não há dados suficientes.' },
+      { q: `Qual cidade mais ganhou na ${l.nome}?`, a: topCid ? `${cidadeBonita(topCid[0])} (${topCid[1]}), com ${numero(topCid[2])} prêmios principais.` : 'Ainda não há dados suficientes.' },
+      { q: 'Apostar em outro estado aumenta a chance?', a: 'Não. A chance de cada aposta é a mesma em qualquer lugar. Estados com mais ganhadores simplesmente têm mais apostadores.' },
+    ]} />
+  </section>
+</Base>
