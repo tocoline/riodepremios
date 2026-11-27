@@ -8,7 +8,7 @@ import Faq from '../../../components/Faq.astro';
 import Ad from '../../../components/Ad.astro';
 import { getDB, dbFalhou } from '../../../lib/db';
 import { garantirGeo, cidade, cidadesDaUF, MIN_PREMIOS, NOMES_LOT } from '../../../lib/geo';
-import { UFS, cidadeBonita } from '../../../lib/ufs';
+import { UFS, NO, cidadeBonita } from '../../../lib/ufs';
 import { dataBR, reais, numero } from '../../../lib/format';
 import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
 import { SITE } from '../../../lib/site';
@@ -39,7 +39,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: ti
     <p class="lead">Prêmios principais das loterias da Caixa que saíram para apostas de {nome}.</p>
   </div>
   <section class="wrap" style="max-width:980px">
-    <Resposta><p><strong>{nome}</strong> já teve <strong>{numero(c.total)} prêmios principais</strong> nas loterias da Caixa{lots.length > 1 ? <>, em {lots.length} modalidades diferentes</> : ''}{mega ? <> — {numero(mega.n)} deles na Mega-Sena</> : ''}. É a <strong>{pos}ª cidade</strong> com mais prêmios em {UFS[UF]}.{ult && <> O prêmio mais recente foi da {NOMES_LOT[ult.api].nome}, no <a href={`/${NOMES_LOT[ult.api].slug}/concurso/${ult.n}/`}>concurso {ult.n}</a> ({dataBR(ult.d)}).</>}</p></Resposta>
+    <Resposta><p><strong>{nome}</strong> já teve <strong>{numero(c.total)} prêmios principais</strong> nas loterias da Caixa{lots.length > 1 ? <>, em {lots.length} modalidades diferentes</> : ''}{mega ? <> — {numero(mega.n)} deles na Mega-Sena</> : ''}. É a <strong>{pos}ª cidade</strong> com mais prêmios {NO[UF]} {UFS[UF]}.{ult && <> O prêmio mais recente foi da {NOMES_LOT[ult.api].nome}, no <a href={`/${NOMES_LOT[ult.api].slug}/concurso/${ult.n}/`}>concurso {ult.n}</a> ({dataBR(ult.d)}).</>}</p></Resposta>
     <Fonte />
     <h2>Prêmios em {nome} por loteria</h2>
     <div class="table-wrap"><table>

@@ -5,6 +5,8 @@ import { marcarFalha } from './db';
 
 export const MIN_PREMIOS = 3; // cidades com menos prêmios não ganham página própria
 const IDADE = 6 * 3600e3;
+const GEO_VERSAO = '2'; // aumente para forçar o recálculo quando a lógica mudar
+const temAcento = (s: string) => /[^\x00-\x7F]/.test(s);
 const TABELAS = [
   'CREATE TABLE IF NOT EXISTS cidades_agg (uf TEXT NOT NULL, slug TEXT NOT NULL, nome TEXT NOT NULL, total INTEGER NOT NULL, dados TEXT NOT NULL, PRIMARY KEY (uf, slug))',
   'CREATE INDEX IF NOT EXISTS idx_cidades_uf ON cidades_agg (uf, total DESC)',
@@ -33,6 +35,7 @@ async function recalcular(db: any) {
       if (!nome || !/^[A-Z]{2}$/.test(uf) || uf === 'BR' || /canal|eletr|internet/i.test(nome)) continue;
       const k = uf + '|' + slugCidade(nome);
       const c = m.get(k) ?? { nome, uf, total: 0, porLoteria: {}, primeiro: r.data, ultimo: r.data };
+      if (!temAcento(c.nome) && temAcento(nome)) c.nome = nome; // prefere a grafia com acento
       const n = Number(g.ganhadores) || 1;
       c.total += n;
       const pl = c.porLoteria[r.loteria] ?? (c.porLoteria[r.loteria] = { n: 0, ultimos: [] });
@@ -46,6 +49,7 @@ async function recalcular(db: any) {
   const linhas = [...m.values()];
   for (let i = 0; i < linhas.length; i += 200) await db.batch(linhas.slice(i, i + 200).map((c) => st.bind(c.uf, slugCidade(c.nome), c.nome, c.total, JSON.stringify(c))));
   await db.prepare("INSERT INTO geo_meta (chave, valor) VALUES ('calculado_em', ?1) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor").bind(new Date().toISOString()).run();
+  await db.prepare("INSERT INTO geo_meta (chave, valor) VALUES ('versao', ?1) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor").bind(GEO_VERSAO).run();
 }
 
 /** Garante dados: se não houver, calcula agora; se estiverem velhos, recalcula em segundo plano. */
@@ -53,7 +57,8 @@ export async function garantirGeo(db: any, ctx?: { waitUntil: (p: Promise<unknow
   if (!db) return false;
   try {
     const meta = await db.prepare("SELECT valor FROM geo_meta WHERE chave='calculado_em'").first().catch(() => null);
-    if (!meta) { await recalcular(db); return true; }
+    const ver = await db.prepare("SELECT valor FROM geo_meta WHERE chave='versao'").first().catch(() => null);
+    if (!meta || ver?.valor !== GEO_VERSAO) { await recalcular(db); return true; }
     if (Date.now() - Date.parse(meta.valor) > IDADE) {
       // marca antes para evitar recálculos simultâneos; recalcula em segundo plano
       await db.prepare("UPDATE geo_meta SET valor=?1 WHERE chave='calculado_em'").bind(new Date().toISOString()).run();
