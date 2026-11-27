@@ -1,0 +1,80 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Fonte from '../../components/Fonte.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import TabelasLoteria from '../../components/TabelasLoteria.astro';
+import { POR_SLUG } from '../../lib/loterias';
+import { getDB, dbFalhou } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { reais, reaisCurto, numero } from '../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const r = await resumo(db, l);
+if (!r) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 3600);
+const fx = (r.faixas ?? []).filter((f) => f.concursos > 0);
+const jan = r.faixasJanela ?? { de: 0, ate: 0, acumulou: 0 };
+const nConc = jan.ate && jan.de ? jan.ate - jan.de + 1 : 0;
+const principal = fx[0];
+const secundarias = fx.slice(1);
+const curto = (s: string) => s.replace(/^(\d+) acertos?$/i, '$1 acertos');
+const titulo = `Quanto paga a ${l.nome}: prêmio médio de cada faixa`;
+const desc = `Quanto paga cada faixa da ${l.nome}: prêmio médio, mínimo e máximo por aposta nos últimos ${nConc || 150} concursos, com base no rateio oficial da Caixa.${secundarias[0] ? ` Ex.: ${curto(secundarias[0].descricao)} pagou em média ${reaisCurto(secundarias[0].media)}.` : ''}`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/premios/`, dateModified: r.atualizado, isPartOf: { '@id': `${SITE.url}/#site` } }];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={r.atualizado}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Quanto paga' }]} />
+    <h1>Quanto paga a {l.nome}</h1>
+    <p class="lead">Prêmio médio, mínimo e máximo de cada faixa, calculados a partir do rateio oficial dos últimos concursos.</p>
+    <Autor atualizado={r.atualizado} modo="auto" />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta>
+      <p>Nos últimos <strong>{nConc} concursos</strong> da {l.nome} (do {jan.de} ao {jan.ate}),
+      {secundarias.slice(0, 3).map((f, i) => <>{i > 0 && (i === Math.min(2, secundarias.length - 1) ? ' e ' : ', ')}<strong>{curto(f.descricao).toLowerCase()}</strong> pagou em média <strong>{reais(f.media)}</strong></>)}.
+      {principal ? <> A faixa principal teve ganhador em {principal.comGanhador} desses concursos{principal.comGanhador ? <>, com prêmio médio de {reaisCurto(principal.media)} por aposta</> : ''}, e o prêmio acumulou {jan.acumulou} vezes.</> : ''}</p>
+    </Resposta>
+    <Fonte atualizado={r.atualizado} />
+
+    {fx.length > 0 && (
+      <>
+        <h2>Prêmio por faixa nos últimos {nConc} concursos</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Faixa</th><th class="num">Prêmio médio</th><th class="num">Mínimo</th><th class="num">Máximo</th><th class="num">Concursos com ganhador</th><th class="num">Último valor pago</th></tr></thead>
+          <tbody>{fx.map((f) => <tr><td><strong>{f.descricao}</strong></td><td class="num">{f.comGanhador ? reais(f.media) : '—'}</td><td class="num">{f.comGanhador ? reais(f.minimo) : '—'}</td><td class="num">{f.comGanhador ? <>{reais(f.maximo)}{f.maxNumero && <><br /><a class="small" href={`/${l.slug}/concurso/${f.maxNumero}/`}>concurso {f.maxNumero}</a></>}</> : '—'}</td><td class="num">{f.comGanhador} de {f.concursos}</td><td class="num">{f.ultimoValor ? reais(f.ultimoValor) : '—'}</td></tr>)}</tbody>
+        </table></div>
+        <p class="small faint">Valores brutos por aposta ganhadora, antes do Imposto de Renda. Prêmios acima do limite de isenção têm 30% retidos na fonte — veja o <a href="/ferramentas/premio-liquido/">valor líquido</a>.</p>
+      </>
+    )}
+
+    <div class="prose">
+      <h2>Por que o prêmio muda a cada concurso</h2>
+      <p>Na {l.nome}, o valor de cada faixa depende de duas coisas: quanto o concurso arrecadou e quantas apostas acertaram aquela faixa. Se muitas pessoas acertam, o valor é dividido entre mais ganhadores e cada um recebe menos. Por isso o prêmio de uma mesma faixa pode variar bastante de um concurso para outro, como mostram as colunas de mínimo e máximo.</p>
+      {l.slug === 'lotofacil' && <p>Na Lotofácil, as faixas de <strong>11, 12 e 13 acertos</strong> têm prêmios de valor fixo, definidos pela Caixa; as faixas de 14 e 15 acertos dividem o valor restante entre os ganhadores.</p>}
+      {(l.slug === 'mega-sena' || l.slug === 'quina' || l.slug === 'dupla-sena') && <p>Quando ninguém acerta a faixa principal, o valor acumula para o concurso seguinte — com exceção de concursos especiais que não acumulam, como a <a href="/mega-da-virada/">Mega da Virada</a>.</p>}
+      <h2>Chance de ganhar cada faixa</h2>
+      <p>Prêmio e probabilidade andam juntos: as faixas mais difíceis pagam mais. Veja a chance de cada faixa com a aposta mínima e com mais números:</p>
+    </div>
+    <TabelasLoteria l={l} />
+    <Ad />
+    <div class="prose">
+      <h2>Como receber o prêmio</h2>
+      <p>Prêmios menores podem ser recebidos em lotéricas; os maiores, em agências da Caixa, com o bilhete original e documento com CPF. O prazo é de 90 dias após o sorteio. Saiba mais no guia <a href="/guias/como-resgatar-premio-da-loteria/">como resgatar prêmio da loteria</a>.</p>
+      <p>Veja também os <a href={`/${l.slug}/resultados/`}>resultados da {l.nome}</a>, as <a href={`/${l.slug}/estatisticas/`}>estatísticas</a> e <a href={`/${l.slug}/como-jogar/`}>como jogar</a>.</p>
+    </div>
+    <Faq itens={[
+      ...secundarias.slice(0, 3).map((f) => ({ q: `Quanto paga ${curto(f.descricao).toLowerCase()} na ${l.nome}?`, a: `Nos últimos ${nConc} concursos, ${curto(f.descricao).toLowerCase()} pagou em média ${reais(f.media)} por aposta, variando de ${reais(f.minimo)} a ${reais(f.maximo)}.` })),
+      { q: `O prêmio da ${l.nome} já vem com desconto do imposto?`, a: 'Não. Os valores divulgados são brutos. Prêmios acima do limite de isenção têm 30% de Imposto de Renda retido no momento do pagamento.' },
+    ]} />
+  </section>
+</Base>

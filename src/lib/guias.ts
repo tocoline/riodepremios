@@ -1,5 +1,20 @@
 // Guias editoriais. Cada guia tem texto (HTML simples com H2/H3), resposta direta e FAQ.
 // Probabilidades citadas são calculadas por análise combinatória (veja /metodologia/).
+import { LOTERIAS, POR_SLUG, diasTexto } from './loterias';
+import { custo, probabilidade, chance, C } from './math';
+
+const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const n0 = (v: number) => Math.round(v).toLocaleString('pt-BR');
+const LF = POR_SLUG['lotofacil'];
+const lf11 = () => { let t = 0; for (let k = 11; k <= 15; k++) t += probabilidade(LF, k, 15); return t; };
+const tabelaHorarios = `<div class="table-wrap"><table><thead><tr><th>Loteria</th><th>Dias de sorteio</th><th>Horário</th></tr></thead><tbody>${LOTERIAS.map((l) => `<tr><td><a href="/${l.slug}/">${l.nome}</a></td><td>${diasTexto(l)}</td><td>20h</td></tr>`).join('')}</tbody></table></div>`;
+const tabelaPrecos = `<div class="table-wrap"><table><thead><tr><th>Loteria</th><th class="num">Aposta mínima</th><th>O que você marca</th><th class="num">Aposta máxima</th><th class="num">Chance (mínima)</th></tr></thead><tbody>${LOTERIAS.map((l) => {
+  const max = l.tipo === 'fixo' ? l.preco : l.tipo === 'colunas' ? l.preco * 3 ** 7 : custo(l, l.escolhaMax, l.tipo === 'trevos' ? 6 : 2);
+  const marca = l.tipo === 'colunas' ? '7 a 21 números em 7 colunas' : l.tipo === 'trevos' ? '6 a 12 números + 2 a 6 trevos' : l.escolhaMin === l.escolhaMax ? `${l.escolhaMin} números` : `${l.escolhaMin} a ${l.escolhaMax} números`;
+  const ch = l.tipo === 'trevos' ? chance(probabilidade(l, 6, 6, 2, 2)) : chance(probabilidade(l, l.faixas[0].acertos));
+  return `<tr><td><a href="/${l.slug}/como-jogar/">${l.nome}</a></td><td class="num">${brl(l.preco)}</td><td>${marca}</td><td class="num">${brl(max)}</td><td class="num">1 em ${n0(ch)}</td></tr>`;
+}).join('')}</tbody></table></div>`;
+const tabelaLF = `<div class="table-wrap"><table><thead><tr><th>Números</th><th class="num">Preço</th><th class="num">Chance de 15 acertos</th><th class="num">Chance de 14 acertos</th></tr></thead><tbody>${[15, 16, 17, 18, 19, 20].map((n) => `<tr><td>${n}</td><td class="num">${brl(custo(LF, n))}</td><td class="num">1 em ${n0(chance(probabilidade(LF, 15, n)))}</td><td class="num">1 em ${n0(chance(probabilidade(LF, 14, n)))}</td></tr>`).join('')}</tbody></table></div>`;
 export interface Guia {
   slug: string; titulo: string; desc: string; resposta: string; html: string;
   atualizado: string; publicado: string; faq: { q: string; a: string }[];
@@ -273,6 +288,177 @@ export const GUIAS: Guia[] = [
       { q: 'Onde recebo prêmio alto da Mega-Sena?', a: 'Em agências da Caixa, com o bilhete original, documento de identificação com foto e CPF. Prêmios menores podem ser pagos nas lotéricas.' },
       { q: 'Apostei pela internet. Como recebo?', a: 'Prêmios menores podem ser creditados na conta cadastrada; prêmios maiores seguem o resgate em agência da Caixa.' },
       { q: 'Posso perder o prêmio se o bilhete estiver rasurado?', a: 'Bilhetes danificados ou rasurados podem ser recusados. Guarde o bilhete com cuidado e fotografe frente e verso logo após a aposta.' },
+    ],
+  },
+
+  {
+    slug: 'horario-dos-sorteios-das-loterias',
+    titulo: 'Horário dos sorteios das loterias da Caixa: dias e onde assistir',
+    desc: 'Que horas sai o resultado da Mega-Sena, Lotofácil, Quina e demais loterias, em que dias da semana cada uma sorteia, onde assistir ao vivo e até que horas dá para apostar.',
+    resposta: 'Os sorteios das loterias da Caixa acontecem normalmente às <strong>20h (horário de Brasília)</strong>, no Espaço da Sorte, em São Paulo, com transmissão ao vivo pelos canais oficiais da Caixa. A Lotofácil e a Quina sorteiam de segunda a sábado; a Mega-Sena, às terças, quintas e sábados. As apostas costumam encerrar às 19h do dia do sorteio.',
+    publicado: '2026-11-27', atualizado: '2026-11-27',
+    html: `
+<p>Saber o dia e o horário de cada sorteio é o primeiro passo para não perder o prazo da aposta e para conferir o resultado assim que ele sai. Este guia reúne o calendário semanal de todas as loterias da Caixa, explica onde assistir aos sorteios e até que horas é possível apostar.</p>
+<h2>Calendário semanal dos sorteios</h2>
+<p>Todas as loterias abaixo têm sorteio às 20h, horário de Brasília, nos dias indicados. Em feriados e concursos especiais, a Caixa pode alterar datas e horários — como na Mega da Virada 2026, que será sorteada em 1º de janeiro de 2027, às 11h.</p>
+${tabelaHorarios}
+<h3>Quais loterias sorteiam em cada dia</h3>
+<ul>
+<li><strong>Segunda, quarta e sexta:</strong> Lotofácil, Quina, Lotomania, Dupla Sena e Super Sete.</li>
+<li><strong>Terça, quinta e sábado:</strong> Lotofácil, Quina, Mega-Sena, Timemania e Dia de Sorte.</li>
+<li><strong>Quarta e sábado:</strong> também a +Milionária.</li>
+</ul>
+<p>Ou seja: todos os dias de segunda a sábado há sorteio de pelo menos quatro loterias. Aos domingos, em geral, não há sorteios das loterias da Caixa.</p>
+<h2>Onde os sorteios acontecem e como assistir</h2>
+<p>Os sorteios são realizados no <strong>Espaço da Sorte</strong>, em São Paulo, e transmitidos ao vivo pelos canais oficiais da Caixa nas redes sociais. A transmissão é pública, e qualquer pessoa pode acompanhar a extração dos números em tempo real.</p>
+<p>Se não puder assistir, acompanhe por aqui: o Rio de Prêmios verifica os resultados automaticamente e publica cada concurso poucos minutos depois do sorteio, com as dezenas, a premiação e os ganhadores por cidade. A página do próximo concurso de cada loteria já fica no ar antes do sorteio — por exemplo, a do <a href="/mega-sena/">próximo concurso da Mega-Sena</a>.</p>
+<h2>Até que horas dá para apostar</h2>
+<p>Em geral, as apostas para o concurso do dia são aceitas até as <strong>19h (horário de Brasília)</strong>, uma hora antes do sorteio, nas lotéricas, no aplicativo Loterias Caixa e no portal Loterias Online. Depois desse horário, a aposta é registrada para o concurso seguinte. Em concursos especiais, os prazos são divulgados separadamente — na Mega da Virada 2026, por exemplo, as apostas individuais vão até as 22h de 31 de dezembro.</p>
+<h3>Dicas para não perder o prazo</h3>
+<ul>
+<li>Aposte com antecedência, principalmente em concursos acumulados, quando as filas e o tráfego no app aumentam.</li>
+<li>Pelo app, confira no comprovante o número do concurso para o qual a aposta foi registrada.</li>
+<li>Use a <strong>Teimosinha</strong>, disponível nos canais da Caixa, para repetir a mesma aposta em concursos seguidos sem precisar voltar todo dia.</li>
+</ul>
+<h2>Que horas o resultado é divulgado</h2>
+<p>As dezenas são conhecidas no momento do sorteio, a partir das 20h. O rateio — quantos ganhadores houve em cada faixa e quanto cada um recebe — é publicado pela Caixa logo em seguida e pode ser complementado nas horas seguintes, com a lista de cidades dos ganhadores. Nossas páginas de concurso se atualizam automaticamente quando essas informações chegam.</p>
+<h2>Resultados de hoje</h2>
+<p>Veja o último resultado de cada loteria: ${LOTERIAS.map((l) => `<a href="/${l.slug}/">${l.nome}</a>`).join(' · ')}.</p>`,
+    faq: [
+      { q: 'Que horas sai o resultado da Mega-Sena?', a: 'O sorteio da Mega-Sena acontece às 20h (horário de Brasília), às terças, quintas e sábados. O resultado aparece no site poucos minutos depois.' },
+      { q: 'Que horas sai o resultado da Lotofácil?', a: 'A Lotofácil sorteia de segunda a sábado, às 20h (horário de Brasília).' },
+      { q: 'Até que horas posso apostar no dia do sorteio?', a: 'Em geral, até as 19h (horário de Brasília). Depois disso, a aposta vale para o próximo concurso.' },
+      { q: 'Tem sorteio de loteria no domingo?', a: 'Em geral, não há sorteios das loterias da Caixa aos domingos. O Rio de Prêmios, loteria do Estado do RJ, sorteia aos domingos.' },
+    ],
+  },
+  {
+    slug: 'precos-das-loterias',
+    titulo: 'Preços das loterias da Caixa em 2026: quanto custa cada aposta',
+    desc: 'Tabela atualizada com o preço da aposta mínima e máxima de todas as loterias da Caixa em 2026 — Mega-Sena, Lotofácil, Quina, +Milionária e outras — e como o preço muda com mais números.',
+    resposta: 'Em 2026, a aposta mínima custa <strong>R$ 6,00 na Mega-Sena e na +Milionária</strong>, <strong>R$ 3,50 na Lotofácil e na Timemania</strong>, <strong>R$ 3,00 na Quina, Lotomania, Dupla Sena e Super Sete</strong> e <strong>R$ 2,50 no Dia de Sorte</strong>. São os valores em vigor desde o reajuste de julho de 2025.',
+    publicado: '2026-11-27', atualizado: '2026-11-27',
+    html: `
+<p>O preço de uma aposta depende da loteria e de quantos números você marca. Esta tabela reúne os valores de todas as modalidades da Caixa, da aposta mais barata à mais cara, com a chance de ganhar o prêmio principal em cada uma. Os preços são os da tabela vigente desde o reajuste de julho de 2025 — confira sempre os valores nos canais oficiais antes de apostar.</p>
+<h2>Tabela de preços de todas as loterias</h2>
+${tabelaPrecos}
+<p>A coluna "aposta máxima" mostra o valor com o maior número de dezenas permitido. Na Lotomania e na Timemania, o número de dezenas é fixo, então só existe um preço.</p>
+<h2>Como o preço cresce com mais números</h2>
+<p>Nas loterias em que você escolhe quantos números marcar, cada número a mais transforma a aposta em várias apostas simples. O preço é o valor da aposta mínima multiplicado pelo número de combinações formadas:</p>
+<ul>
+<li><strong>Mega-Sena:</strong> 7 números = ${brl(custo(POR_SLUG['mega-sena'], 7))}; 8 números = ${brl(custo(POR_SLUG['mega-sena'], 8))}; 10 números = ${brl(custo(POR_SLUG['mega-sena'], 10))}. Veja a tabela completa em <a href="/mega-da-virada/quanto-custa-apostar/">quanto custa apostar na Mega</a>.</li>
+<li><strong>Lotofácil:</strong> 16 números = ${brl(custo(LF, 16))}; 17 números = ${brl(custo(LF, 17))}; 18 números = ${brl(custo(LF, 18))}.</li>
+<li><strong>Quina:</strong> 6 números = ${brl(custo(POR_SLUG['quina'], 6))}; 7 números = ${brl(custo(POR_SLUG['quina'], 7))}.</li>
+<li><strong>+Milionária:</strong> o preço considera números e trevos: 7 números com 2 trevos = ${brl(custo(POR_SLUG['mais-milionaria'], 7, 2))}; 6 números com 3 trevos = ${brl(custo(POR_SLUG['mais-milionaria'], 6, 3))}.</li>
+</ul>
+<p>A chance de ganhar cresce exatamente na mesma proporção do preço: não há "desconto" em apostas maiores. Simule qualquer combinação na <a href="/ferramentas/calculadora-de-probabilidades/">calculadora de probabilidades</a>.</p>
+<h2>Qual loteria tem o melhor custo-benefício?</h2>
+<p>Depende do objetivo. Para ter mais chance de ganhar o prêmio principal gastando pouco, o Dia de Sorte e a Lotofácil são as mais acessíveis. Para concorrer a prêmios milionários, a Mega-Sena e a +Milionária concentram os maiores valores, mas com chances muito menores. O <a href="/guias/qual-loteria-tem-mais-chance-de-ganhar/">ranking de chances</a> compara todas as modalidades.</p>
+<h2>Bolões: apostas maiores por menos</h2>
+<p>Quem quer jogar com mais números sem pagar sozinho pode participar de um bolão. No Bolão Caixa, vendido nas lotéricas, cada participante compra uma cota de um conjunto de apostas — e a lotérica pode cobrar uma tarifa de serviço sobre a cota. Calcule o valor de cada cota na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a> e leia o <a href="/guias/como-fazer-bolao/">guia completo de bolão</a>.</p>
+<h2>Onde comprar</h2>
+<p>As apostas podem ser feitas em casas lotéricas, no aplicativo Loterias Caixa, no portal Loterias Online e no internet banking da Caixa. Apostas pela internet exigem cadastro e maioridade, e os canais digitais costumam ter um valor mínimo por compra.</p>`,
+    faq: [
+      { q: 'Quanto custa a aposta mínima da Mega-Sena em 2026?', a: 'R$ 6,00, com 6 números.' },
+      { q: 'Quanto custa jogar na Lotofácil?', a: `A aposta mínima, com 15 números, custa R$ 3,50. Com 16 números, ${brl(custo(LF, 16))}; com 20 números, ${brl(custo(LF, 20))}.` },
+      { q: 'Qual a loteria mais barata da Caixa?', a: 'O Dia de Sorte, com aposta mínima de R$ 2,50.' },
+      { q: 'Quando foi o último reajuste das loterias?', a: 'Os valores atuais estão em vigor desde o reajuste de julho de 2025.' },
+    ],
+  },
+  {
+    slug: 'como-aumentar-as-chances-na-lotofacil',
+    titulo: 'Como aumentar as chances na Lotofácil: o que funciona e o que é mito',
+    desc: 'O que realmente muda sua chance na Lotofácil — mais números, bolões, padrões dos sorteios — e quais "estratégias" são mito. Com probabilidades exatas calculadas.',
+    resposta: 'Na Lotofácil, só duas coisas aumentam a chance de ganhar: <strong>marcar mais números</strong> e <strong>fazer mais apostas</strong> (sozinho ou em bolão) — e as duas custam proporcionalmente mais. Com uma aposta simples de 15 números, a chance dos 15 pontos é de 1 em 3.268.760, e a de ganhar algum prêmio (11 acertos ou mais) é de cerca de 1 em 9. Números "atrasados", sequências da sorte e robôs não mudam a probabilidade.',
+    publicado: '2026-11-27', atualizado: '2026-11-27',
+    html: `
+<p>A Lotofácil é a loteria em que mais gente ganha alguma coisa, e por isso é cercada de dicas, "métodos" e promessas. Este guia separa o que tem base matemática do que é mito, usando as probabilidades exatas de cada situação.</p>
+<h2>As chances reais da Lotofácil</h2>
+<p>Você marca 15 números entre 25, e o sorteio também escolhe 15. Como você cobre mais da metade do volante, a Lotofácil tem chances muito melhores que a Mega-Sena:</p>
+<ul>
+<li><strong>15 acertos:</strong> 1 em ${n0(chance(probabilidade(LF, 15)))}</li>
+<li><strong>14 acertos:</strong> 1 em ${n0(chance(probabilidade(LF, 14)))}</li>
+<li><strong>13 acertos:</strong> 1 em ${n0(chance(probabilidade(LF, 13)))}</li>
+<li><strong>12 acertos:</strong> 1 em ${n0(chance(probabilidade(LF, 12)))}</li>
+<li><strong>11 acertos:</strong> 1 em ${n0(chance(probabilidade(LF, 11)))}</li>
+<li><strong>Algum prêmio (11 a 15):</strong> cerca de 1 em ${n0(1 / lf11())}</li>
+</ul>
+<h2>O que realmente aumenta a chance</h2>
+<h3>1. Marcar mais números</h3>
+<p>É possível marcar de 15 a 20 números. Cada número a mais multiplica as combinações cobertas — e o preço:</p>
+${tabelaLF}
+<p>Repare que o preço e a chance crescem juntos: um jogo de 16 números custa 16 vezes mais e tem 16 vezes mais chance de 15 pontos. Não existe atalho.</p>
+<h3>2. Fazer mais apostas — de preferência em bolão</h3>
+<p>Mais apostas diferentes significam mais combinações em jogo. Em grupo, o bolão permite jogar com 17, 18 ou mais números dividindo o custo. Monte o seu com a <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a>.</p>
+<h2>Padrões que ajudam a montar jogos "típicos"</h2>
+<p>Algumas características se repetem nos sorteios da Lotofácil não por mistério, mas por pura matemática. Elas não aumentam a chance de uma combinação específica, mas ajudam a entender como são os resultados mais comuns:</p>
+<ul>
+<li><strong>Pares e ímpares:</strong> entre 1 e 25 há 12 números pares e 13 ímpares. Em média, um sorteio tem cerca de 7 pares e 8 ímpares — combinações muito desequilibradas são raras.</li>
+<li><strong>Repetidos do concurso anterior:</strong> como saem 15 de 25 números, em média <strong>9 dezenas se repetem</strong> de um concurso para o seguinte.</li>
+<li><strong>Moldura e miolo:</strong> no volante 5×5, a borda tem 16 números e o centro, 9. Em média, cerca de 9 ou 10 dezenas sorteadas estão na moldura.</li>
+</ul>
+<p>Veja esses números de cada concurso nas análises automáticas das páginas de resultado e nas <a href="/lotofacil/estatisticas/">estatísticas da Lotofácil</a>.</p>
+<h2>Mitos que não funcionam</h2>
+<h3>"Jogue nas dezenas atrasadas"</h3>
+<p>Uma dezena que não sai há vários concursos não fica "devendo". Os sorteios são independentes: a chance de cada número sair é sempre 15 em 25, ou 60%, em todo concurso.</p>
+<h3>"Use as dezenas que mais saem"</h3>
+<p>As diferenças de frequência entre as dezenas são as esperadas pelo acaso. Elas descrevem o passado, mas não preveem o próximo sorteio.</p>
+<h3>"Robôs e aplicativos que acertam a Lotofácil"</h3>
+<p>Nenhum programa consegue prever um sorteio aleatório. Desconfie de quem cobra por "jogos garantidos" — se funcionasse, o vendedor não precisaria vender.</p>
+<h3>"Fechamentos garantem prêmio"</h3>
+<p>Fechamentos garantem um prêmio mínimo <em>somente se</em> uma parte das dezenas sorteadas estiver entre os números escolhidos — uma condição que nem sempre acontece. Entenda como funcionam no guia <a href="/guias/fechamentos-e-desdobramentos/">fechamentos e desdobramentos</a>.</p>
+<h2>Como jogar melhor (sem gastar mais)</h2>
+<ul>
+<li><strong>Evite combinações muito populares</strong>, como desenhos no volante: se ganhar, divide o prêmio de 14 e 15 pontos com menos gente.</li>
+<li><strong>Não repita a mesma combinação</strong> em bilhetes diferentes do mesmo bolão.</li>
+<li><strong>Defina um orçamento</strong> e mantenha-se nele. A faixa de 11 acertos tem prêmio pequeno: ela não "paga" o jogo.</li>
+<li>Gere jogos equilibrados no <a href="/ferramentas/gerador-de-numeros/">gerador de números</a>.</li>
+</ul>`,
+    faq: [
+      { q: 'Qual a chance de ganhar na Lotofácil?', a: `Com 15 números, 1 em ${n0(chance(probabilidade(LF, 15)))} para 15 pontos e cerca de 1 em ${n0(1 / lf11())} para ganhar algum prêmio (11 acertos ou mais).` },
+      { q: 'Jogar com 16 números vale a pena?', a: `Custa ${brl(custo(LF, 16))} e aumenta a chance de 15 pontos em 16 vezes. A vantagem é igual ao aumento de custo; em bolão, o valor fica mais acessível.` },
+      { q: 'Quantos números costumam repetir do concurso anterior?', a: 'Em média 9, pela própria matemática: saem 15 de 25 números a cada concurso.' },
+      { q: 'Existe estratégia garantida na Lotofácil?', a: 'Não. Só mais números ou mais apostas aumentam a chance, e ambos custam proporcionalmente mais.' },
+    ],
+  },
+  {
+    slug: 'fechamentos-e-desdobramentos',
+    titulo: 'Fechamentos e desdobramentos na loteria: o que são e quando valem a pena',
+    desc: 'Entenda a diferença entre desdobramento e fechamento, quanto custam, o que realmente garantem e um exemplo prático calculado na Mega-Sena.',
+    resposta: '<strong>Desdobramento</strong> é dividir um jogo com mais números em todas as apostas simples possíveis — custa o mesmo que marcar esses números num só jogo. <strong>Fechamento</strong> é usar só parte dessas combinações, escolhidas para garantir um prêmio mínimo <em>se</em> certa quantidade das dezenas sorteadas estiver entre os seus números. O fechamento economiza, mas a garantia é condicional.',
+    publicado: '2026-11-27', atualizado: '2026-11-27',
+    html: `
+<p>"Fechamento" e "desdobramento" são termos muito usados por apostadores experientes e por quem organiza bolões. Eles prometem cobrir mais números gastando menos — mas é importante entender exatamente o que garantem. Neste guia explicamos os dois conceitos com um exemplo calculado na Mega-Sena.</p>
+<h2>O que é desdobramento</h2>
+<p>Desdobrar é pegar um conjunto de números maior que a aposta mínima e transformá-lo em <strong>todas</strong> as apostas simples possíveis. Na Mega-Sena, 7 números geram ${C(7, 6)} combinações de 6; 8 números geram ${C(8, 6)}; 10 números geram ${C(10, 6)}.</p>
+<p>Na prática, um desdobramento completo é idêntico a marcar todos os números em um único jogo: o volante da Caixa já faz isso automaticamente e cobra o mesmo valor (R$ 6,00 por combinação). A chance de ganhar é exatamente a mesma. A diferença é só de organização — por exemplo, para distribuir as combinações entre bilhetes de um bolão.</p>
+<h2>O que é fechamento</h2>
+<p>Um fechamento usa <strong>apenas uma parte</strong> das combinações de um desdobramento, escolhidas de forma a garantir um prêmio mínimo sob uma condição. A condição costuma ser descrita assim: "garante a quadra se 4 das dezenas sorteadas estiverem entre os seus números".</p>
+<p>O fechamento é mais barato que o desdobramento completo, mas tem duas limitações:</p>
+<ul>
+<li>A garantia só vale se a condição acontecer — e, na maioria dos concursos, ela não acontece.</li>
+<li>Como há menos combinações em jogo, a chance de acertar a faixa principal diminui na mesma proporção.</li>
+</ul>
+<h2>Exemplo calculado na Mega-Sena</h2>
+<p>Suponha que você escolheu 7 números. O desdobramento completo tem ${C(7, 6)} apostas (${brl(custo(POR_SLUG['mega-sena'], 7))}). Cada uma dessas apostas deixa de fora exatamente um dos seus 7 números.</p>
+<h3>Quantas apostas garantem a quadra?</h3>
+<p>Imagine que 4 dos 6 números sorteados estão entre os seus 7. Uma aposta contém os 4 acertos sempre que o número que ela deixou de fora <em>não</em> é um deles. Se você jogar só 4 das 7 apostas, pode dar o azar de os 4 números deixados de fora serem justamente os 4 acertos — e nenhuma aposta teria a quadra. Com <strong>5 apostas</strong>, isso é impossível: entre os 5 números deixados de fora, no máximo 4 são acertos, então pelo menos uma aposta contém os 4. Esse é um fechamento de 5 apostas (${brl(5 * 6)}) que <strong>garante a quadra se 4 das dezenas sorteadas estiverem entre os seus 7 números</strong> — economizando ${brl(12)} em relação ao desdobramento completo.</p>
+<h3>O que você perde</h3>
+<p>Com 5 em vez de 7 apostas, a chance de sena cai de 7 para 5 combinações. E, quando a condição acontece, o desdobramento completo daria 3 quadras (${C(4, 4) * C(3, 2)}), enquanto o fechamento pode dar menos. É uma troca entre custo e cobertura, não um ganho gratuito.</p>
+<h2>Quando um fechamento vale a pena</h2>
+<ul>
+<li>Em <strong>bolões</strong>, para cobrir um conjunto maior de números com orçamento limitado.</li>
+<li>Quando você entende e aceita que a garantia é condicional.</li>
+<li>Quando o fechamento vem com a condição explicada de forma clara. Desconfie de quem anuncia "prêmio garantido" sem dizer a condição.</li>
+</ul>
+<h2>Fechamentos na Lotofácil</h2>
+<p>Na Lotofácil, fechamentos são populares porque a chance de as dezenas sorteadas caírem dentro de um conjunto de 18 ou 19 números escolhidos é relativamente alta. Mesmo assim, o princípio é o mesmo: a garantia depende de quantas dezenas sorteadas estiverem no seu conjunto. Veja as chances reais no guia <a href="/guias/como-aumentar-as-chances-na-lotofacil/">como aumentar as chances na Lotofácil</a>.</p>
+<h2>Ferramentas úteis</h2>
+<p>Calcule o custo e a chance de qualquer aposta na <a href="/ferramentas/calculadora-de-probabilidades/">calculadora de probabilidades</a>, divida o custo com amigos na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a> e confira vários jogos de uma vez no <a href="/ferramentas/conferidor/">conferidor</a>.</p>`,
+    faq: [
+      { q: 'Qual a diferença entre fechamento e desdobramento?', a: 'O desdobramento usa todas as combinações dos números escolhidos; o fechamento usa só parte delas, garantindo um prêmio mínimo apenas se certa quantidade das dezenas sorteadas estiver entre os seus números.' },
+      { q: 'Fechamento garante prêmio?', a: 'Só sob a condição informada, por exemplo, "se 4 dos números sorteados estiverem entre os seus". Se a condição não acontecer, não há garantia.' },
+      { q: 'Desdobramento aumenta a chance?', a: 'Tanto quanto marcar os mesmos números num só jogo. O custo também é o mesmo.' },
+      { q: 'Quantas apostas garantem a quadra com 7 números na Mega-Sena?', a: '5 das 7 combinações garantem a quadra, desde que 4 das dezenas sorteadas estejam entre os seus 7 números.' },
     ],
   },
 ];

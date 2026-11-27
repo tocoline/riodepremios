@@ -41,7 +41,11 @@ export async function paginas(db: any): Promise<Url[]> {
   ];
   for (const l of LOTERIAS) {
     const a = atu[l.api] ?? fixo;
-    u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo });
+    u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a });
+    if (l.tipo !== 'colunas' && res[l.api]) {
+      u.push({ loc: `/${l.slug}/dezenas/`, lastmod: a });
+      for (let d = l.min; d <= l.max; d++) u.push({ loc: `/${l.slug}/dezenas/${String(d).padStart(2, '0')}/`, lastmod: a });
+    }
     if (l.tipo !== 'colunas') u.push({ loc: `/${l.slug}/estatisticas/`, lastmod: a });
     for (const a of (res[l.api]?.anos ?? []).filter((x) => x.completo)) u.push({ loc: `/${l.slug}/resultados/${a.ano}/`, lastmod: d10(a.ult) });
   }

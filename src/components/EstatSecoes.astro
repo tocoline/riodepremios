@@ -35,7 +35,7 @@ const faq = l.tipo === 'colunas' ? [
       <p>As dezenas abaixo foram as que mais saíram nos {numero(s.total)} concursos analisados da {l.nome}. Pelo acaso, cada dezena deveria sair cerca de <strong>{esperado.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} vezes</strong> nesse período; diferenças pequenas em relação a esse valor são normais.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Posição</th><th>Dezena</th><th class="num">Vezes sorteada</th><th class="num">% dos concursos</th><th class="num">Último concurso</th></tr></thead>
-        <tbody>{s.mais.map((x, i) => <tr><td>{i + 1}º</td><td><strong>{pad(x.dezena)}</strong></td><td class="num">{x.vezes}</td><td class="num">{pct(x.vezes, s.total)}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>{x.ultimo}</a> : '—'}</td></tr>)}</tbody>
+        <tbody>{s.mais.map((x, i) => <tr><td>{i + 1}º</td><td><a href={`/${l.slug}/dezenas/${pad(x.dezena)}/`}><strong>{pad(x.dezena)}</strong></a></td><td class="num">{x.vezes}</td><td class="num">{pct(x.vezes, s.total)}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>{x.ultimo}</a> : '—'}</td></tr>)}</tbody>
       </table></div>
     </section>
 
@@ -44,7 +44,7 @@ const faq = l.tipo === 'colunas' ? [
       <p>"Atraso" é a quantidade de concursos desde a última vez que a dezena foi sorteada. Uma dezena atrasada não tem mais chance de sair no próximo concurso — a probabilidade é sempre a mesma —, mas a informação é útil para quem gosta de variar os jogos.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Dezena</th><th class="num">Concursos sem sair</th><th class="num">Última vez</th><th class="num">Total de vezes</th></tr></thead>
-        <tbody>{s.atrasadas.map((x) => <tr><td><strong>{pad(x.dezena)}</strong></td><td class="num">{x.atraso}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>concurso {x.ultimo}</a> : '—'}</td><td class="num">{x.vezes}</td></tr>)}</tbody>
+        <tbody>{s.atrasadas.map((x) => <tr><td><a href={`/${l.slug}/dezenas/${pad(x.dezena)}/`}><strong>{pad(x.dezena)}</strong></a></td><td class="num">{x.atraso}</td><td class="num">{x.ultimo ? <a href={`/${l.slug}/concurso/${x.ultimo}/`}>concurso {x.ultimo}</a> : '—'}</td><td class="num">{x.vezes}</td></tr>)}</tbody>
       </table></div>
     </section>
 
@@ -70,6 +70,7 @@ const faq = l.tipo === 'colunas' ? [
     )}
   </>
 )}
+{temDezenas && <p class="muted" style="margin-top:20px">Veja a página de cada número em <a href={`/${l.slug}/dezenas/`}>todas as dezenas da {l.nome}</a> e <a href={`/${l.slug}/premios/`}>quanto paga cada faixa</a>.</p>}
 <section class="es-sec"><Faq itens={faq} /></section>
 <style>
   .es-sec { margin-top: 32px; }

@@ -100,6 +100,15 @@ const schema = [{
   )}
 
   <section class="wrap section-sm">
+    <h2>Mais sobre a {l.nome}</h2>
+    <div class="grid g3">
+      <a class="card card-link" href={`/${l.slug}/premios/`}><strong>Quanto paga cada faixa</strong><p class="small muted" style="margin:4px 0 0">Prêmio médio, mínimo e máximo nos últimos concursos</p></a>
+      {l.tipo !== 'colunas' && <a class="card card-link" href={`/${l.slug}/dezenas/`}><strong>Todas as dezenas</strong><p class="small muted" style="margin:4px 0 0">Quantas vezes cada número saiu e há quanto tempo</p></a>}
+      <a class="card card-link" href="/guias/horario-dos-sorteios-das-loterias/"><strong>Horários dos sorteios</strong><p class="small muted" style="margin:4px 0 0">Dias, horário e até quando apostar</p></a>
+    </div>
+  </section>
+
+  <section class="wrap section-sm">
     <h2>Como jogar na {l.nome}</h2>
     <div class="prose narrow-l"><ol>{comoJogar(l).map((p) => <li>{p}</li>)}</ol>
     {l.dicas.length > 0 && <ul>{l.dicas.map((d) => <li>{d}</li>)}</ul>}</div>

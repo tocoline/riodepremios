@@ -32,6 +32,10 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - [Quanto custa apostar (6 a 20 números)](${u}/mega-da-virada/quanto-custa-apostar/) · [Prêmios por acertos](${u}/mega-da-virada/premios-por-acertos/) · [Como jogar online](${u}/mega-da-virada/como-jogar-online/) · [O que comprar se ganhar](${u}/mega-da-virada/o-que-comprar/) · [Palpites por signo](${u}/mega-da-virada/palpites-por-signo/)
 - [Seus números da sorte](${u}/mega-da-virada/seus-numeros/) · [Bolão online com conferência automática](${u}/mega-da-virada/bolao-online/) · [Quanto rende R$ 1 bilhão](${u}/mega-da-virada/quanto-rende/)
 
+## Dezenas e prêmios
+- Página de cada dezena: ${u}/{loteria}/dezenas/{NN}/ (quantas vezes saiu, última vez, atraso, companheiras) · índice: ${u}/{loteria}/dezenas/
+- Quanto paga cada faixa: ${u}/{loteria}/premios/
+
 ## Estatísticas
 ${LOTERIAS.filter((l) => l.tipo !== 'colunas').map((l) => `- [Estatísticas da ${l.nome}](${u}/${l.slug}/estatisticas/): dezenas mais sorteadas, atrasadas e frequência`).join('\n')}
 

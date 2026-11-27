@@ -83,7 +83,7 @@ const resumo = c.acumulado
       <h3>Há quantos concursos cada dezena não saía</h3>
       <div class="table-wrap"><table>
         <thead><tr><th>Dezena</th><th>Última vez antes deste concurso</th><th class="num">Concursos sem sair</th></tr></thead>
-        <tbody>{atrasos.map((a) => <tr><td><strong>{pad(a.d)}</strong></td><td>{a.ult ? <a href={`/${l.slug}/concurso/${a.ult}/`}>concurso {a.ult}</a> : `não saiu nos ${c.numero - menor} concursos anteriores`}</td><td class="num">{a.atraso ?? '—'}</td></tr>)}</tbody>
+        <tbody>{atrasos.map((a) => <tr><td><a href={`/${l.slug}/dezenas/${pad(a.d)}/`}><strong>{pad(a.d)}</strong></a></td><td>{a.ult ? <a href={`/${l.slug}/concurso/${a.ult}/`}>concurso {a.ult}</a> : `não saiu nos ${c.numero - menor} concursos anteriores`}</td><td class="num">{a.atraso ?? '—'}</td></tr>)}</tbody>
       </table></div>
     </>
   )}

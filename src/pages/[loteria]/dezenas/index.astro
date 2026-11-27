@@ -1,0 +1,51 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Ad from '../../../components/Ad.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { resumo } from '../../../lib/resumo';
+import { numero, pad } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l || l.tipo === 'colunas') return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const r = await resumo(db, l);
+if (!r) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 3600);
+const max = Math.max(...r.s.stats.map((x) => x.vezes), 1);
+const top = [...r.s.stats].sort((a, b) => b.vezes - a.vezes)[0];
+---
+<Base title={`Todas as dezenas da ${l.nome}: quantas vezes cada número saiu`} description={`Quantas vezes cada uma das ${l.max - l.min + 1} dezenas da ${l.nome} foi sorteada, há quanto tempo não sai e com quais números aparece. Clique em uma dezena para ver os detalhes.`} modificado={r.atualizado}>
+  <div class="wrap phero">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas', url: `/${l.slug}/estatisticas/` }, { nome: 'Dezenas' }]} />
+    <h1>Todas as dezenas da {l.nome}</h1>
+    <p class="lead">Escolha um número para ver quantas vezes saiu, quando foi a última vez, o atraso e as dezenas que mais aparecem junto com ele.</p>
+  </div>
+  <section class="wrap">
+    <Resposta><p>Em {numero(r.total)} concursos da {l.nome}, a dezena que mais saiu foi a <a href={`/${l.slug}/dezenas/${pad(top.dezena)}/`}><strong>{pad(top.dezena)}</strong></a> ({numero(top.vezes)} vezes). Cada dezena tem a mesma chance em todo sorteio; as diferenças de frequência são naturais do acaso.</p></Resposta>
+    <Fonte atualizado={r.atualizado} />
+    <h2>Escolha a dezena</h2>
+    <div class="dz-grid">
+      {r.s.stats.map((x) => (
+        <a class="dz-c" href={`/${l.slug}/dezenas/${pad(x.dezena)}/`} style={`--a:${(0.15 + 0.85 * (x.vezes / max)).toFixed(2)};--c:${l.cor}`}>
+          <b>{pad(x.dezena)}</b><span>{numero(x.vezes)}×</span><small>{x.atraso === 0 ? 'saiu no último' : `${x.atraso} sem sair`}</small>
+        </a>
+      ))}
+    </div>
+    <Ad />
+    <p class="muted">Veja também as <a href={`/${l.slug}/estatisticas/`}>estatísticas completas da {l.nome}</a> e os <a href={`/${l.slug}/resultados/`}>resultados por ano</a>.</p>
+  </section>
+</Base>
+<style>
+  .dz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin: 12px 0 24px; }
+  .dz-c { display: flex; flex-direction: column; align-items: center; padding: 10px 6px; border-radius: 12px; text-decoration: none; border: 1px solid var(--line); background: color-mix(in srgb, var(--c) calc(var(--a) * 60%), var(--surface2)); color: var(--text); }
+  .dz-c b { font: 700 1.3rem var(--display); }
+  .dz-c span { font-size: .8rem; font-weight: 600; }
+  .dz-c small { font-size: .68rem; opacity: .8; }
+  .dz-c:hover { border-color: var(--c); color: var(--text); }
+</style>

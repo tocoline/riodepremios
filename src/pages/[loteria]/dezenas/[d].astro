@@ -1,0 +1,123 @@
+---
+export const prerender = false;
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Fonte from '../../../components/Fonte.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { getDB, dbFalhou } from '../../../lib/db';
+import { resumo } from '../../../lib/resumo';
+import { dataBR, numero, pad } from '../../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../../lib/cache';
+import { SITE } from '../../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+const d = Number(Astro.params.d);
+if (!l || l.tipo === 'colunas' || !/^\d{1,3}$/.test(Astro.params.d ?? '') || d < l.min || d > l.max) return naoEncontrado(Astro);
+// endereço canônico com 2 dígitos (/dezenas/07/)
+if (Astro.params.d !== pad(d)) return Astro.redirect(`/${l.slug}/dezenas/${pad(d)}/`, 301);
+const db = getDB(Astro.locals);
+const r = await resumo(db, l);
+if (!r) return dbFalhou(db) ? indisponivel() : naoEncontrado(Astro);
+cachear(Astro, 3600);
+
+const st = r.s.stats.find((x) => x.dezena === d)!;
+const info = r.dezenas?.[d] ?? { companheiras: [], recentes: [] };
+const ranking = [...r.s.stats].sort((a, b) => b.vezes - a.vezes || a.dezena - b.dezena);
+const pos = ranking.findIndex((x) => x.dezena === d) + 1;
+const universo = l.max - l.min + 1;
+const porSorteio = l.slug === 'dupla-sena' ? 2 : 1;
+const esperado = (r.total * l.sorteadas * porSorteio) / universo;
+const pctConcursos = r.total ? (st.vezes / (r.total * porSorteio)) * 100 : 0;
+const chanceTeorica = (l.sorteadas / universo) * 100;
+const desvio = esperado ? ((st.vezes - esperado) / esperado) * 100 : 0;
+const anos = r.porAno.filter((x) => x.d === d).sort((a, b) => b.ano - a.ano);
+const concursosAno = Object.fromEntries(r.anos.map((a) => [a.ano, a.n]));
+const atrasoRank = [...r.s.stats].sort((a, b) => b.atraso - a.atraso).findIndex((x) => x.dezena === d) + 1;
+const ultimo = info.recentes[0];
+const D = pad(d);
+const titulo = `Dezena ${D} na ${l.nome}: quantas vezes saiu e última vez`;
+const desc = `A dezena ${D} saiu ${numero(st.vezes)} vezes na ${l.nome} em ${numero(r.total)} concursos${ultimo ? `; a última foi no concurso ${ultimo[0]} (${dataBR(ultimo[1])})` : ''}. Atraso, frequência por ano e dezenas que mais saem junto com a ${D}.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR', url: `${SITE.url}/${l.slug}/dezenas/${D}/`, dateModified: r.atualizado, isPartOf: { '@id': `${SITE.url}/#site` } }];
+const vizinhas = [d - 1, d + 1].filter((x) => x >= l.min && x <= l.max);
+---
+<Base title={titulo} description={desc} schema={schema} modificado={r.atualizado}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Estatísticas', url: `/${l.slug}/estatisticas/` }, { nome: 'Dezenas', url: `/${l.slug}/dezenas/` }, { nome: `Dezena ${D}` }]} />
+    <div class="dz-head">
+      <span class="ball lg" style={`--c:${l.cor};--s:84px`}>{D}</span>
+      <div><h1>Dezena {D} na {l.nome}</h1><p class="lead">Quantas vezes saiu, quando foi a última vez e com quais números ela mais aparece.</p></div>
+    </div>
+    <Autor atualizado={r.atualizado} modo="auto" />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>A dezena <strong>{D}</strong> foi sorteada <strong>{numero(st.vezes)} vezes</strong> nos {numero(r.total)} concursos da {l.nome} do nosso histórico{ultimo ? <>. A última vez foi no <a href={`/${l.slug}/concurso/${ultimo[0]}/`}>concurso {ultimo[0]}</a>, em {dataBR(ultimo[1])}</> : ''}, e ela está há <strong>{st.atraso} concurso{st.atraso === 1 ? '' : 's'}</strong> sem sair. É a <strong>{pos}ª dezena mais sorteada</strong> entre as {universo} possíveis.</p></Resposta>
+    <Fonte atualizado={r.atualizado} />
+    <div class="grid g4 dz-stats">
+      <div class="stat res"><span class="stat-l">Vezes sorteada</span><span class="stat-v">{numero(st.vezes)}</span></div>
+      <div class="stat res"><span class="stat-l">Posição no ranking</span><span class="stat-v">{pos}º de {universo}</span></div>
+      <div class="stat res"><span class="stat-l">Concursos sem sair</span><span class="stat-v">{st.atraso}</span></div>
+      <div class="stat res"><span class="stat-l">Saiu em</span><span class="stat-v">{pctConcursos.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos sorteios</span></div>
+    </div>
+
+    <div class="prose">
+      <h2>A dezena {D} sai mais ou menos que o esperado?</h2>
+      <p>Na {l.nome}, são sorteadas {l.sorteadas} dezenas entre {universo}{porSorteio === 2 ? ', em dois sorteios por concurso' : ''}. Pelo acaso, cada dezena deveria aparecer em cerca de <strong>{chanceTeorica.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> dos sorteios — o que daria aproximadamente <strong>{esperado.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} vezes</strong> no período analisado. A dezena {D} saiu {numero(st.vezes)} vezes, {Math.abs(desvio) < 3 ? 'praticamente o esperado' : `${Math.abs(desvio).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% ${desvio > 0 ? 'acima' : 'abaixo'} do esperado`}.</p>
+      <p>Diferenças desse tamanho são normais em sorteios aleatórios e não indicam que a dezena esteja "quente" ou "fria": a chance de a {D} sair no próximo concurso é exatamente a mesma de qualquer outra dezena.</p>
+
+      <h2>Atraso: há quanto tempo a {D} não sai</h2>
+      <p>{st.atraso === 0 ? <>A dezena {D} saiu no último concurso registrado.</> : <>A {D} está há <strong>{st.atraso} concursos</strong> sem ser sorteada — é a {atrasoRank}ª dezena mais atrasada da {l.nome} no momento.</>} Veja a lista completa de <a href={`/${l.slug}/estatisticas/`}>dezenas mais atrasadas</a>.</p>
+    </div>
+
+    {info.recentes.length > 0 && (
+      <>
+        <h2>Últimos concursos com a dezena {D}</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Concurso</th><th>Data</th><th class="num">Intervalo</th></tr></thead>
+          <tbody>{info.recentes.map(([n, dt], i) => <tr><td><a href={`/${l.slug}/concurso/${n}/`}><strong>{n}</strong></a></td><td>{dataBR(dt)}</td><td class="num">{info.recentes[i + 1] ? `${n - info.recentes[i + 1][0]} concursos depois da anterior` : '—'}</td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    <Ad />
+    {info.companheiras.length > 0 && (
+      <>
+        <h2>Dezenas que mais saem junto com a {D}</h2>
+        <p class="muted">Quantas vezes cada dezena foi sorteada no mesmo concurso que a {D}.</p>
+        <div class="comp">
+          {info.companheiras.map(([e, n]) => <a class="comp-i" href={`/${l.slug}/dezenas/${pad(e)}/`}><span class="ball sm" style={`--c:${l.cor}`}>{pad(e)}</span><span>{n}×</span></a>)}
+        </div>
+      </>
+    )}
+    {anos.length > 0 && (
+      <>
+        <h2>A dezena {D} ano a ano</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Ano</th><th class="num">Vezes sorteada</th><th class="num">Concursos no ano</th></tr></thead>
+          <tbody>{anos.map((a) => <tr><td>{r.anos.find((x) => x.ano === a.ano)?.completo ? <a href={`/${l.slug}/resultados/${a.ano}/`}>{a.ano}</a> : a.ano}</td><td class="num">{a.n}</td><td class="num">{concursosAno[a.ano] ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    <Faq itens={[
+      { q: `Quantas vezes a dezena ${D} saiu na ${l.nome}?`, a: `${numero(st.vezes)} vezes nos ${numero(r.total)} concursos do nosso histórico (do ${r.primeiro} ao ${r.ultimo}).` },
+      { q: `Quando a dezena ${D} saiu pela última vez?`, a: ultimo ? `No concurso ${ultimo[0]}, em ${dataBR(ultimo[1])}. Desde então, ${st.atraso} concurso(s) foram realizados.` : 'Ainda não há registro no histórico.' },
+      { q: `Vale a pena apostar na dezena ${D}?`, a: `A chance de a ${D} sair é igual à de qualquer outra dezena em cada concurso. Estatísticas ajudam a variar os jogos, mas não aumentam a probabilidade de acerto.` },
+    ]} />
+    <nav class="dz-nav" aria-label="Outras dezenas">
+      {vizinhas.map((x) => <a class="btn btn-sm" href={`/${l.slug}/dezenas/${pad(x)}/`}>{x < d ? '←' : ''} Dezena {pad(x)} {x > d ? '→' : ''}</a>)}
+      <a class="btn btn-sm" href={`/${l.slug}/dezenas/`}>Todas as dezenas</a>
+    </nav>
+  </section>
+</Base>
+<style>
+  .dz-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .dz-head h1 { margin-bottom: 6px; }
+  .dz-stats { margin: 16px 0 8px; }
+  .comp { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; }
+  .comp-i { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-weight: 600; font-size: .9rem; }
+  .comp-i:hover { border-color: var(--c, var(--brand)); color: var(--text); }
+  .dz-nav { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+  h2 { margin-top: 28px; }
+</style>
