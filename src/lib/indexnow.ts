@@ -9,7 +9,7 @@ export const INDEXNOW_KEY = '3802c2adaaaba15caa3569bef3432fd3';
 const INTERVALO = 5 * 60e3;
 let ultimaChecagem = 0;
 
-async function enviar(urls: string[]) {
+async function enviar(db: any, urls: string[]) {
   const host = new URL(SITE.url).host;
   for (let i = 0; i < urls.length; i += 10000) {
     const r = await fetch('https://api.indexnow.org/indexnow', {
@@ -18,6 +18,8 @@ async function enviar(urls: string[]) {
       body: JSON.stringify({ host, key: INDEXNOW_KEY, keyLocation: `${SITE.url}/${INDEXNOW_KEY}.txt`, urlList: urls.slice(i, i + 10000) }),
     });
     console.log('indexnow', r.status, urls.length);
+    // registro do último envio (status HTTP e quantidade), consultável em /api/indexnow.json
+    await db.prepare("INSERT INTO indexnow (loteria, numero, em) VALUES ('_envio', ?1, ?2) ON CONFLICT(loteria) DO UPDATE SET numero=excluded.numero, em=excluded.em").bind(r.status * 100000 + Math.min(urls.length, 99999), new Date().toISOString()).run().catch(() => {});
   }
 }
 
@@ -27,7 +29,7 @@ export async function indexnow(db: any, host: string) {
   try {
     await db.prepare('CREATE TABLE IF NOT EXISTS indexnow (loteria TEXT PRIMARY KEY, numero INTEGER NOT NULL, em TEXT NOT NULL)').run();
     const atuais = await db.batch(LOTERIAS.map((l) => db.prepare('SELECT loteria, numero, data FROM concursos WHERE loteria=? ORDER BY numero DESC LIMIT 1').bind(l.api)));
-    const vistos = new Map<string, number>((((await db.prepare('SELECT loteria, numero FROM indexnow').all()).results ?? []) as any[]).map((r) => [r.loteria, r.numero]));
+    const vistos = new Map<string, number>((((await db.prepare("SELECT loteria, numero FROM indexnow WHERE loteria <> '_envio'").all()).results ?? []) as any[]).map((r) => [r.loteria, r.numero]));
     const primeiraVez = vistos.size === 0;
     const urls = new Set<string>();
     const agora = new Date().toISOString();
@@ -42,8 +44,8 @@ export async function indexnow(db: any, host: string) {
         urls.add(u + p);
       if (l.tipo !== 'colunas') for (const p of ['estatisticas/', 'numeros-que-mais-saem/', 'numeros-atrasados/']) urls.add(`${u}/${l.slug}/${p}`);
     }
-    if (urls.size) { urls.add(SITE.url + '/'); await enviar([...urls]); }
+    if (urls.size) { urls.add(SITE.url + '/'); await enviar(db, [...urls]); }
     // primeira execução: envia uma vez todas as páginas (sem os concursos) para acelerar a descoberta
-    if (primeiraVez) await enviar((await paginas(db)).map((x) => SITE.url + x.loc));
+    if (primeiraVez) await enviar(db, (await paginas(db)).map((x) => SITE.url + x.loc));
   } catch (e) { console.error('indexnow', String(e)); }
 }
