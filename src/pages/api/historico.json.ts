@@ -44,6 +44,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
       p2.push(valores(porFaixa ? pr.filter((x) => Number(x.faixa) > nf) : pr.slice(nf, 2 * nf)));
     } else p.push(valores(pr));
   }
+  // clientes antigos (páginas ainda em cache, sem ?v=2) não conhecem o -1
+  if (url.searchParams.get('v') !== '2') for (const arr of [p, p2]) for (const x of arr) x.forEach((v, i) => { if (v < 0) x[i] = 0; });
   return Response.json({ loteria: l.slug, faixas: l.faixas.map((f) => f.acertos), dig, n, d, z, p, ...(dupla ? { z2, p2 } : {}) }, {
     headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=43200, stale-while-revalidate=86400', 'Access-Control-Allow-Origin': '*' },
   });
