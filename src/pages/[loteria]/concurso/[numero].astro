@@ -71,7 +71,7 @@ const premio = ehVirada ? VIRADA.premioValor : prox?.proximo_numero === n ? prox
 const premioTxt = ehVirada ? VIRADA.premioTexto : premio ? reaisCurto(premio) : null;
 
 const ESPECIAIS: Record<string, string> = { 'mega-sena': 'Mega da Virada', lotofacil: 'Lotofácil da Independência', quina: 'Quina de São João', 'dupla-sena': 'Dupla de Páscoa' };
-const ehViradaRes = !!c && l.slug === 'mega-sena' && (c.data.endsWith('-12-31') || c.data.slice(5, 7) === '01');
+const ehViradaRes = !!c && l.slug === 'mega-sena' && c.data >= '2008-12-31' && (c.data.endsWith('-12-31') || (c.data.slice(5, 7) === '01' && c.especial));
 const nomeEspecial = c?.especial ? (l.slug === 'mega-sena' ? (ehViradaRes ? 'Mega da Virada' : undefined) : ESPECIAIS[l.slug]) : undefined;
 const anoEspecial = c ? Number(c.data.slice(0, 4)) - (l.slug === 'mega-sena' && c.data.slice(5, 7) === '01' ? 1 : 0) : 0;
 const titulo = c
@@ -100,7 +100,7 @@ const faqPre = prox ? [
 <Base title={titulo} description={desc} schema={schema} image={imagem} type="article" modificado={modificado} noindex={!indexavel}>
   <div class="wrap phero">
     <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Resultados', url: `/${l.slug}/resultados/` }, ...(c ? [{ nome: String(anoC), url: `/${l.slug}/resultados/${anoC}/` }] : []), { nome: `Concurso ${n}` }]} />
-    {c?.especial && <span class="pill hot">✦ Concurso especial</span>}
+    {c?.especial && (l.slug !== 'mega-sena' || ehViradaRes) && <span class="pill hot">✦ Concurso especial</span>}
     {ehVirada && <span class="pill hot">✦ Mega da Virada {VIRADA.ano}</span>} {prox && <span class="pill hot">⏳ Ainda não sorteado</span>}
     <h1>{c ? `${l.nome} — resultado do concurso ${n}` : ehVirada ? `Mega da Virada ${VIRADA.ano} — concurso ${n}: palpites e resultado` : `${l.nome} ${n}: palpites e resultado de ${diaSemana} (${dataCurta})`}</h1>
     <p class="lead">{c

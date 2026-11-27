@@ -58,7 +58,7 @@ export function normalizar(api: string, j: any, fonte: string): ConcursoRow | nu
   })).filter((c) => c.cidade || c.uf);
 
   const local = [j.localSorteio ?? j.local, j.nomeMunicipioUFSorteio].filter(Boolean).join(' — ') || null;
-  const especial = (api === 'megasena' && (data.endsWith('-12-31') || numero === VIRADA.concurso)) || Number(j.indicadorConcursoEspecial) === 2;
+  const especial = (api === 'megasena' && ((data.endsWith('-12-31') && data >= '2008-12-31') || numero === VIRADA.concurso)) || Number(j.indicadorConcursoEspecial) === 2;
 
   return {
     loteria: api, numero, data, dezenas, dezenas_ordem: ordem,

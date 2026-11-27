@@ -1,0 +1,130 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Bolas from '../../components/Bolas.astro';
+import Fonte from '../../components/Fonte.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { getDB, especiais, dbFalhou } from '../../lib/db';
+import { premioPrincipal, anoDe } from '../../lib/virada';
+import { dataBR, reais, reaisCurto, numero, pad } from '../../lib/format';
+import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
+import { SITE } from '../../lib/site';
+
+const ano = Number(Astro.params.ano);
+if (!/^\d{4}$/.test(Astro.params.ano ?? '') || ano < 2008 || ano > VIRADA.ano) return naoEncontrado(Astro);
+const db = getDB(Astro.locals);
+const l = POR_SLUG['mega-sena'];
+const todas = await especiais(db, l);                      // mais recente primeiro
+if (!todas.length && dbFalhou(db)) return indisponivel();
+const c = todas.find((x) => anoDe(x) === ano);
+// edição do ano corrente ainda não sorteada: página do concurso com palpites
+if (!c) return ano === VIRADA.ano ? Astro.redirect(`/mega-sena/concurso/${VIRADA.concurso}/`, 302) : naoEncontrado(Astro);
+cachear(Astro, 86400);
+
+const cron = [...todas].reverse();                          // mais antiga primeiro
+const idx = cron.findIndex((x) => x.numero === c.numero);
+const ant = idx > 0 ? cron[idx - 1] : null;
+const prox = idx < cron.length - 1 ? cron[idx + 1] : null;
+const p = premioPrincipal(c);
+const pAnt = ant ? premioPrincipal(ant) : null;
+const evol = pAnt && pAnt.total ? ((p.total - pAnt.total) / pAnt.total) * 100 : null;
+const maiorAteEntao = cron.slice(0, idx).every((x) => premioPrincipal(x).total < p.total);
+const edicao = idx + 1;
+const pares = c.dezenas.filter((d) => d % 2 === 0).length;
+const soma = c.dezenas.reduce((a, b) => a + b, 0);
+// quantas vezes cada dezena já tinha saído em Viradas anteriores
+const antes = (d: number) => cron.slice(0, idx).filter((x) => x.dezenas.includes(d)).length;
+const repetidasAnt = ant ? c.dezenas.filter((d) => ant.dezenas.includes(d)) : [];
+const cidades = c.cidades_ganhadoras ?? [];
+const [sena, quina, quadra] = c.premiacoes;
+const dz = c.dezenas.map((d) => pad(d)).join(' - ');
+const titulo = `Mega da Virada ${ano}: resultado, números e ganhadores`;
+const desc = `Resultado da Mega da Virada ${ano} (concurso ${c.numero}): ${dz}. ${p.faixa === 'sena' ? `${numero(p.ganhadores)} ganhador(es) da sena, com ${reaisCurto(p.porGanhador)} cada` : `sem ganhador da sena; prêmio dividido entre ${numero(p.ganhadores)} apostas da quina`}. Cidades, rateio e comparação com outras Viradas.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: `${c.data}T23:00:00-03:00`, dateModified: c.atualizado_em, mainEntityOfPage: `${SITE.url}/mega-da-virada/${ano}/`, image: [`${SITE.url}/imagem-concurso.png?l=mega-sena&n=${c.numero}&r=1`], publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" image={`/imagem-concurso.png?l=mega-sena&n=${c.numero}&r=1`} modificado={c.atualizado_em}>
+  <ViradaHero titulo={`Mega da Virada ${ano}`} crumb={String(ano)} sub={`${edicao}ª edição · concurso ${c.numero} · sorteio em ${dataBR(c.data, true).replace(/^[^,]+, /, '')}`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>A <strong>Mega da Virada {ano}</strong> (concurso {c.numero}), sorteada em {dataBR(c.data)}, teve as dezenas <strong>{dz}</strong>.
+      {p.faixa === 'sena'
+        ? <> <strong>{numero(p.ganhadores)} aposta{p.ganhadores > 1 ? 's acertaram' : ' acertou'}</strong> as seis dezenas, e cada uma recebeu <strong>{reais(p.porGanhador)}</strong> — prêmio total de {reaisCurto(p.total)} na faixa principal.</>
+        : <> Nenhuma aposta acertou as seis dezenas e, como a Mega da Virada não acumula, o prêmio foi dividido entre <strong>{numero(p.ganhadores)} apostas que acertaram a quina</strong>, com {reais(p.porGanhador)} para cada.</>}</p></Resposta>
+    <Autor atualizado={c.atualizado_em} modo="auto" />
+
+    <div class="card big" style="margin-top:18px">
+      <p class="lbl">Dezenas sorteadas</p>
+      <Bolas dezenas={c.dezenas} cor="#d9a521" tam="lg" />
+      {c.dezenas_ordem && <p class="small faint" style="margin:10px 0 0">Ordem do sorteio: {c.dezenas_ordem.map((d) => pad(d)).join(' · ')}</p>}
+      <p class="small muted" style="margin:8px 0 0">{pares} pares e {6 - pares} ímpares · soma {soma}{c.local ? ` · ${c.local}` : ''}</p>
+    </div>
+    <Fonte atualizado={c.atualizado_em} />
+
+    <h2>Premiação da Mega da Virada {ano}</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Faixa</th><th class="num">Ganhadores</th><th class="num">Prêmio por aposta</th><th class="num">Total pago</th></tr></thead>
+      <tbody>{c.premiacoes.map((x) => <tr><td>{x.descricao}</td><td class="num">{numero(x.ganhadores)}</td><td class="num">{x.ganhadores ? reais(x.premio) : '—'}</td><td class="num">{x.ganhadores ? reais(x.premio * x.ganhadores) : '—'}</td></tr>)}</tbody>
+    </table></div>
+    {c.arrecadacao ? <p class="small faint">Arrecadação total do concurso: {reais(c.arrecadacao)}.</p> : null}
+
+    {cidades.length > 0 && (
+      <>
+        <h2>Onde saíram os prêmios principais</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Cidade</th><th>UF</th><th class="num">Ganhadores</th></tr></thead>
+          <tbody>{cidades.map((g) => <tr><td>{g.cidade || 'Canal eletrônico'}</td><td>{g.uf || '—'}</td><td class="num">{g.ganhadores}</td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+    <Ad />
+    <div class="prose">
+      <h2>Como foi a Mega da Virada {ano} em comparação com as outras</h2>
+      <p>Foi a {edicao}ª edição da Mega da Virada{edicao === 1 ? ', a primeira da história' : ''}.
+        {pAnt ? <> Na edição anterior ({anoDe(ant!)}), a faixa principal pagou {reaisCurto(pAnt.total)}; em {ano}, foram {reaisCurto(p.total)}{evol !== null ? <> — {evol >= 0 ? 'alta' : 'queda'} de <strong>{Math.abs(evol).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong></> : ''}.</> : ''}
+        {maiorAteEntao && edicao > 1 ? <> Foi o <strong>maior prêmio da Mega da Virada até então</strong>.</> : ''}</p>
+      {ant && <p>{repetidasAnt.length ? <>Em relação à Virada de {anoDe(ant)}, {repetidasAnt.length === 1 ? 'repetiu-se a dezena' : `repetiram-se ${repetidasAnt.length} dezenas:`} <strong>{repetidasAnt.map((d) => pad(d)).join(', ')}</strong>.</> : <>Nenhuma dezena se repetiu em relação à Virada de {anoDe(ant)}.</>}</p>}
+      {sena && quina && quadra && <p>Além dos ganhadores principais, {numero(quina.ganhadores)} apostas acertaram a quina e {numero(quadra.ganhadores)} acertaram a quadra{quina.ganhadores && quadra.ganhadores ? <>, recebendo {reais(quina.premio)} e {reais(quadra.premio)} cada, respectivamente</> : ''}.</p>}
+    </div>
+
+    {idx > 0 && (
+      <>
+        <h2>As dezenas de {ano} nas Viradas anteriores</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Dezena</th><th class="num">Vezes em Viradas anteriores</th><th>Página da dezena</th></tr></thead>
+          <tbody>{c.dezenas.map((d) => <tr><td><strong>{pad(d)}</strong></td><td class="num">{antes(d)} de {idx}</td><td><a href={`/mega-sena/dezenas/${pad(d)}/`}>Dezena {pad(d)} na Mega-Sena</a></td></tr>)}</tbody>
+        </table></div>
+      </>
+    )}
+
+    <h2>Todas as edições da Mega da Virada</h2>
+    <nav class="eds" aria-label="Edições da Mega da Virada">
+      {cron.map((x) => <a href={`/mega-da-virada/${anoDe(x)}/`} aria-current={x.numero === c.numero ? 'page' : undefined}>{anoDe(x)}</a>)}
+      <a href={`/mega-sena/concurso/${VIRADA.concurso}/`}>{VIRADA.ano} ✦</a>
+    </nav>
+    <nav class="pager" aria-label="Edições vizinhas">
+      {ant ? <a class="btn btn-sm" href={`/mega-da-virada/${anoDe(ant)}/`} rel="prev">← Virada {anoDe(ant)}</a> : <span></span>}
+      {prox ? <a class="btn btn-sm" href={`/mega-da-virada/${anoDe(prox)}/`} rel="next">Virada {anoDe(prox)} →</a> : <a class="btn btn-sm btn-primary" href="/mega-da-virada/">Mega da Virada {VIRADA.ano} →</a>}
+    </nav>
+    <Faq itens={[
+      { q: `Quais foram os números da Mega da Virada ${ano}?`, a: `${dz} (concurso ${c.numero}, sorteado em ${dataBR(c.data)}).` },
+      { q: `Quantas pessoas ganharam a Mega da Virada ${ano}?`, a: p.faixa === 'sena' ? `${numero(p.ganhadores)} aposta(s) acertaram as seis dezenas.` : `Ninguém acertou as seis dezenas; o prêmio foi dividido entre ${numero(p.ganhadores)} apostas da quina.` },
+      { q: `Quanto pagou a Mega da Virada ${ano}?`, a: `${reais(p.porGanhador)} por aposta ganhadora na faixa principal (${p.faixa}), num total de ${reaisCurto(p.total)}.` },
+      ...(cidades.length ? [{ q: `Onde saiu a Mega da Virada ${ano}?`, a: cidades.map((g) => `${g.cidade || 'canal eletrônico'}${g.uf ? `/${g.uf}` : ''}`).join(', ') + '.' }] : []),
+    ]} />
+  </article>
+</Base>
+<style>
+  .big { display: flex; flex-direction: column; gap: 10px; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); }
+  .lbl { margin: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  .eds { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+  .eds a { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-weight: 650; font-size: .9rem; }
+  .eds a[aria-current="page"], .eds a:hover { border-color: var(--gold); color: var(--gold); }
+  .pager { display: flex; justify-content: space-between; gap: 10px; margin: 8px 0 20px; }
+  h2 { margin-top: 28px; }
+</style>

@@ -1,0 +1,89 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { custo, probabilidade, C } from '../../lib/math';
+import { getDB, especiais } from '../../lib/db';
+import { anoDe } from '../../lib/virada';
+import { reais, reaisCurto, numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const GRUPOS = [5, 10, 15, 20, 25, 30, 50, 100];
+const N = Number(Astro.params.n);
+if (!GRUPOS.includes(N)) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const l = POR_SLUG['mega-sena'];
+const ult = (await especiais(getDB(Astro.locals), l))[0] ?? null;
+const quinaUlt = ult?.premiacoes[1]?.ganhadores ? ult.premiacoes[1].premio : null;
+const quadraUlt = ult?.premiacoes[2]?.ganhadores ? ult.premiacoes[2].premio : null;
+const cotas = [10, 20, 50, 100];
+// para cada valor de cota: maior jogo único que cabe no orçamento e quantas apostas simples
+const opcoes = cotas.map((v) => {
+  const total = v * N;
+  let k = 6; while (k < 20 && custo(l, k + 1) <= total) k++;
+  const cabe = custo(l, k) <= total;
+  return { v, total, simples: Math.floor(total / 6), k: cabe ? k : null, custoK: cabe ? custo(l, k) : null,
+    chanceSimples: Math.round(1 / (1 - (1 - probabilidade(l, 6, 6)) ** Math.floor(total / 6))), chanceK: cabe ? Math.round(1 / probabilidade(l, 6, k)) : null };
+});
+const brutoPorPessoa = VIRADA.premioValor / N;
+const liqPorPessoa = brutoPorPessoa * 0.7;
+const outros = GRUPOS.filter((x) => x !== N);
+const titulo = `Bolão da Mega da Virada com ${N} pessoas: quanto cada um paga e ganha`;
+const desc = `Como montar um bolão da Mega da Virada ${VIRADA.ano} com ${N} pessoas: quanto cada um paga, quais jogos dá para fazer e quanto cada participante recebe se o grupo ganhar.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: CONTEUDO_ATUALIZADO, mainEntityOfPage: `${SITE.url}/mega-da-virada/bolao-de-${N}-pessoas/`, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <ViradaHero titulo={`Bolão da Mega da Virada com ${N} pessoas`} crumb={`Bolão de ${N}`} sub={`Quanto cada um paga, quais jogos fazer e quanto cada participante recebe se o grupo acertar.`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <Resposta><p>Num bolão da Mega da Virada com <strong>{N} pessoas</strong>, se cada uma contribuir com <strong>R$ 20</strong>, o grupo junta <strong>{reais(20 * N)}</strong> — o suficiente para {opcoes[1].k && opcoes[1].k > 6 ? <>um jogo de <strong>{opcoes[1].k} números</strong> ({reais(opcoes[1].custoK!)})</> : <>{numero(opcoes[1].simples)} apostas simples</>}. Se o grupo acertar a sena de um prêmio de {VIRADA.premioTexto} sozinho, cada participante recebe cerca de <strong>{reaisCurto(liqPorPessoa)}</strong> líquidos, depois do Imposto de Renda.</p></Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <h2 style="margin-top:26px">Quanto dá para jogar com {N} pessoas</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Cota por pessoa</th><th class="num">Total do grupo</th><th>Opção A: maior jogo único</th><th>Opção B: apostas simples</th></tr></thead>
+      <tbody>{opcoes.map((o) => <tr><td><strong>{reais(o.v)}</strong></td><td class="num">{reais(o.total)}</td><td>{o.k ? <>1 jogo de <strong>{o.k} números</strong> ({reais(o.custoK!)}) · sena: 1 em {numero(o.chanceK!)}</> : '—'}</td><td>{numero(o.simples)} apostas de 6 números · sena: 1 em {numero(o.chanceSimples)}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Chances de sena calculadas por análise combinatória, considerando apostas simples todas diferentes entre si. O que sobrar do orçamento pode ser usado em apostas simples extras.</p>
+
+    <h2>Quanto cada participante ganha se o grupo acertar</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Se o bolão ganhar…</th><th class="num">Bruto por pessoa</th><th class="num">Líquido por pessoa (IR 30%)</th></tr></thead>
+      <tbody>
+        <tr><td>A sena sozinho (prêmio estimado de {VIRADA.premioTexto})</td><td class="num">{reaisCurto(brutoPorPessoa)}</td><td class="num">{reaisCurto(liqPorPessoa)}</td></tr>
+        <tr><td>A sena, dividida com outras 4 apostas</td><td class="num">{reaisCurto(brutoPorPessoa / 5)}</td><td class="num">{reaisCurto(liqPorPessoa / 5)}</td></tr>
+        {quinaUlt && <tr><td>Uma quina (valor da Virada {anoDe(ult!)}: {reais(quinaUlt)})</td><td class="num">{reais(quinaUlt / N)}</td><td class="num">{reais((quinaUlt * 0.7) / N)}</td></tr>}
+        {quadraUlt && <tr><td>Uma quadra (valor da Virada {anoDe(ult!)}: {reais(quadraUlt)})</td><td class="num">{reais(quadraUlt / N)}</td><td class="num">{reais(quadraUlt / N)}</td></tr>}
+      </tbody>
+    </table></div>
+    <p class="small faint">Valores ilustrativos: o prêmio real depende da arrecadação e do número de ganhadores. Prêmios pequenos, abaixo do limite de isenção, não têm retenção de IR.</p>
+    <Ad />
+    <div class="prose">
+      <h2>Jogo grande ou muitas apostas simples?</h2>
+      <p>Com o mesmo dinheiro, a chance de acertar a sena é praticamente igual nas duas opções. A diferença está no que acontece quando o grupo acerta: um jogo grande, de {opcoes[2].k ?? 8} números, rende várias quinas e quadras de uma vez; apostas simples espalhadas cobrem combinações mais variadas. Veja quanto cada jogo rende em <a href="/mega-da-virada/premios-por-acertos/">prêmios por acertos</a>.</p>
+      <h2>Como organizar o bolão de {N} pessoas</h2>
+      <ol>
+        <li><strong>Defina o valor da cota</strong> e quem será o responsável por registrar as apostas.</li>
+        <li><strong>Monte os jogos</strong> no <a href="/mega-da-virada/bolao-online/">bolão online</a> e mande o link no grupo — todos veem os mesmos jogos, e o link confere o resultado sozinho.</li>
+        <li><strong>Registre as apostas</strong> na lotérica, no app Loterias Caixa ou compre cotas do Bolão Caixa. Bolões digitais da Virada {VIRADA.ano} vão até 9h de 1º/01/2027.</li>
+        <li><strong>Compartilhe os comprovantes</strong> antes do sorteio ({VIRADA.dataTexto}, às {VIRADA.hora}).</li>
+      </ol>
+      {N >= 30 && <p>Com {N} participantes, vale formalizar por escrito a lista de quem pagou e combinar como serão divididos prêmios pequenos. Transferências de valores altos depois do prêmio podem ter imposto sobre doação (ITCMD) — veja o <a href="/guias/imposto-de-renda-sobre-premios-de-loteria/">guia de impostos</a>.</p>}
+      <h2>Outros tamanhos de bolão</h2>
+      <p>{outros.map((x, i) => <>{i > 0 && ' · '}<a href={`/mega-da-virada/bolao-de-${x}-pessoas/`}>{x} pessoas</a></>)}</p>
+    </div>
+    <Faq itens={[
+      { q: `Quanto cada um ganha num bolão de ${N} pessoas se acertar a Mega da Virada?`, a: `Com um prêmio de ${VIRADA.premioTexto} sem divisão com outros ganhadores, cerca de ${reaisCurto(liqPorPessoa)} líquidos por pessoa, depois do IR de 30%.` },
+      { q: `Quanto custa um bolão de ${N} pessoas?`, a: `Depende da cota: com R$ 10 por pessoa, o grupo junta ${reais(10 * N)}; com R$ 50, ${reais(50 * N)}.` },
+      { q: 'É melhor fazer um jogo grande ou várias apostas simples?', a: 'A chance de sena é praticamente a mesma com o mesmo valor. Jogos grandes concentram prêmios secundários quando acertam.' },
+    ]} />
+  </article>
+</Base>
+<style> h2 { margin-top: 28px; } </style>

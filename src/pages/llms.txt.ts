@@ -30,6 +30,7 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)
 - [Simulador de chances](${u}/mega-da-virada/simulador/)
 - [Quanto custa apostar (6 a 20 números)](${u}/mega-da-virada/quanto-custa-apostar/) · [Prêmios por acertos](${u}/mega-da-virada/premios-por-acertos/) · [Como jogar online](${u}/mega-da-virada/como-jogar-online/) · [O que comprar se ganhar](${u}/mega-da-virada/o-que-comprar/) · [Palpites por signo](${u}/mega-da-virada/palpites-por-signo/)
+- Resultado de cada edição: ${u}/mega-da-virada/{ano}/ (2008 a 2025) · [Horário e onde assistir](${u}/mega-da-virada/horario-e-onde-assistir/) · Acertei N números (1 a 6): ${u}/mega-da-virada/acertei-{N}-numeros/ · Bolão com N pessoas: ${u}/mega-da-virada/bolao-de-{N}-pessoas/
 - [Seus números da sorte](${u}/mega-da-virada/seus-numeros/) · [Bolão online com conferência automática](${u}/mega-da-virada/bolao-online/) · [Quanto rende R$ 1 bilhão](${u}/mega-da-virada/quanto-rende/)
 
 ## Dezenas e prêmios

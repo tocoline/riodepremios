@@ -28,7 +28,7 @@ const u = viradas[0];
     <h2>Todas as edições da Mega da Virada</h2>
     <div class="vlist">
       {viradas.map((c) => { const p = premioPrincipal(c); return (
-        <a class="card card-link vi" href={`/mega-sena/concurso/${c.numero}/`}>
+        <a class="card card-link vi" href={`/mega-da-virada/${anoDe(c)}/`}>
           <div class="vi-ano">{anoDe(c)}<span>Concurso {c.numero}</span></div>
           <Bolas dezenas={c.dezenas} cor="#d9a521" />
           <div class="vi-p">

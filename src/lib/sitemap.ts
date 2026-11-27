@@ -55,6 +55,9 @@ export async function paginas(db: any): Promise<Url[]> {
   for (const p of ['', 'resultados/', 'estatisticas/', 'calculadora-de-bolao/', 'simulador/', 'gerador/', 'premio-liquido/', 'como-apostar/', 'seus-numeros/', 'bolao-online/', 'quanto-rende/', 'quanto-custa-apostar/', 'premios-por-acertos/', 'como-jogar-online/', 'o-que-comprar/', 'palpites-por-signo/'])
     u.push({ loc: `/mega-da-virada/${p}`, lastmod: p === 'resultados/' || p === 'estatisticas/' ? max(viradas[0]?.d) : vir });
   for (const [pg, api] of [['lotofacil-da-independencia', 'lotofacil'], ['quina-de-sao-joao', 'quina'], ['dupla-de-pascoa', 'duplasena']]) u.push({ loc: `/${pg}/`, lastmod: atu[api] ?? fixo });
+  for (const pg of ['horario-e-onde-assistir/', ...[1, 2, 3, 4, 5, 6].map((k) => `acertei-${k}-numeros/`), ...[5, 10, 15, 20, 25, 30, 50, 100].map((n) => `bolao-de-${n}-pessoas/`)]) u.push({ loc: `/mega-da-virada/${pg}`, lastmod: vir });
+  const eds = await q(db, "SELECT data, atualizado_em FROM concursos WHERE loteria='megasena' AND especial=1 AND data >= '2008-12-31' AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')");
+  for (const e of eds) { const a = Number(e.data.slice(0, 4)) - (e.data.slice(5, 7) === '01' ? 1 : 0); u.push({ loc: `/mega-da-virada/${a}/`, lastmod: d10(e.data) }); }
   for (const sg of SIGNOS) u.push({ loc: `/mega-da-virada/palpites-por-signo/${sg.slug}/`, lastmod: fixo });
   const prox = proximaEdicao();
   const rpAtu = dataEdicao(prox - 1);

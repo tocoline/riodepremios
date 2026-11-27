@@ -1,0 +1,104 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { C, hyper } from '../../lib/math';
+import { getDB, especiais } from '../../lib/db';
+import { anoDe } from '../../lib/virada';
+import { reais, numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const k = Number(Astro.params.n);
+if (!/^[1-6]$/.test(Astro.params.n ?? '')) return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const l = POR_SLUG['mega-sena'];
+const ult = (await especiais(getDB(Astro.locals), l))[0] ?? null;
+const faixaNome: Record<number, string> = { 4: 'quadra', 5: 'quina', 6: 'sena' };
+const premiado = k >= 4;
+const p = hyper(60, 6, 6, k);                       // chance de acertar exatamente k com 6 números
+const pct = (x: number) => (x * 100).toLocaleString('pt-BR', { maximumFractionDigits: x < 0.01 ? 3 : 1 });
+const umEm = (x: number) => numero(Math.round(1 / x));
+const valorUlt = (j: number) => { const f = ult?.premiacoes[6 - j]; return f && f.ganhadores ? f.premio : null; };
+// prêmios de um jogo de n números com k acertos
+const premios = (n: number) => ({ sena: C(k, 6), quina: C(k, 5) * C(n - k, 1), quadra: C(k, 4) * C(n - k, 2) });
+const txt = (q: ReturnType<typeof premios>) => [q.sena && `${q.sena} sena${q.sena > 1 ? 's' : ''}`, q.quina && `${q.quina} quina${q.quina > 1 ? 's' : ''}`, q.quadra && `${q.quadra} quadra${q.quadra > 1 ? 's' : ''}`].filter(Boolean).join(' + ') || 'nenhum prêmio';
+const outros = [1, 2, 3, 4, 5, 6].filter((x) => x !== k);
+const titulo = premiado
+  ? `Acertei ${k} números na Mega da Virada: quanto ganho?`
+  : `Acertei ${k} número${k > 1 ? 's' : ''} na Mega da Virada: ganho alguma coisa?`;
+const desc = premiado
+  ? `Quem acerta ${k} números na Mega da Virada ganha a ${faixaNome[k]}. Veja quanto ela pagou na última edição, quantos prêmios um jogo com mais números rende e como resgatar.`
+  : `Acertar ${k} número${k > 1 ? 's' : ''} na Mega da Virada não dá prêmio: a premiação começa na quadra (4 acertos). Veja a chance de acertar ${k}, o que muda com mais números no jogo e o que fazer com o bilhete.`;
+const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: ult?.atualizado_em ?? CONTEUDO_ATUALIZADO, mainEntityOfPage: `${SITE.url}/mega-da-virada/acertei-${k}-numeros/`, publisher: { '@id': `${SITE.url}/#org` } }];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <ViradaHero titulo={titulo.replace(/: .*/, '')} crumb={`Acertei ${k}`} sub={premiado ? `Sim, ${k} acertos dão prêmio na Mega da Virada: é a ${faixaNome[k]}.` : `Não: a Mega da Virada só paga a partir de 4 acertos.`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:900px">
+    <Resposta>
+      {premiado
+        ? <p><strong>Sim.</strong> Quem acerta {k} números na Mega da Virada ganha a <strong>{faixaNome[k]}</strong>.{valorUlt(k) ? <> Na última edição ({anoDe(ult!)}), a {faixaNome[k]} pagou <strong>{reais(valorUlt(k)!)}</strong> por aposta.</> : ''} O valor exato de cada edição depende da arrecadação e de quantas apostas acertaram. A chance de fazer exatamente {k} acertos com uma aposta simples é de 1 em {umEm(p)}.</p>
+        : <p><strong>Não.</strong> Na Mega da Virada, assim como na Mega-Sena, a premiação começa na <strong>quadra (4 acertos)</strong>. Acertar {k} número{k > 1 ? 's' : ''} não dá prêmio — e é muito comum: com uma aposta simples, isso acontece em cerca de <strong>{pct(p)}% das apostas</strong>.</p>}
+    </Resposta>
+    <Autor atualizado={CONTEUDO_ATUALIZADO + 'T12:00:00-03:00'} />
+
+    <div class="prose" style="margin-top:24px">
+      <h2>Qual a chance de acertar exatamente {k} número{k > 1 ? 's' : ''}?</h2>
+      <p>Com uma aposta simples de 6 números, a chance de acertar exatamente {k} das 6 dezenas sorteadas é de <strong>{pct(p)}%</strong>, ou 1 em {umEm(p)}. Veja como ficam todas as possibilidades:</p>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Acertos (aposta de 6 números)</th><th class="num">Chance</th><th>Prêmio</th></tr></thead>
+      <tbody>{[0, 1, 2, 3, 4, 5, 6].map((j) => <tr class:list={[j === k && 'hl']}><td>{j === k ? <strong>{j} acerto{j === 1 ? '' : 's'}</strong> : <a href={j >= 1 ? `/mega-da-virada/acertei-${j}-numeros/` : undefined}>{j} acerto{j === 1 ? '' : 's'}</a>}</td><td class="num">{pct(hyper(60, 6, 6, j))}% (1 em {umEm(hyper(60, 6, 6, j))})</td><td>{j >= 4 ? faixaNome[j] : 'sem prêmio'}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Probabilidades calculadas por análise combinatória (distribuição hipergeométrica: 6 dezenas sorteadas entre 60).</p>
+
+    <div class="prose">
+      <h2>E se o meu jogo tinha mais de 6 números?</h2>
+      <p>Um jogo com mais números é conferido como várias apostas de 6. {premiado ? 'Quando ele acerta, pode render vários prêmios ao mesmo tempo:' : `Mesmo assim, com ${k} acerto${k > 1 ? 's' : ''} nenhuma combinação de 6 chega a 4 acertos — não há prêmio, qualquer que seja a quantidade de números marcados.`}</p>
+    </div>
+    {premiado && (
+      <div class="table-wrap"><table>
+        <thead><tr><th>Números no jogo</th><th>Com {k} acertos, o jogo recebe</th></tr></thead>
+        <tbody>{[6, 7, 8, 9, 10, 12, 15, 20].map((n) => <tr><td>{n}</td><td>{txt(premios(n))}</td></tr>)}</tbody>
+      </table></div>
+    )}
+    <Ad />
+    <div class="prose">
+      {premiado ? (
+        <>
+          <h2>Como receber o prêmio da {faixaNome[k]}</h2>
+          <ul>
+            <li><strong>Confira o resultado oficial</strong> e guarde o bilhete (ou o comprovante da aposta digital) em local seguro.</li>
+            <li><strong>Prêmios menores</strong> podem ser recebidos em lotéricas; <strong>prêmios maiores</strong>, em agências da Caixa, com documento de identificação e CPF.</li>
+            <li><strong>Apostas pelo app</strong>: prêmios menores podem ser creditados na conta cadastrada.</li>
+            <li><strong>Prazo:</strong> 90 dias corridos após o sorteio. Prêmios acima do limite de isenção têm 30% de Imposto de Renda retido na fonte.</li>
+          </ul>
+          <p>Veja o passo a passo completo em <a href="/guias/como-resgatar-premio-da-loteria/">como resgatar prêmio da loteria</a> e calcule o valor líquido na <a href="/mega-da-virada/premio-liquido/">calculadora de prêmio líquido</a>.</p>
+        </>
+      ) : (
+        <>
+          <h2>O que fazer com o bilhete</h2>
+          <p>Se o jogo acertou menos de 4 números, ele não tem prêmio. Antes de descartar, confira com atenção: em bolões e jogos com muitos números, é fácil deixar passar uma quadra. Use o <a href="/mega-sena/conferir/">conferidor da Mega-Sena</a> e informe o concurso da Virada para checar todos os jogos de uma vez.</p>
+          <h2>Por que a Mega não paga 1, 2 ou 3 acertos?</h2>
+          <p>Acertar poucos números é extremamente comum — juntas, as apostas com 0 a 3 acertos são mais de 99,9% do total. Pagar essas faixas dividiria o dinheiro em valores minúsculos. Por isso a Mega-Sena concentra os prêmios em quadra, quina e sena. Loterias como a Lotomania, por outro lado, premiam até quem não acerta nenhum número.</p>
+        </>
+      )}
+      <h2>Conferir outros resultados</h2>
+      <p>Veja quanto paga cada faixa em <a href="/mega-da-virada/premios-por-acertos/">prêmios da Mega da Virada por acertos</a> e os resultados de todas as edições em <a href="/mega-da-virada/resultados/">resultados da Mega da Virada</a>.</p>
+      <p>Outras quantidades de acertos: {outros.map((x, i) => <>{i > 0 && ' · '}<a href={`/mega-da-virada/acertei-${x}-numeros/`}>acertei {x}</a></>)}</p>
+    </div>
+    <Faq itens={[
+      { q: `Acertar ${k} número${k > 1 ? 's' : ''} na Mega da Virada dá prêmio?`, a: premiado ? `Sim, é a ${faixaNome[k]}.${valorUlt(k) ? ` Na edição de ${anoDe(ult!)}, ela pagou ${reais(valorUlt(k)!)} por aposta.` : ''}` : 'Não. A Mega da Virada paga a partir de 4 acertos (quadra).' },
+      { q: 'A partir de quantos números se ganha na Mega da Virada?', a: 'A partir de 4 acertos: quadra (4), quina (5) e sena (6).' },
+      { q: `Qual a chance de acertar ${k} número${k > 1 ? 's' : ''}?`, a: `Com uma aposta simples, ${pct(p)}% — ou 1 em ${umEm(p)}.` },
+    ]} />
+  </article>
+</Base>
+<style> tr.hl td { background: color-mix(in srgb, var(--gold) 12%, transparent); } h2 { margin-top: 28px; } </style>

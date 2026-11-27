@@ -64,7 +64,8 @@ export async function lista(db: DB, l: Loteria, pagina = 1, porPagina = 30) {
   return { itens: rows.map(parse) };
 }
 
-const SO_VIRADA = "AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')";
+// Mega da Virada: concurso especial de fim de ano, desde 31/12/2008 (concurso 1035). Antes disso, 31/12 era concurso comum.
+const SO_VIRADA = "AND data >= '2008-12-31' AND (substr(data,6,5)='12-31' OR substr(data,6,2)='01')";
 export async function especiais(db: DB, l: Loteria): Promise<Concurso[]> {
   return (await all(db, `SELECT * FROM concursos WHERE loteria=? AND especial=1 ${l.api === 'megasena' ? SO_VIRADA : ''} ORDER BY numero DESC`, l.api)).map(parse);
 }

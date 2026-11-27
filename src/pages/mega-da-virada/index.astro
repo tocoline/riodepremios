@@ -61,6 +61,14 @@ const artigos = [
   ['/mega-da-virada/palpites-por-signo/', '✨', 'Palpites por signo', 'Um jogo para cada signo do zodíaco, só por diversão'],
   ['/mega-da-virada/como-apostar/', '📝', 'Como apostar', 'Passo a passo do volante ao comprovante'],
 ];
+const buscados = [
+  ['/mega-da-virada/horario-e-onde-assistir/', 'Que horas é o sorteio e onde assistir'],
+  ['/mega-da-virada/acertei-3-numeros/', 'Acertei 3 números: ganho alguma coisa?'],
+  ['/mega-da-virada/acertei-4-numeros/', 'Acertei 4 números: quanto ganho?'],
+  ['/mega-da-virada/acertei-5-numeros/', 'Acertei 5 números: quanto paga a quina?'],
+  ['/mega-da-virada/bolao-de-10-pessoas/', 'Bolão com 10 pessoas: quanto cada um ganha'],
+  ['/mega-da-virada/bolao-de-20-pessoas/', 'Bolão com 20 pessoas'],
+];
 const ferramentas = [
   ['/mega-da-virada/calculadora-de-bolao/', '👥', 'Calculadora de bolão', 'Custo, cotas e prêmio por participante'],
   ['/mega-da-virada/simulador/', '🎰', 'Simulador de chances', 'Sua chance real + simulação de 500 mil sorteios'],
@@ -126,6 +134,14 @@ const ferramentas = [
         <a class="card card-link vt vt-hot" href={h}><span class="vt-i" aria-hidden="true">{i}</span><div><h3>{t}</h3><p class="small muted">{d}</p></div></a>
       ))}
     </div>
+  </section>
+
+  <section class="wrap section-sm">
+    <span class="eyebrow">Mais buscados</span>
+    <h2>Perguntas que todo mundo faz na Virada</h2>
+    <ul class="busc">{buscados.map(([h, t]) => <li><a href={h}>{t}</a></li>)}</ul>
+    <h3>Resultados de cada edição</h3>
+    <nav class="eds-h">{[...viradas].reverse().map((c) => <a href={`/mega-da-virada/${anoDe(c)}/`}>{anoDe(c)}</a>)}</nav>
   </section>
 
   <section class="wrap section-sm">
@@ -213,6 +229,11 @@ const ferramentas = [
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .facts .card { padding: 18px; }
   .last { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
+  .busc { columns: 2 280px; padding-left: 1.2em; margin: 8px 0 18px; }
+  .busc li { margin-bottom: 8px; }
+  .eds-h { display: flex; flex-wrap: wrap; gap: 8px; }
+  .eds-h a { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; font-weight: 650; font-size: .88rem; }
+  .eds-h a:hover { border-color: var(--gold); color: var(--gold); }
   .vt-hot { border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
   .vt { display: flex; gap: 16px; align-items: flex-start; }
   .vt h3 { margin: 0 0 4px; }
