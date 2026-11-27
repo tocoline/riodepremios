@@ -1,0 +1,99 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import Crumbs from '../../components/Crumbs.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import HistoricoJogo from '../../components/tools/HistoricoJogo.astro';
+import { POR_SLUG } from '../../lib/loterias';
+import { C, probabilidade, universo } from '../../lib/math';
+import { getDB } from '../../lib/db';
+import { resumo } from '../../lib/resumo';
+import { numero } from '../../lib/format';
+import { cachear, naoEncontrado } from '../../lib/cache';
+import { SITE, CONTEUDO_ATUALIZADO } from '../../lib/site';
+
+const l = POR_SLUG[Astro.params.loteria!];
+if (!l || l.tipo === 'trevos') return naoEncontrado(Astro);
+cachear(Astro, 21600);
+const r = await resumo(getDB(Astro.locals), l);
+
+const colunas = l.tipo === 'colunas';
+const dupla = l.slug === 'dupla-sena';
+const total = r?.total ?? 0;
+const sorteios = total * (dupla ? 2 : 1);
+const combos = colunas ? 10 ** 7 : C(universo(l), l.sorteadas);
+const pExato = sorteios ? 1 - (1 - 1 / combos) ** sorteios : 0;
+const fmt = (x: number) => (x >= 10 ? numero(Math.round(x)) : x.toLocaleString('pt-BR', { maximumFractionDigits: x < 0.1 ? 3 : 1 }));
+const esperado = l.faixas.map((f) => ({ f, e: sorteios * probabilidade(l, f.acertos, l.escolhaMin), p: probabilidade(l, f.acertos, l.escolhaMin) }));
+const menor = esperado.filter((x) => x.f.acertos > 0).at(-1)!;
+const un = colunas ? 'colunas' : 'números';
+const aposta = colunas ? 'um número em cada uma das 7 colunas' : l.escolhaMin === l.escolhaMax ? `${l.escolhaMin} números` : `de ${l.escolhaMin} a ${l.escolhaMax} números`;
+const titulo = `Meus números já saíram na ${l.nome}? Teste no histórico`;
+const desc = `Digite os números que você sempre joga e veja se já saíram na ${l.nome}: confira ${total ? numero(total) + ' concursos' : 'todos os concursos'}, quantas vezes teria sido premiado e quanto teria ganho.`;
+const url = `${SITE.url}/${l.slug}/meus-numeros-ja-sairam/`;
+const faq = [
+  { q: `Como saber se meus números já saíram na ${l.nome}?`, a: `Marque seus ${un} na ferramenta desta página e toque em "Conferir em todos os concursos". Ela compara o seu jogo com ${total ? `os ${numero(total)} concursos` : 'todos os concursos'} da ${l.nome} e mostra se ele já foi sorteado, quantas vezes teria sido premiado e em quais concursos.` },
+  { q: `É comum um jogo da ${l.nome} já ter saído?`, a: `Não. Existem ${numero(combos)} combinações possíveis de ${colunas ? '7 colunas' : `${l.sorteadas} dezenas`}. Em ${numero(sorteios)} sorteios, a chance de uma combinação específica já ter saído é de cerca de ${(pExato * 100).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}%.` },
+  { q: 'O valor "teria ganho" é corrigido pela inflação?', a: 'Não. São os valores oficiais pagos por aposta em cada concurso, na moeda e no valor da época. Prêmios antigos, por isso, parecem menores do que seriam hoje.' },
+  { q: 'Se meu jogo nunca saiu, ele tem mais chance de sair agora?', a: 'Não. Cada sorteio é independente: o passado não muda a probabilidade do próximo concurso. Um jogo que nunca saiu tem exatamente a mesma chance de qualquer outro.' },
+  { q: 'Meus números ficam salvos no site?', a: 'Não. A conferência é feita no seu navegador. O jogo só aparece no endereço da página para você poder compartilhar o resultado, se quiser.' },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'WebApplication', name: `Meus números já saíram na ${l.nome}?`, description: desc, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Qualquer navegador', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, inLanguage: 'pt-BR', url, dateModified: r?.atualizado ?? CONTEUDO_ATUALIZADO, publisher: { '@id': `${SITE.url}/#org` } },
+  { '@context': 'https://schema.org', '@type': 'HowTo', name: `Como saber se seus números já saíram na ${l.nome}`, step: [
+    { '@type': 'HowToStep', text: `Marque ${aposta} — os que você costuma jogar.` },
+    { '@type': 'HowToStep', text: 'Toque em "Conferir em todos os concursos".' },
+    { '@type': 'HowToStep', text: 'Veja se o jogo já foi sorteado, os prêmios por faixa e quanto teria ganho.' },
+  ] },
+];
+---
+<Base title={titulo} description={desc} schema={schema} modificado={r?.atualizado}>
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${l.slug}/` }, { nome: 'Meus números já saíram?' }]} />
+    <h1>Meus números já saíram na {l.nome}?</h1>
+    <p class="lead">Digite o jogo que você repete toda semana e descubra o que teria acontecido se você o tivesse jogado em {total ? <>todos os <strong>{numero(total)} concursos</strong></> : 'todos os concursos'} da história{r ? <> — do 1º ao {numero(r.ultimo)}</> : ''}.</p>
+    <Autor atualizado={r?.atualizado} modo="auto" />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <HistoricoJogo l={l} />
+    <Resposta>
+      <p>Para saber se seus números já saíram na {l.nome}, marque {aposta} acima e confira. A ferramenta compara o jogo com {total ? <>os <strong>{numero(total)} concursos</strong></> : 'todos os concursos'}{dupla ? ' (os dois sorteios de cada um)' : ''} e mostra se ele já foi sorteado, cada prêmio que teria ganho e o valor somado, pelo rateio oficial da Caixa. Spoiler honesto: a chance de uma combinação específica já ter saído é de só <strong>{(pExato * 100).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}%</strong> — mas prêmios menores, como {menor.f.label.toLowerCase()}, aparecem com frequência.</p>
+    </Resposta>
+    <Ad />
+    <div class="prose">
+      <h2>O que a ferramenta mostra</h2>
+      <ul>
+        <li><strong>Se o jogo já foi sorteado</strong> — {colunas ? 'as 7 colunas na mesma ordem' : `as ${l.sorteadas} dezenas juntas`}, em qualquer concurso.</li>
+        <li><strong>Quantas vezes teria sido premiado</strong> em cada faixa ({l.faixas.map((f) => f.label.toLowerCase()).join(', ')}) e em quais concursos.</li>
+        <li><strong>Quanto teria ganho</strong>, somando o prêmio oficial por aposta de cada concurso — em valores da época, sem correção.</li>
+        <li><strong>O esperado pelo acaso</strong>, para você ver se o seu jogo foi mais ou menos “sortudo” que a média.</li>
+        {!colunas && <li><strong>Quantas vezes cada um dos seus números saiu</strong>, comparado com a média.</li>}
+        <li><strong>Um link para compartilhar</strong> o resultado no WhatsApp.</li>
+      </ul>
+      {l.tipo === 'padrao' && <p>Se você joga com mais de {l.escolhaMin} números, marque todos: a ferramenta calcula as apostas simples contidas no seu jogo e soma os prêmios do mesmo jeito que a Caixa paga (um jogo de {l.escolhaMin + 1} números com {Math.min(l.sorteadas, l.escolhaMin)} acertos, por exemplo, rende vários prêmios ao mesmo tempo).</p>}
+      {colunas && <p>No Super Sete, a ferramenta confere a aposta mínima, com um número por coluna. A comparação é feita coluna a coluna, como no sorteio oficial: o número precisa sair na mesma coluna.</p>}
+
+      <h2>Quanto um jogo fixo costuma ganhar na {l.nome}</h2>
+      <p>Pela matemática, um jogo {colunas ? 'de 7 colunas' : `de ${l.escolhaMin} números`} da {l.nome} repetido em {numero(sorteios)} sorteios deveria, em média, ter acertado:</p>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Faixa</th><th class="num">Chance por sorteio</th><th class="num">Esperado em {numero(sorteios)} sorteios</th></tr></thead>
+      <tbody>{esperado.map((x) => <tr><td>{x.f.label}</td><td class="num">1 em {numero(Math.round(1 / x.p))}</td><td class="num">{fmt(x.e)}</td></tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Calculado por análise combinatória com a aposta mínima{dupla ? ', contando os dois sorteios de cada concurso' : ''}. Seu jogo real pode ficar acima ou abaixo disso — é justamente o que a ferramenta mostra.</p>
+    <div class="prose">
+      <h2>Por que vale a pena conferir o histórico</h2>
+      <p>Muita gente joga sempre os mesmos números — datas de aniversário, a idade dos filhos, o número da casa — e se pergunta se eles “já deram”. O histórico responde com dados reais: na maioria dos casos, o jogo nunca saiu inteiro, rendeu alguns prêmios pequenos e, somando tudo, ficou bem abaixo do que foi gasto. Ver isso com os próprios números ajuda a jogar com expectativas realistas.</p>
+      <p>Também é um bom antídoto contra mitos. Um jogo que já foi sorteado não está “queimado”, e um que nunca saiu não está “perto de sair”: os sorteios não têm memória, e todas as combinações têm a mesma chance em cada concurso. Saiba mais em <a href="/guias/">nossos guias</a> e na <a href="/metodologia/">metodologia</a> dos dados.</p>
+      <h2>De onde vêm os dados</h2>
+      <p>Usamos os resultados e o rateio oficiais publicados pela Caixa Econômica Federal{total ? <>, de {numero(total)} concursos da {l.nome}</> : ''}. Quando ninguém acertou uma faixa num concurso, não existe valor oficial de prêmio para ela; nesses casos, a ferramenta indica o prêmio sem somar valor. Os resultados são atualizados minutos depois de cada sorteio — veja o <a href={`/${l.slug}/`}>último resultado da {l.nome}</a>.</p>
+      <h2>Outras ferramentas da {l.nome}</h2>
+      <p>Confira um jogo de um concurso específico no <a href={`/${l.slug}/conferir/`}>conferidor</a>, veja <a href={`/${l.slug}/premios/`}>quanto paga cada faixa</a>{!colunas && <>, a <a href={`/${l.slug}/dezenas/`}>frequência de cada dezena</a></>}{l.tipo !== 'colunas' && <> e as <a href={`/${l.slug}/estatisticas/`}>estatísticas completas</a></>}. Para montar jogos novos, use o <a href={`/${l.slug}/gerador/`}>gerador de números</a>.</p>
+    </div>
+    <Faq itens={faq} />
+    <p class="small faint">Jogue com responsabilidade. Loteria é entretenimento, não investimento — veja <a href="/jogo-responsavel/">jogo responsável</a>.</p>
+  </section>
+</Base>

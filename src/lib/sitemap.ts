@@ -44,6 +44,7 @@ export async function paginas(db: any): Promise<Url[]> {
   for (const l of LOTERIAS) {
     const a = atu[l.api] ?? fixo;
     u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a }, { loc: `/${l.slug}/conferir/`, lastmod: a }, { loc: `/${l.slug}/gerador/`, lastmod: fixo });
+    if (l.tipo !== 'trevos') u.push({ loc: `/${l.slug}/meus-numeros-ja-sairam/`, lastmod: a });
     if (l.tipo === 'padrao') for (let n = l.escolhaMin; n <= l.escolhaMax; n++) u.push({ loc: `/${l.slug}/com-${n}-numeros/`, lastmod: fixo });
     for (const k of faixaAcertos(l)) u.push({ loc: `/${l.slug}/acertei-${k}-numeros/`, lastmod: a });
     const geo = res[l.api]?.geo;

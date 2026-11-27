@@ -52,7 +52,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'WebApplication', n
       <p>A {l.nome} paga prêmios para {l.faixas.map((f) => f.label.toLowerCase()).join(', ')}. O conferidor destaca os números acertados e indica quando o jogo entra em alguma faixa. Veja <a href={`/${l.slug}/premios/`}>quanto paga cada faixa</a>.</p>
       {faixaAcertos(l).length > 0 && <p>Acertou alguns números? {faixaAcertos(l).map((x, i) => <>{i > 0 && ' · '}<a href={`/${l.slug}/acertei-${x}-numeros/`}>acertei {x}</a></>)}</p>}
       <h2>Conferir concursos anteriores</h2>
-      <p>Digite o número do concurso no campo "Concurso". Todos os resultados estão no <a href={`/${l.slug}/resultados/`}>arquivo da {l.nome} por ano</a>.</p>
+      <p>Digite o número do concurso no campo "Concurso". Todos os resultados estão no <a href={`/${l.slug}/resultados/`}>arquivo da {l.nome} por ano</a>.{l.tipo !== 'trevos' && <> Quer saber se o seu jogo já saiu alguma vez? Use <a href={`/${l.slug}/meus-numeros-ja-sairam/`}>meus números já saíram na {l.nome}</a>, que confere todos os concursos de uma vez.</>}</p>
     </div>
     <Faq itens={[
       { q: `Como conferir o resultado da ${l.nome}?`, a: 'Digite seus jogos no conferidor desta página e clique em "Conferir agora". Os acertos aparecem destacados e o sistema indica se a aposta foi premiada.' },

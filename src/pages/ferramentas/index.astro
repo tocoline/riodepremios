@@ -1,7 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Crumbs from '../../components/Crumbs.astro';
+import { LOTERIAS } from '../../lib/loterias';
 const t = [
+  ['/mega-sena/meus-numeros-ja-sairam/', '🔎', 'Meus números já saíram?', 'Confira o jogo que você sempre faz em todos os concursos da história e veja quanto teria ganho.'],
   ['/ferramentas/conferidor/', '✓', 'Conferidor de apostas', 'Confira vários jogos de uma vez contra qualquer concurso de qualquer loteria.'],
   ['/ferramentas/gerador-de-numeros/', '🎲', 'Gerador de números', 'Jogos aleatórios com números fixos, exclusões e filtros de equilíbrio.'],
   ['/ferramentas/calculadora-de-probabilidades/', '%', 'Calculadora de probabilidades', 'A chance exata em todas as faixas, para qualquer quantidade de números.'],
@@ -19,9 +21,15 @@ const t = [
   <section class="wrap grid g3">
     {t.map(([h, i, n, d]) => <a class="card card-link ft" href={h}><span class="ft-i" aria-hidden="true">{i}</span><h2>{n}</h2><p class="muted small">{d}</p></a>)}
   </section>
+  <section class="wrap section-sm">
+    <h2>Meus números já saíram? Escolha a loteria</h2>
+    <p class="muted">Seu jogo conferido contra todos os concursos, com os prêmios que teria ganho:</p>
+    <p class="hj-l">{LOTERIAS.filter((l) => l.tipo !== 'trevos').map((l) => <a class="btn btn-sm" href={`/${l.slug}/meus-numeros-ja-sairam/`}>{l.nome}</a>)}</p>
+  </section>
 </Base>
 <style>
   .ft h2 { font-size: 1.2rem; margin: 14px 0 6px; }
   .ft p { margin: 0; }
+  .hj-l { display: flex; flex-wrap: wrap; gap: 8px; }
   .ft-i { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
 </style>

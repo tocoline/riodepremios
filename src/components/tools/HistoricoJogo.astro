@@ -1,0 +1,236 @@
+---
+// "Meus números já saíram?": confere um jogo fixo contra todos os concursos da história da loteria.
+// Tudo roda no navegador a partir de /api/historico.json (cache de 12h no CDN).
+import type { Loteria } from '../../lib/loterias';
+interface Props { l: Loteria }
+const { l } = Astro.props;
+const colunas = l.tipo === 'colunas';
+const nums = Array.from({ length: l.max - l.min + 1 }, (_, i) => i + l.min);
+const dig = colunas ? 1 : 2;
+const faixaTxt = l.escolhaMin === l.escolhaMax || colunas ? `${l.escolhaMin}` : `de ${l.escolhaMin} a ${l.escolhaMax}`;
+---
+<div class="tool-ui card hj" data-l={l.slug} style={`--c:${l.cor}`}>
+  <div class="hj-top">
+    <p class="hj-inst"><strong>{colunas ? 'Escolha um número em cada uma das 7 colunas' : `Marque ${faixaTxt} números`}</strong> <span class="faint small">— os mesmos que você costuma jogar</span></p>
+    <span class="hj-cont" aria-live="polite">0 marcados</span>
+  </div>
+  {colunas ? (
+    <div class="hj-cols">
+      {[1, 2, 3, 4, 5, 6, 7].map((c) => (
+        <div class="hj-col"><span class="hj-ch">{c}ª</span>{nums.map((n) => <button type="button" class="hj-b" data-col={c - 1} data-n={n} aria-pressed="false">{n}</button>)}</div>
+      ))}
+    </div>
+  ) : (
+    <div class:list={['hj-grid', l.max >= 80 && 'hj-grid-10']}>{nums.map((n) => <button type="button" class="hj-b" data-n={n} aria-pressed="false">{String(n).padStart(dig, '0')}</button>)}</div>
+  )}
+  <div class="row hj-row">
+    <div class="field hj-txt"><label for={`hj-in-${l.slug}`}>Ou digite/cole seus números</label><input id={`hj-in-${l.slug}`} type="text" inputmode="numeric" autocomplete="off" placeholder={colunas ? '4 0 7 1 9 3 8' : 'ex.: 04 19 22 23 28 37'} /></div>
+    <button class="btn" type="button" data-limpar>Limpar</button>
+  </div>
+  <button class="btn btn-primary hj-go" type="button" data-go disabled>Conferir em todos os concursos</button>
+  <div class="hj-out" aria-live="polite"></div>
+</div>
+
+<script>
+  import { POR_SLUG } from '../../lib/loterias';
+  import { C } from '../../lib/math';
+  import { brl, int, p2, $ } from '../../lib/ui';
+
+  type Hist = { faixas: number[]; dig: number; n: number[]; d: string[]; z: string[]; p: number[][]; z2?: string[]; p2?: number[][] };
+  const cacheHist: Record<string, Promise<Hist>> = {};
+  const carregar = (slug: string) => (cacheHist[slug] ??= fetch(`/api/historico.json?loteria=${slug}`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); }));
+  const dataBR = (s: string) => s.split('-').reverse().join('/');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const dec = (s: string, dig: number) => { const r: number[] = []; for (let i = 0; i < s.length; i += dig) r.push(Number(s.slice(i, i + dig))); return r; };
+
+  document.querySelectorAll<HTMLElement>('.hj').forEach((root) => {
+    const l = POR_SLUG[root.dataset.l!];
+    const colunas = l.tipo === 'colunas';
+    const m = l.escolhaMin, maxSel = colunas ? 7 : l.escolhaMax;
+    const sel = new Set<number>();          // números marcados (padrão/fixo)
+    const cols: (number | null)[] = Array(7).fill(null); // Super Sete: um por coluna
+    const btns = [...root.querySelectorAll<HTMLButtonElement>('.hj-b')];
+    const inp = $<HTMLInputElement>(root, '.hj-txt input');
+    const go = $<HTMLButtonElement>(root, '[data-go]');
+    const out = $(root, '.hj-out');
+    const cont = $(root, '.hj-cont');
+
+    const qtd = () => (colunas ? cols.filter((x) => x !== null).length : sel.size);
+    const valido = () => (colunas ? qtd() === 7 : sel.size >= m && sel.size <= maxSel);
+    const jogo = () => (colunas ? (cols as number[]) : [...sel].sort((a, b) => a - b));
+    function pintar() {
+      for (const b of btns) {
+        const n = Number(b.dataset.n);
+        const on = colunas ? cols[Number(b.dataset.col)] === n : sel.has(n);
+        b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+      }
+      const k = qtd();
+      cont.textContent = colunas ? `${k} de 7 colunas` : `${k} marcado${k === 1 ? '' : 's'}${l.escolhaMin !== l.escolhaMax ? ` (${m} a ${maxSel})` : ` de ${m}`}`;
+      cont.classList.toggle('ok', valido());
+      go.disabled = !valido();
+    }
+    function deTexto(s: string) {
+      const ns = s.split(/[^0-9]+/).filter(Boolean).map(Number);
+      if (colunas) { cols.fill(null); (s.replace(/[^0-9]/g, '').length === 7 && !/\s/.test(s.trim()) ? s.replace(/[^0-9]/g, '').split('').map(Number) : ns).slice(0, 7).forEach((n, i) => { if (n >= 0 && n <= 9) cols[i] = n; }); }
+      else { sel.clear(); for (const n of ns) if (n >= l.min && n <= l.max && sel.size < maxSel) sel.add(n); }
+      pintar();
+    }
+    btns.forEach((b) => b.addEventListener('click', () => {
+      const n = Number(b.dataset.n);
+      if (colunas) { const c = Number(b.dataset.col); cols[c] = cols[c] === n ? null : n; }
+      else if (sel.has(n)) sel.delete(n);
+      else if (sel.size < maxSel) sel.add(n);
+      inp.value = jogo().filter((x) => x !== null).map((x) => p2(x, colunas ? 1 : 2)).join(' ');
+      pintar(); void carregar(l.slug).catch(() => {}); // pré-carrega o histórico
+    }));
+    inp.addEventListener('input', () => deTexto(inp.value));
+    $(root, '[data-limpar]').addEventListener('click', () => { sel.clear(); cols.fill(null); inp.value = ''; out.innerHTML = ''; pintar(); });
+    go.addEventListener('click', () => conferir(true));
+
+    async function conferir(rolar: boolean) {
+      if (!valido()) return;
+      out.innerHTML = '<p class="muted hj-load">Conferindo seu jogo em todos os concursos…</p>';
+      let h: Hist;
+      try { h = await carregar(l.slug); } catch { delete cacheHist[l.slug]; out.innerHTML = '<p class="muted">Não conseguimos carregar o histórico agora. Tente de novo em alguns minutos.</p>'; return; }
+      const j = jogo(); const k = colunas ? 7 : j.length;
+      const marc = new Set(j);
+      const fx = h.faixas; const nf = fx.length;
+      const universo = l.max - l.min + 1;
+      // quantas apostas simples de cada faixa um jogo com k números rende com `a` acertos
+      const rende = (hits: number) => fx.map((a) => (colunas || l.tipo === 'fixo' || k === m ? (hits === a ? 1 : 0) : (a <= hits && m - a <= k - hits ? C(hits, a) * C(k - hits, m - a) : 0)));
+      const qt = Array(nf).fill(0), val = Array(nf).fill(0), semValor = Array(nf).fill(0);
+      const eventos: { c: number; d: string; s: number; hits: number; v: number; desc: string; sv: boolean }[] = [];
+      const freq = new Map<number, number>(); j.forEach((x) => freq.set(x, 0));
+      const distHits = new Map<number, number>();
+      let melhor = -1, melhores: number[] = [], sorteios = 0, exato: { c: number; d: string }[] = [];
+      const conta = (ds: number[], s: number, i: number, premios: number[]) => {
+        const hits = colunas ? ds.filter((x, idx) => x === j[idx]).length : ds.filter((x) => marc.has(x)).length;
+        sorteios++;
+        distHits.set(hits, (distHits.get(hits) ?? 0) + 1);
+        if (!colunas) for (const x of ds) if (freq.has(x)) freq.set(x, freq.get(x)! + 1);
+        if (hits > melhor) { melhor = hits; melhores = []; }
+        if (hits === melhor && melhores.length < 12) melhores.push(i);
+        if (hits === l.sorteadas) exato.push({ c: h.n[i], d: h.d[i] });
+        const r = rende(hits); let v = 0; const partes: string[] = []; let sv = false;
+        r.forEach((q, f) => {
+          if (!q) return;
+          qt[f] += q;
+          if (premios[f]) { val[f] += q * premios[f]; v += q * premios[f]; } else { semValor[f] += q; sv = true; }
+          partes.push(`${q > 1 ? q + '× ' : ''}${l.faixas[f].label}`);
+        });
+        if (partes.length) eventos.push({ c: h.n[i], d: h.d[i], s, hits, v, desc: partes.join(' + '), sv });
+      };
+      for (let i = 0; i < h.n.length; i++) {
+        conta(dec(h.z[i], h.dig), 1, i, h.p[i]);
+        if (h.z2 && h.z2[i]) conta(dec(h.z2[i], h.dig), 2, i, h.p2![i]);
+      }
+      // esperado pelo acaso
+      const pHits = (a: number) => (colunas ? C(7, a) * 0.1 ** a * 0.9 ** (7 - a) : (C(l.sorteadas, a) * C(universo - l.sorteadas, k - a)) / C(universo, k));
+      const esperado = fx.map((_, f) => { let e = 0; for (let a = 0; a <= Math.min(k, l.sorteadas); a++) e += pHits(a) * rende(a)[f]; return e * sorteios; });
+      const total = val.reduce((a, b) => a + b, 0);
+      const vezes = eventos.length;
+      const apostas = colunas ? 1 : C(k, m);
+      const custo = apostas * l.preco * h.n.length;
+      const ultimo = eventos.at(-1);
+      const desdeUltimo = ultimo ? h.n.at(-1)! - ultimo.c : null;
+      const nomeJogo = j.map((x) => p2(x, colunas ? 1 : 2)).join(' - ');
+      const primeiro = h.n[0], ultimoC = h.n.at(-1)!;
+      const lnk = (c: number) => `<a href="/${l.slug}/concurso/${c}/">${c}</a>`;
+      const dupla = !!h.z2;
+
+      let html = `<div class="hj-res">`;
+      html += `<p class="hj-jogo">Seu jogo: <strong>${nomeJogo}</strong>${!colunas && k > m ? ` <span class="faint small">(${k} números = ${int(apostas)} apostas simples)</span>` : ''}</p>`;
+      // veredito
+      if (exato.length) html += `<div class="hj-vered win">🎯 <strong>Sim! ${k > l.sorteadas ? `As ${l.sorteadas} dezenas sorteadas já saíram todas dentro do seu jogo` : 'Esse jogo já foi sorteado'}</strong> — ${exato.map((e) => `concurso ${lnk(e.c)} (${dataBR(e.d)})`).join(', ')}.</div>`;
+      else html += `<div class="hj-vered">${colunas ? 'As 7 colunas desse jogo <strong>nunca saíram juntas</strong>' : k > l.sorteadas ? `<strong>Nenhum sorteio</strong> teve as ${l.sorteadas} dezenas todas dentro do seu jogo` : `As ${l.sorteadas} dezenas desse jogo <strong>nunca saíram juntas</strong>`} em ${int(h.n.length)} concursos${dupla ? ` (${int(sorteios)} sorteios)` : ''} da ${l.nome}. O melhor resultado foi <strong>${melhor} ${colunas ? 'colunas' : 'acertos'}</strong>${melhores.length ? `, no${melhores.length > 1 ? 's' : ''} concurso${melhores.length > 1 ? 's' : ''} ${melhores.slice(0, 6).map((i) => lnk(h.n[i])).join(', ')}${melhores.length > 6 ? ' e outros' : ''}` : ''}.</div>`;
+      html += `<div class="grid g4 hj-st">
+        <div class="stat"><span class="stat-l">Concursos conferidos</span><span class="stat-v">${int(h.n.length)}</span><span class="small faint">do ${primeiro} ao ${ultimoC}</span></div>
+        <div class="stat"><span class="stat-l">Vezes premiado</span><span class="stat-v">${int(vezes)}</span><span class="small faint">${vezes ? `1 a cada ${int(sorteios / vezes)} sorteios` : 'nenhuma'}</span></div>
+        <div class="stat res"><span class="stat-l">Teria ganho</span><span class="stat-v">${brl(total)}</span><span class="small faint">valores da época</span></div>
+        <div class="stat"><span class="stat-l">Último prêmio</span><span class="stat-v">${ultimo ? ultimo.c : '—'}</span><span class="small faint">${ultimo ? `${dataBR(ultimo.d)} · há ${int(desdeUltimo!)} concursos` : 'nunca premiado'}</span></div>
+      </div>`;
+      // faixas
+      html += `<h3>Prêmios por faixa</h3><div class="table-wrap"><table><thead><tr><th>Faixa</th><th class="num">Vezes</th><th class="num">Esperado pelo acaso</th><th class="num">Valor somado</th></tr></thead><tbody>`;
+      fx.forEach((_, f) => { html += `<tr><td>${l.faixas[f].label}</td><td class="num"><strong>${int(qt[f])}</strong></td><td class="num">${esperado[f] >= 10 ? int(esperado[f]) : esperado[f].toLocaleString('pt-BR', { maximumFractionDigits: esperado[f] < 0.1 ? 4 : 1 })}</td><td class="num">${val[f] ? brl(val[f]) : '—'}${semValor[f] ? `<br><span class="small faint">+${semValor[f]} sem valor definido*</span>` : ''}</td></tr>`; });
+      html += `</tbody></table></div>`;
+      if (semValor.some(Boolean)) html += `<p class="small faint">* Naquele concurso ninguém acertou essa faixa, então não há valor oficial de rateio — o prêmio teria sido seu (ou dividido com você).</p>`;
+      // custo
+      html += `<p class="hj-custo">Jogando esse ${k > m && !colunas ? 'jogo' : 'mesmo jogo'} em todos os ${int(h.n.length)} concursos, a aposta custaria hoje <strong>${brl(custo)}</strong> (${int(apostas)} × ${brl(l.preco)} por concurso, preço atual). Os prêmios acima estão em valores da época, sem correção — compare com cuidado: o objetivo é mostrar a frequência real dos prêmios, não sugerir lucro.</p>`;
+      // eventos
+      if (eventos.length) {
+        const lista = eventos.slice().reverse();
+        const linha = (e: typeof lista[number]) => `<tr><td>${lnk(e.c)}${dupla ? ` <span class="faint small">${e.s}º sorteio</span>` : ''}</td><td>${dataBR(e.d)}</td><td>${esc(e.desc)}</td><td class="num">${e.v ? brl(e.v) : '—'}${e.sv ? '*' : ''}</td></tr>`;
+        html += `<h3>Concursos em que seu jogo teria sido premiado</h3><div class="table-wrap"><table><thead><tr><th>Concurso</th><th>Data</th><th>Prêmio</th><th class="num">Valor</th></tr></thead><tbody>${lista.slice(0, 30).map(linha).join('')}</tbody></table></div>`;
+        if (lista.length > 30) html += `<details class="hj-mais"><summary>Ver todos os ${int(lista.length)} prêmios</summary><div class="table-wrap"><table><tbody>${lista.slice(30).map(linha).join('')}</tbody></table></div></details>`;
+      }
+      // frequência dos números
+      if (!colunas) {
+        const fr = [...freq.entries()].sort((a, b) => b[1] - a[1]);
+        const media = (sorteios * l.sorteadas) / universo;
+        html += `<h3>Quantas vezes cada número seu saiu</h3><div class="hj-freq">${fr.map(([n, q]) => `<a class="hj-fq" href="/${l.slug}/dezenas/${p2(n)}/"><span class="ball sm" style="--c:${l.cor}">${p2(n)}</span><span><strong>${int(q)}</strong>×</span><span class="small ${q >= media ? 'up' : 'down'}">${q >= media ? '▲' : '▼'} ${Math.abs(Math.round((q / media - 1) * 100))}%</span></a>`).join('')}</div><p class="small faint">Comparado com a média esperada de ${int(media)} aparições por número. Diferenças assim são normais e não indicam números "quentes" para o futuro.</p>`;
+      }
+      // distribuição de acertos
+      const maxH = Math.max(...distHits.keys());
+      const linhasDist = Array.from({ length: maxH + 1 }, (_, a) => a).filter((a) => distHits.get(a));
+      const maior = Math.max(...linhasDist.map((a) => distHits.get(a)!));
+      html += `<h3>Distribuição dos acertos</h3><div class="hj-dist">${linhasDist.map((a) => `<div class="hj-dl"><span>${a} ${colunas ? 'col.' : 'acerto' + (a === 1 ? '' : 's')}</span><span class="hj-bar"><i style="width:${Math.max(1, (distHits.get(a)! / maior) * 100)}%"></i></span><span class="num">${int(distHits.get(a)!)}</span></div>`).join('')}</div>`;
+      // compartilhar
+      const url = `${location.origin}${location.pathname}?jogo=${j.map((x) => p2(x, colunas ? 1 : 2)).join('-')}`;
+      const txt = exato.length ? `Meu jogo da ${l.nome} (${nomeJogo}) JÁ FOI SORTEADO! 😱` : `Conferi meu jogo da ${l.nome} (${nomeJogo}) em ${int(h.n.length)} concursos: ${vezes ? `teria sido premiado ${vezes} vezes, somando ${brl(total)}` : 'nunca teria ganho nada'}. Melhor resultado: ${melhor} ${colunas ? 'colunas' : 'acertos'}. Teste o seu:`;
+      html += `<div class="hj-share"><a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt + ' ' + url)}">Compartilhar no WhatsApp</a><button class="btn" type="button" data-copiar>Copiar link do resultado</button></div>`;
+      html += `<p class="small faint">Dados oficiais da Caixa de todos os concursos disponíveis. Conferência informativa — não vale como comprovante.</p></div>`;
+      out.innerHTML = html;
+      out.querySelector('[data-copiar]')?.addEventListener('click', async (e) => { try { await navigator.clipboard.writeText(url); (e.target as HTMLElement).textContent = 'Link copiado!'; } catch { prompt('Copie o link:', url); } });
+      history.replaceState(null, '', url.replace(location.origin, ''));
+      if (rolar) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // jogo vindo do link compartilhado
+    const q = new URLSearchParams(location.search).get('jogo');
+    if (q) { inp.value = q.replace(/-/g, ' '); deTexto(q.replace(/-/g, ' ')); if (valido()) void conferir(false); }
+    else pintar();
+  });
+</script>
+
+<style is:global>
+  .hj { gap: 12px; min-width: 0; max-width: 100%; }
+  .hj > *, .hj-res > * { min-width: 0; max-width: 100%; }
+  .hj-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .hj-inst { margin: 0; }
+  .hj-cont { font-size: .85rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: var(--surface2); }
+  .hj-cont.ok { background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); }
+  .hj-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+  .hj-b { aspect-ratio: 1; min-width: 0; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: inherit; font: 600 .85rem/1 var(--font-num, inherit); cursor: pointer; transition: transform .12s, background .12s; padding: 0; }
+  .hj-b:hover { border-color: var(--c); transform: scale(1.06); }
+  .hj-b.on { background: var(--c); border-color: var(--c); color: #fff; }
+  .hj-cols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .hj-col { display: grid; gap: 4px; text-align: center; }
+  .hj-ch { font-size: .72rem; color: var(--faint); font-weight: 700; }
+  .hj-row { align-items: end; }
+  .hj-txt { flex: 1 1 240px; margin-bottom: 0; }
+  .hj-go { justify-self: start; }
+  .hj-go:disabled { opacity: .5; cursor: not-allowed; }
+  .hj-out:empty { display: none; }
+  .hj-res h3 { margin: 22px 0 8px; font-size: 1.05rem; }
+  .hj-jogo { margin: 6px 0 10px; overflow-wrap: anywhere; }
+  .hj-vered { padding: 14px 16px; border-radius: 12px; border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 9%, transparent); line-height: 1.55; }
+  .hj-vered.win { font-size: 1.08rem; }
+  .hj-st { margin: 14px 0 4px; }
+  .hj-st .stat { display: flex; flex-direction: column; gap: 2px; }
+  .hj-custo { font-size: .92rem; color: var(--muted); margin-top: 14px; }
+  .hj-freq { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hj-fq { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 99px; border: 1px solid var(--line2); text-decoration: none; color: inherit; }
+  .hj-fq .up { color: #16a34a; } .hj-fq .down { color: #dc2626; }
+  .hj-dist { display: grid; gap: 5px; }
+  .hj-dl { display: grid; grid-template-columns: 90px 1fr 70px; gap: 8px; align-items: center; font-size: .88rem; }
+  .hj-bar { height: 10px; border-radius: 99px; background: rgba(127,127,127,.15); overflow: hidden; }
+  .hj-bar i { display: block; height: 100%; background: var(--c); border-radius: 99px; }
+  .hj-share { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 10px; }
+  .hj-mais summary { cursor: pointer; margin: 8px 0; font-weight: 600; }
+  .hj-load { animation: hjp 1s ease-in-out infinite alternate; }
+  @keyframes hjp { from { opacity: .5; } to { opacity: 1; } }
+  @media (max-width: 560px) {
+    .hj-grid { gap: 4px; } .hj-b { font-size: .74rem; }
+    .hj-cols { gap: 3px; } .hj-dl { grid-template-columns: 70px 1fr 56px; }
+  }
+</style>
