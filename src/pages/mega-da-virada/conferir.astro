@@ -8,6 +8,7 @@ import Autor from '../../components/Autor.astro';
 import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import ConferirVirada from '../../components/tools/ConferirVirada.astro';
+import Zap from '../../components/Zap.astro';
 import { POR_SLUG, VIRADA } from '../../lib/loterias';
 import { getDB, concurso } from '../../lib/db';
 import { rateioCompleto } from '../../lib/sincronizar';
@@ -52,6 +53,7 @@ const schema = [
     <Autor atualizado={c?.atualizado_em ?? VIRADA.atualizado + 'T12:00:00-03:00'} />
 
     <div style="margin-top:18px"><ConferirVirada resultado={c} /></div>
+    <Zap texto={c ? `🍀 Saiu o resultado da *Mega da Virada ${ano}*: *${c.dezenas.map((d) => pad(d)).join(' - ')}*\n\n✅ Cole seus jogos (ou os do bolão) e veja na hora quanto ganhou:` : `🎆 Vai jogar na *Mega da Virada ${ano}*? Salve seus jogos aqui: no dia ${VIRADA.dataCurta.slice(0, 5)}, a conferência é automática.\n👉`} path="/mega-da-virada/conferir/" campanha="virada-conferir" rotulo="Mandar no grupo do WhatsApp" flutuante />
 
     <Ad />
     <div class="prose">

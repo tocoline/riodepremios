@@ -10,12 +10,15 @@ import Faq from '../../components/Faq.astro';
 import Ad from '../../components/Ad.astro';
 import Autor from '../../components/Autor.astro';
 import Fonte from '../../components/Fonte.astro';
+import Zap from '../../components/Zap.astro';
+import { mensagemResultado } from '../../lib/zap';
 import AnosNav from '../../components/AnosNav.astro';
 import { POR_SLUG, diasTexto } from '../../lib/loterias';
 import { getDB, ultimos, dbFalhou } from '../../lib/db';
 import { resumo } from '../../lib/resumo';
 import { comoJogar, faqLoteria, chancePrincipal } from '../../lib/conteudo';
-import { dataBR, reais, reaisCurto, numero } from '../../lib/format';
+import { dataBR, reais, reaisCurto, numero, hojeBR, diaRelativo, diaMes } from '../../lib/format';
+import { DIAS } from '../../lib/loterias';
 import { cachear, naoEncontrado, indisponivel } from '../../lib/cache';
 import { SITE } from '../../lib/site';
 
@@ -28,10 +31,25 @@ const ESPECIAIS: Record<string, [string, string]> = { lotofacil: ['/lotofacil-da
 const especial = ESPECIAIS[l.slug];
 if (!lista.length && dbFalhou(getDB(Astro.locals))) return indisponivel();
 const [c, ...anteriores] = lista;
-const titulo = c ? `Resultado ${l.nome} ${c.numero} de ${dataBR(c.data)} — Último sorteio` : `Resultado da ${l.nome} — Último sorteio`;
+// "de hoje": a busca mais comum é "resultado da <loteria> de hoje". O texto diz a verdade sobre o dia:
+// resultado de hoje, sorteio de hoje ainda por sair, ou dia sem sorteio.
+const hoje = hojeBR();
+const rel = c ? diaRelativo(c.data) : null;               // 'hoje' | 'ontem' | null
+const sorteioHojePendente = !!c && rel !== 'hoje' && c.proximo_data === hoje;
+const domingo = new Date(hoje + 'T12:00:00Z').getUTCDay() === 0;
+const dz = c ? c.dezenas.map((d) => String(d).padStart(2, '0')).join(' - ') : '';
+const titulo = !c ? `Resultado da ${l.nome} de hoje e último sorteio`
+  : rel === 'hoje' ? `Resultado da ${l.nome} de hoje, concurso ${c.numero} (${diaMes(c.data)})`
+  : `Resultado da ${l.nome} hoje: último concurso ${c.numero} (${diaMes(c.data)})`;
 const desc = c
-  ? `Resultado da ${l.nome} concurso ${c.numero} (${dataBR(c.data)}): ${c.dezenas.map((d) => String(d).padStart(2, '0')).join(' - ')}. ${c.acumulado ? 'Acumulou!' : 'Teve ganhador.'} Veja prêmios, ganhadores e próximo concurso.`
-  : `Resultado da ${l.nome} atualizado automaticamente, com prêmios, ganhadores, estatísticas e probabilidades.`;
+  ? `${rel === 'hoje' ? `Resultado da ${l.nome} de hoje (${diaMes(c.data)})` : `Último resultado da ${l.nome}${rel === 'ontem' ? ', de ontem' : ''} (${diaMes(c.data)})`}, concurso ${c.numero}: ${dz}. ${c.acumulado ? 'Acumulou!' : 'Teve ganhador.'}${sorteioHojePendente ? ` Hoje tem sorteio do concurso ${c.proximo_numero}: o resultado aparece aqui minutos depois.` : ''} Prêmios, ganhadores e próximo concurso.`
+  : `Resultado da ${l.nome} de hoje atualizado automaticamente, com prêmios, ganhadores, estatísticas e probabilidades.`;
+// linha de situação do dia, logo abaixo do título
+const situacao = !c ? null
+  : rel === 'hoje' ? `O resultado de hoje já saiu: concurso ${c.numero}.`
+  : c.proximo_data && c.proximo_data < hoje && c.proximo_numero ? `O resultado do concurso ${c.proximo_numero}, sorteado em ${dataBR(c.proximo_data)}, ainda não foi publicado pela Caixa. Ele aparece aqui automaticamente assim que sair; abaixo, o último resultado.`
+  : sorteioHojePendente ? `Hoje tem sorteio da ${l.nome} (concurso ${c.proximo_numero})${domingo ? '' : ', às 20h'}. O resultado aparece aqui automaticamente minutos depois; abaixo, o último resultado, ${rel === 'ontem' ? 'de ontem' : `de ${dataBR(c.data)}`}.`
+  : `Hoje não tem sorteio da ${l.nome}. O último foi o concurso ${c.numero}, ${rel === 'ontem' ? 'ontem' : `em ${dataBR(c.data)}`}${c.proximo_data ? `; o próximo é ${DIAS[new Date(c.proximo_data + 'T12:00:00Z').getUTCDay()]?.toLowerCase() ?? ''}, ${diaMes(c.proximo_data)} (concurso ${c.proximo_numero})` : ''}.`;
 const schema = [{
   '@context': 'https://schema.org', '@type': 'WebPage', name: titulo, description: desc, inLanguage: 'pt-BR',
   url: `${SITE.url}/${l.slug}/`, dateModified: c?.atualizado_em, isPartOf: { '@id': `${SITE.url}/#site` },
@@ -42,7 +60,8 @@ const schema = [{
   <div class="wrap phero" style={`--c:${l.cor}`}>
     <Crumbs itens={[{ nome: l.nome }]} />
     <span class="eyebrow" style={`color:${l.cor}`}>Sorteios: {diasTexto(l)} às 20h</span>
-    <h1>Resultado da {l.nome}</h1>
+    <h1>Resultado da {l.nome} {rel === 'hoje' ? 'de hoje' : 'hoje'}</h1>
+    {situacao && <p class:list={['lot-hoje', rel === 'hoje' && 'lot-hoje-ok']}>{situacao}</p>}
     <p class="lead">{l.resumo}</p>
     <Autor atualizado={c?.atualizado_em} modo="auto" />
     <Fonte atualizado={c?.atualizado_em} />
@@ -53,13 +72,14 @@ const schema = [{
     <div class="lot-side">
       <Resposta>
         {c ? (
-          <p>O último resultado da {l.nome} é o do <strong>concurso {c.numero}</strong>, sorteado em {dataBR(c.data, true)}: <strong>{c.dezenas.map((d) => String(d).padStart(2, '0')).join(', ')}</strong>.
+          <p>{rel === 'hoje' ? <>O resultado da {l.nome} de hoje é o do</> : <>O último resultado da {l.nome} é o do</>} <strong>concurso {c.numero}</strong>, sorteado {rel === 'ontem' ? 'ontem, ' : 'em '}{dataBR(c.data, true)}: <strong>{c.dezenas.map((d) => String(d).padStart(2, '0')).join(', ')}</strong>.
           {c.acumulado ? ' Ninguém acertou a faixa principal e o prêmio acumulou.' : ' Houve ganhador na faixa principal.'}
           {c.proximo_estimativa ? ` O próximo concurso (${c.proximo_numero}) tem prêmio estimado em ${reaisCurto(c.proximo_estimativa)}.` : ''}</p>
         ) : (
           <p>A {l.nome} sorteia às {diasTexto(l)}, às 20h. A aposta mínima custa {reais(l.preco)} e a chance da faixa principal é de 1 em {numero(chancePrincipal(l))}.</p>
         )}
       </Resposta>
+      {c && <Zap texto={mensagemResultado(l, c)} path={`/${l.slug}/`} campanha={`resultado-${l.slug}`} rotulo="Mandar o resultado no WhatsApp" flutuante />}
       <div class="grid quick">
         <a class="card card-link" href={`/${l.slug}/resultados/`}><strong>Todos os resultados</strong><span class="faint small">Histórico completo</span></a>
         {l.tipo !== 'colunas' ? <a class="card card-link" href={`/${l.slug}/estatisticas/`}><strong>Estatísticas</strong><span class="faint small">Mais sorteadas e atrasadas</span></a> : <a class="card card-link" href={`/ferramentas/gerador-de-numeros/`}><strong>Gerador</strong><span class="faint small">Jogos aleatórios</span></a>}
@@ -110,6 +130,7 @@ const schema = [{
       {l.tipo !== 'colunas' && <a class="card card-link" href={`/${l.slug}/dezenas/`}><strong>Todas as dezenas</strong><p class="small muted" style="margin:4px 0 0">Quantas vezes cada número saiu e há quanto tempo</p></a>}
       <a class="card card-link" href={`/${l.slug}/ganhadores/`}><strong>Ganhadores por estado</strong><p class="small muted" style="margin:4px 0 0">Estados e cidades que mais ganharam</p></a>
       {l.tipo !== 'trevos' && <a class="card card-link" href={`/${l.slug}/meus-numeros-ja-sairam/`}><strong>Meus números já saíram?</strong><p class="small muted" style="margin:4px 0 0">Seu jogo fixo conferido em todos os concursos</p></a>}
+      {(l.slug === 'lotofacil' || l.slug === 'mega-sena') && <a class="card card-link" href={`/${l.slug}/fechamento/`}><strong>Fechamento e desdobramento</strong><p class="small muted" style="margin:4px 0 0">Jogos com garantia de {l.slug === 'lotofacil' ? '14 pontos' : 'quadra ou quina'}, custo e chances reais.</p></a>}
       <a class="card card-link" href={`/${l.slug}/conferir/`}><strong>Conferir {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Confira seus jogos com o último resultado</p></a>
       <a class="card card-link" href={`/${l.slug}/gerador/`}><strong>Gerador da {l.nome}</strong><p class="small muted" style="margin:4px 0 0">Jogos aleatórios em segundos</p></a>
       {l.tipo === 'padrao' && <a class="card card-link" href={`/${l.slug}/com-${l.escolhaMin + 1}-numeros/`}><strong>Apostar com mais números</strong><p class="small muted" style="margin:4px 0 0">Preço e chances de {l.escolhaMin} a {l.escolhaMax} números</p></a>}
@@ -129,6 +150,8 @@ const schema = [{
   <section class="section-sm"><div class="narrow"><Faq itens={faqLoteria(l)} titulo={`Dúvidas sobre a ${l.nome}`} /></div></section>
 </Base>
 <style>
+  .lot-hoje { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface2); font-weight: 600; font-size: .95rem; display: inline-block; }
+  .lot-hoje-ok { background: color-mix(in srgb, var(--c, var(--brand)) 14%, transparent); }
   .lot-top { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; align-items: start; }
   .lot-side { display: grid; gap: 16px; }
   .quick { grid-template-columns: 1fr 1fr; gap: 12px; }

@@ -1,4 +1,5 @@
 ---
+import { DEZENAS_FECHAMENTO } from '../../lib/fechamento';
 export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import Crumbs from '../../components/Crumbs.astro';
@@ -85,6 +86,7 @@ const fmtP = (p: { j: number; q: number }[]) => p.filter((x) => x.q).map((x) => 
       <p>{preco >= 500
         ? <>Por custar {reais(preco)}, essa aposta costuma ser feita em <strong>bolão</strong>. Dividida entre 10 pessoas, cada uma paga {reais(preco / 10)}; entre 20, {reais(preco / 20)}. Simule na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a>.</>
         : <>Com {reais(preco)}, a aposta cabe no orçamento de muita gente, mas também pode ser dividida num bolão para reduzir o custo por pessoa. Simule na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a>.</>}</p>
+      {DEZENAS_FECHAMENTO[l.slug]?.includes(n) && <p>Quer jogar com {n} dezenas gastando menos? Um <a href={`/${l.slug}/fechamento/${n}-dezenas/`}>fechamento da {l.nome} com {n} dezenas</a> usa só parte das combinações e ainda garante um prêmio mínimo se as sorteadas caírem entre as suas.</p>}
       <h2>Como fazer a aposta</h2>
       <p>Marque {n} números no volante da lotérica ou selecione {n} dezenas no app Loterias Caixa e no portal Loterias Online. O sistema calcula o valor automaticamente. Depois do sorteio, confira o jogo no <a href={`/${l.slug}/conferir/`}>conferidor da {l.nome}</a>.</p>
     </div>

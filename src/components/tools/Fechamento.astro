@@ -1,0 +1,171 @@
+---
+// Ferramenta de fechamento: o apostador marca as dezenas, escolhe a garantia e recebe os jogos.
+// Os fechamentos vêm de /fechamentos/<loteria>.json (pré-calculados e verificados).
+import { POR_SLUG } from '../../lib/loterias';
+import { DEZENAS_FECHAMENTO } from '../../lib/fechamento';
+interface Props { loteria: string; v?: number }
+const { loteria, v } = Astro.props;
+const l = POR_SLUG[loteria];
+const tamanhos = DEZENAS_FECHAMENTO[loteria];
+const universo = Array.from({ length: l.max - l.min + 1 }, (_, i) => i + l.min);
+---
+<div class="fc card" data-loteria={loteria} data-v={v ?? ''} data-preco={l.preco} data-cor={l.cor} style={`--c:${l.cor}`}>
+  <div class="fc-passo"><span class="fc-num">1</span><strong>Quantas dezenas você quer jogar?</strong></div>
+  <div class="fc-tams" role="group" aria-label="Quantidade de dezenas">
+    {tamanhos.map((n) => <button type="button" class="fc-tam" data-n={n} aria-pressed={n === v ? 'true' : 'false'}>{n}</button>)}
+  </div>
+  <div class="fc-passo"><span class="fc-num">2</span><strong>Marque suas dezenas</strong> <span class="fc-cont small faint"></span></div>
+  <div class={`fc-grade ${universo.length > 30 ? 'fc-g10' : 'fc-g5'}`}>
+    {universo.map((d) => <button type="button" class="fc-d" data-d={d} aria-pressed="false">{String(d).padStart(2, '0')}</button>)}
+  </div>
+  <div class="fc-acoes"><button type="button" class="btn btn-sm fc-sortear">Completar ao acaso</button><button type="button" class="btn btn-sm fc-limpar">Limpar</button></div>
+  <div class="fc-passo"><span class="fc-num">3</span><strong>Escolha a garantia</strong></div>
+  <div class="fc-opcoes"><p class="small muted">Escolha a quantidade de dezenas e marque todas para ver as opções.</p></div>
+  <div class="fc-saida" aria-live="polite"></div>
+</div>
+<script>
+  import { bolas, brl } from '../../lib/ui';
+  import { decodificarJogos, aplicar, garantia, umEm, pct, FIXOS_LOTOFACIL, type Arquivo, type Fechamento } from '../../lib/fechamento';
+  const C = (n: number, k: number) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
+  const p2 = (n: number) => String(n).padStart(2, '0');
+
+  document.querySelectorAll<HTMLElement>('.fc').forEach(async (el) => {
+    const slug = el.dataset.loteria!, preco = Number(el.dataset.preco), cor = el.dataset.cor!;
+    const ehLF = slug === 'lotofacil';
+    const nome = ehLF ? 'Lotofácil' : 'Mega-Sena';
+    const opcoes = el.querySelector<HTMLElement>('.fc-opcoes')!, saida = el.querySelector<HTMLElement>('.fc-saida')!, cont = el.querySelector<HTMLElement>('.fc-cont')!;
+    const botoes = [...el.querySelectorAll<HTMLButtonElement>('.fc-d')];
+    const universo = botoes.map((b) => Number(b.dataset.d));
+    let alvo = Number(el.dataset.v) || 0;
+    const sel = new Set<number>();
+    let dados: Arquivo | null = null;
+    const carregar = fetch(`/fechamentos/${slug}.json`).then((r) => r.json()).then((j) => (dados = j)).catch(() => null);
+
+    const q = new URLSearchParams(location.search);
+    const dq = (q.get('d') ?? '').split(/[^0-9]+/).filter(Boolean).map(Number).filter((d) => universo.includes(d));
+    if (dq.length) { dq.forEach((d) => sel.add(d)); alvo = dq.length; }
+
+    function pintar() {
+      botoes.forEach((b) => b.setAttribute('aria-pressed', String(sel.has(Number(b.dataset.d)))));
+      el.querySelectorAll<HTMLButtonElement>('.fc-tam').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === alvo)));
+      cont.textContent = alvo ? `${sel.size} de ${alvo} marcadas` : `${sel.size} marcadas`;
+    }
+
+    function listarOpcoes(autoGarantia?: string) {
+      saida.innerHTML = '';
+      if (!alvo) { opcoes.innerHTML = '<p class="small muted">Escolha a quantidade de dezenas acima.</p>'; return; }
+      if (sel.size !== alvo) { opcoes.innerHTML = `<p class="small muted">Marque ${alvo - sel.size > 0 ? `mais ${alvo - sel.size}` : `${sel.size - alvo} a menos`} dezena${Math.abs(alvo - sel.size) === 1 ? '' : 's'} (ou use “Completar ao acaso”).</p>`; return; }
+      if (!dados) { opcoes.innerHTML = '<p class="small muted">Carregando fechamentos…</p>'; carregar.then(() => listarOpcoes(autoGarantia)); return; }
+      const fs = dados.fechamentos.filter((f) => f.v === alvo);
+      // descarta garantias "dominadas" (outra é ao menos tão forte e não custa mais jogos)
+      const lista = fs.filter((f) => !fs.some((g) => g !== f && g.n <= f.n && g.m <= f.m && g.t >= f.t && (g.n < f.n || g.m < f.m || g.t > f.t)));
+      const k = dados.k;
+      const comp = C(alvo, k);
+      opcoes.innerHTML = lista.map((f) => `<button type="button" class="fc-op" data-g="${f.m}-${f.t}">
+          <span class="fc-op-t">${garantia(slug, f).replace(/^garante/, 'Garante')}</span>
+          <span class="fc-op-n"><strong>${f.n} jogo${f.n > 1 ? 's' : ''}</strong> · ${brl(f.n * preco)}</span>
+          <span class="small faint">Chance de a condição acontecer: ${umEm(f.pCondicao)}</span></button>`).join('')
+        + `<button type="button" class="fc-op" data-g="completo"><span class="fc-op-t">Desdobramento completo: todas as combinações de ${k} entre as suas ${alvo}</span><span class="fc-op-n"><strong>${comp.toLocaleString('pt-BR')} jogos</strong> · ${brl(comp * preco)}</span><span class="small faint">Se as ${ehLF ? 15 : 6} sorteadas estiverem entre as suas, um jogo acerta tudo</span></button>`;
+      opcoes.querySelectorAll<HTMLButtonElement>('.fc-op').forEach((b) => b.addEventListener('click', () => gerar(b.dataset.g!)));
+      if (autoGarantia) gerar(autoGarantia);
+    }
+
+    function gerar(g: string) {
+      opcoes.querySelectorAll('.fc-op').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.g === g));
+      const dz = [...sel].sort((a, b) => a - b);
+      const k = dados!.k;
+      let jogos: number[][] = [];
+      let f: Fechamento | undefined;
+      if (g === 'completo') {
+        const total = C(dz.length, k);
+        if (total > 5000) { saida.innerHTML = `<p class="muted">São ${total.toLocaleString('pt-BR')} jogos (${brl(total * preco)}) — muitos para listar aqui. ${ehLF && dz.length <= 20 ? `No app e nas lotéricas, dá para fazer isso numa única aposta de ${dz.length} números, pelo mesmo preço.` : ''}</p>`; return; }
+        const rec = (ini: number, atual: number[]) => { if (atual.length === k) { jogos.push(atual.slice()); return; } for (let i = ini; i <= dz.length - (k - atual.length); i++) { atual.push(dz[i]); rec(i + 1, atual); atual.pop(); } };
+        rec(0, []);
+      } else {
+        const [m, t] = g.split('-').map(Number);
+        f = dados!.fechamentos.find((x) => x.v === dz.length && x.m === m && x.t === t);
+        if (!f) return;
+        jogos = decodificarJogos(f.jogos).map((mask) => aplicar(mask, dz));
+      }
+      const custo = jogos.length * preco;
+      const texto = jogos.map((j) => j.map(p2).join(' ')).join('\n');
+      const url = new URL(location.pathname, location.origin);
+      url.searchParams.set('d', dz.map(p2).join('-')); url.searchParams.set('g', g);
+      history.replaceState(null, '', url.pathname + url.search);
+      const linkZap = new URL(url.href); linkZap.searchParams.set('utm_source', 'whatsapp'); linkZap.searchParams.set('utm_medium', 'compartilhar'); linkZap.searchParams.set('utm_campaign', `fechamento-${slug}`);
+      const msgZap = `🍀 Meu fechamento da *${nome}* com ${dz.length} dezenas: *${jogos.length} jogos*${f ? ` que ${garantia(slug, f)}` : ''}.\n\nDezenas: ${dz.map(p2).join(' ')}\n👉 Veja os jogos:\n${linkZap.href}`;
+      let estat = '';
+      if (f) {
+        const faixas = Object.keys(f.chances).map(Number).sort((a, b) => b - a);
+        estat = `<div class="table-wrap"><table class="fc-tab"><thead><tr><th>Num sorteio qualquer, algum jogo faz…</th><th class="num">Chance</th></tr></thead><tbody>${faixas.map((h) => `<tr><td>${h} ${h === 1 ? 'acerto' : 'acertos'} ou mais</td><td class="num">${umEm(f!.chances[h])} (${pct(f!.chances[h])})</td></tr>`).join('')}</tbody></table></div>
+          <p class="small faint">A garantia só vale quando a condição acontece (chance de ${umEm(f.pCondicao)}). As chances acima são exatas, calculadas para estes ${jogos.length} jogos em todos os sorteios possíveis.${ehLF ? ` Prêmios fixos da Lotofácil: 11 acertos ${brl(FIXOS_LOTOFACIL[11])}, 12 ${brl(FIXOS_LOTOFACIL[12])}, 13 ${brl(FIXOS_LOTOFACIL[13])}.` : ''}</p>`;
+      }
+      const MOSTRAR = 120;
+      saida.innerHTML = `<div class="fc-res">
+          <p class="fc-res-t"><strong>${jogos.length} jogo${jogos.length > 1 ? 's' : ''}</strong> · custo de <strong>${brl(custo)}</strong> (${brl(preco)} cada)</p>
+          ${f ? `<p class="small muted">Este fechamento ${garantia(slug, f)}. A garantia foi verificada por computador em todas as combinações possíveis.</p>` : ''}
+          <div class="fc-bts">
+            <a class="zap-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msgZap)}">Mandar no WhatsApp</a>
+            <button type="button" class="btn btn-sm fc-copiar">Copiar jogos</button>
+            <button type="button" class="btn btn-sm fc-baixar">Baixar .txt</button>
+          </div>
+          ${estat}
+          <ol class="fc-jogos">${jogos.slice(0, MOSTRAR).map((j) => `<li>${bolas(j, cor, [], 2, 'sm')}</li>`).join('')}</ol>
+          ${jogos.length > MOSTRAR ? `<p class="small muted">Mostrando ${MOSTRAR} de ${jogos.length}. Use “Copiar jogos” ou “Baixar .txt” para levar a lista completa.</p>` : ''}
+        </div>`;
+      saida.querySelector('.fc-copiar')!.addEventListener('click', async (e) => { const b = e.currentTarget as HTMLButtonElement; try { await navigator.clipboard.writeText(texto); b.textContent = 'Copiado!'; } catch { b.textContent = 'Não deu'; } setTimeout(() => (b.textContent = 'Copiar jogos'), 2000); });
+      saida.querySelector('.fc-baixar')!.addEventListener('click', () => {
+        const blob = new Blob([`Fechamento ${nome} — ${dz.length} dezenas: ${dz.map(p2).join(' ')}\n${f ? garantia(slug, f) : 'desdobramento completo'}\n${jogos.length} jogos · ${brl(custo)}\n\n${texto}\n\nriodepremios.com.br\n`], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `fechamento-${slug}-${dz.length}-dezenas.txt`; a.click(); URL.revokeObjectURL(a.href);
+      });
+      (window as any).gtag?.('event', 'fechamento_gerado', { loteria: slug, dezenas: dz.length, garantia: g, jogos: jogos.length });
+    }
+
+    el.querySelectorAll<HTMLButtonElement>('.fc-tam').forEach((b) => b.addEventListener('click', () => {
+      alvo = Number(b.dataset.n);
+      while (sel.size > alvo) sel.delete([...sel].pop()!);
+      pintar(); listarOpcoes();
+    }));
+    botoes.forEach((b) => b.addEventListener('click', () => {
+      const d = Number(b.dataset.d);
+      if (sel.has(d)) sel.delete(d); else if (!alvo || sel.size < alvo) sel.add(d);
+      pintar(); listarOpcoes();
+    }));
+    el.querySelector('.fc-sortear')!.addEventListener('click', () => {
+      if (!alvo) alvo = Number(el.querySelector<HTMLButtonElement>('.fc-tam')!.dataset.n);
+      const livres = universo.filter((d) => !sel.has(d));
+      while (sel.size < alvo && livres.length) { const i = Math.floor(Math.random() * livres.length); sel.add(livres.splice(i, 1)[0]); }
+      pintar(); listarOpcoes();
+    });
+    el.querySelector('.fc-limpar')!.addEventListener('click', () => { sel.clear(); pintar(); listarOpcoes(); });
+
+    pintar();
+    listarOpcoes(dq.length ? q.get('g') ?? undefined : undefined);
+  });
+</script>
+<style is:global>
+  .fc { display: flex; flex-direction: column; gap: 10px; }
+  .fc-passo { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .fc-num { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--c); color: #fff; font-weight: 800; font-size: .85rem; flex: none; }
+  .fc-tams { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fc-tam { min-width: 46px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 700; cursor: pointer; }
+  .fc-tam[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+  .fc-grade { display: grid; gap: 6px; }
+  .fc-g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 360px; }
+  .fc-g10 { grid-template-columns: repeat(10, minmax(0, 1fr)); max-width: 560px; }
+  .fc-d { min-width: 0; aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); background: var(--surface2); color: var(--text); font-weight: 700; font-size: .9rem; cursor: pointer; padding: 0; }
+  .fc-d[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+  .fc-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fc-opcoes { display: grid; gap: 8px; }
+  .fc-op { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+  .fc-op:hover, .fc-op.on { border-color: var(--c); box-shadow: 0 0 0 1px var(--c); }
+  .fc-op-t { font-weight: 650; }
+  .fc-res { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .fc-res-t { margin: 0; font-size: 1.05rem; }
+  .fc-bts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .fc-bts .zap-btn { padding: 8px 14px; font-size: .9rem; display: inline-flex; border-radius: 999px; background: #25d366; color: #05210f; font-weight: 750; text-decoration: none; }
+  .fc-jogos { display: grid; gap: 6px; padding-left: 2.2em; margin: 6px 0; }
+  .fc-jogos li { min-width: 0; }
+  .fc-jogos .balls { flex-wrap: wrap; }
+  .fc-tab { font-size: .92rem; }
+</style>

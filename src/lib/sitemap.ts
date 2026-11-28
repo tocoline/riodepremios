@@ -1,5 +1,7 @@
 // Geração dos sitemaps com <lastmod> real (data do sorteio ou da última alteração do conteúdo).
 import { LOTERIAS, POR_API, VIRADA } from './loterias';
+import { DEZENAS_FECHAMENTO } from './fechamento';
+const FECHAMENTOS_ATUALIZADO = '2026-11-28';
 import { GUIAS } from './guias';
 import { SITE, CONTEUDO_ATUALIZADO } from './site';
 import { RP, edicoesPublicadas, dataEdicao, proximaEdicao } from './riodepremios';
@@ -45,6 +47,7 @@ export async function paginas(db: any): Promise<Url[]> {
     const a = atu[l.api] ?? fixo;
     u.push({ loc: `/${l.slug}/`, lastmod: a }, { loc: `/${l.slug}/resultados/`, lastmod: a }, { loc: `/${l.slug}/como-jogar/`, lastmod: fixo }, { loc: `/${l.slug}/premios/`, lastmod: a }, { loc: `/${l.slug}/conferir/`, lastmod: a }, { loc: `/${l.slug}/gerador/`, lastmod: fixo });
     if (l.tipo !== 'trevos') u.push({ loc: `/${l.slug}/meus-numeros-ja-sairam/`, lastmod: a });
+    if (DEZENAS_FECHAMENTO[l.slug]) { u.push({ loc: `/${l.slug}/fechamento/`, lastmod: FECHAMENTOS_ATUALIZADO }); for (const v of DEZENAS_FECHAMENTO[l.slug]) u.push({ loc: `/${l.slug}/fechamento/${v}-dezenas/`, lastmod: FECHAMENTOS_ATUALIZADO }); }
     if (l.tipo === 'padrao') for (let n = l.escolhaMin; n <= l.escolhaMax; n++) u.push({ loc: `/${l.slug}/com-${n}-numeros/`, lastmod: fixo });
     for (const k of faixaAcertos(l)) u.push({ loc: `/${l.slug}/acertei-${k}-numeros/`, lastmod: a });
     const geo = res[l.api]?.geo;

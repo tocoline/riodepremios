@@ -12,6 +12,8 @@ import TabelasLoteria from '../../../components/TabelasLoteria.astro';
 import Faq from '../../../components/Faq.astro';
 import Analise from '../../../components/Analise.astro';
 import Fonte from '../../../components/Fonte.astro';
+import Zap from '../../../components/Zap.astro';
+import { mensagemResultado, mensagemProximo } from '../../../lib/zap';
 import { sincronizar, resultadoAtrasado } from '../../../lib/sincronizar';
 import { POR_SLUG, DIAS, diasTexto, VIRADA, MESES } from '../../../lib/loterias';
 import { getDB, concurso, vizinhos, ultimos, anteriores, doMes, dbFalhou } from '../../../lib/db';
@@ -121,6 +123,7 @@ const faqPre = prox ? [
             <a class="btn btn-primary btn-sm" href="#palpites">Ver palpites</a>
             <a class="btn btn-sm" href={`/ferramentas/gerador-de-numeros/`}>Gerar meus jogos</a>
           </div>
+          <Zap texto={mensagemProximo(l, n, dataSorteio, premioTxt)} path={`/${l.slug}/concurso/${n}/`} campanha={`proximo-${l.slug}`} rotulo="Avisar no WhatsApp" flutuante compacto />
         </div>
         <div class="side">
           <Resposta>
@@ -179,6 +182,7 @@ const faqPre = prox ? [
             <a class="btn btn-primary btn-sm" href={`/ferramentas/conferidor/?loteria=${l.slug}&concurso=${c.numero}`}>Conferir minha aposta</a>
             {c.acumulado ? <span class="pill hot">Acumulou!</span> : <span class="pill ok">Teve ganhador na faixa principal</span>}
           </div>
+          <Zap texto={mensagemResultado(l, c, nomeEspecial ? `da ${nomeEspecial} ${anoEspecial}` : undefined)} path={`/${l.slug}/concurso/${n}/`} campanha={`concurso-${l.slug}`} rotulo="Mandar no WhatsApp" flutuante compacto />
         </div>
         <div class="side">
           <Resposta>

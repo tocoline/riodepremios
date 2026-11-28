@@ -425,7 +425,7 @@ ${tabelaLF}
     titulo: 'Fechamentos e desdobramentos na loteria: o que são e quando valem a pena',
     desc: 'Entenda a diferença entre desdobramento e fechamento, quanto custam, o que realmente garantem e um exemplo prático calculado na Mega-Sena.',
     resposta: '<strong>Desdobramento</strong> é dividir um jogo com mais números em todas as apostas simples possíveis — custa o mesmo que marcar esses números num só jogo. <strong>Fechamento</strong> é usar só parte dessas combinações, escolhidas para garantir um prêmio mínimo <em>se</em> certa quantidade das dezenas sorteadas estiver entre os seus números. O fechamento economiza, mas a garantia é condicional.',
-    publicado: '2026-11-27', atualizado: '2026-11-27',
+    publicado: '2026-11-27', atualizado: '2026-11-28',
     html: `
 <p>"Fechamento" e "desdobramento" são termos muito usados por apostadores experientes e por quem organiza bolões. Eles prometem cobrir mais números gastando menos — mas é importante entender exatamente o que garantem. Neste guia explicamos os dois conceitos com um exemplo calculado na Mega-Sena.</p>
 <h2>O que é desdobramento</h2>
@@ -451,7 +451,7 @@ ${tabelaLF}
 <li>Quando o fechamento vem com a condição explicada de forma clara. Desconfie de quem anuncia "prêmio garantido" sem dizer a condição.</li>
 </ul>
 <h2>Fechamentos na Lotofácil</h2>
-<p>Na Lotofácil, fechamentos são populares porque a chance de as dezenas sorteadas caírem dentro de um conjunto de 18 ou 19 números escolhidos é relativamente alta. Mesmo assim, o princípio é o mesmo: a garantia depende de quantas dezenas sorteadas estiverem no seu conjunto. Veja as chances reais no guia <a href="/guias/como-aumentar-as-chances-na-lotofacil/">como aumentar as chances na Lotofácil</a>.</p>
+<p>Na Lotofácil, fechamentos são populares porque muitas das 15 sorteadas costumam cair dentro de um conjunto de 18 ou 19 números. Mas a condição clássica — as 15 sorteadas <em>todas</em> entre as suas 18 — acontece em cerca de 1 em 4.006 sorteios. Um fechamento de 24 jogos com 18 dezenas garante 14 pontos nesse caso; monte o seu, com as chances exatas de cada faixa, no <a href="/lotofacil/fechamento/">gerador de fechamentos da Lotofácil</a> (há também o da <a href="/mega-sena/fechamento/">Mega-Sena</a>). O princípio é o mesmo: a garantia depende de quantas dezenas sorteadas estiverem no seu conjunto. Veja as chances reais no guia <a href="/guias/como-aumentar-as-chances-na-lotofacil/">como aumentar as chances na Lotofácil</a>.</p>
 <h2>Ferramentas úteis</h2>
 <p>Calcule o custo e a chance de qualquer aposta na <a href="/ferramentas/calculadora-de-probabilidades/">calculadora de probabilidades</a>, divida o custo com amigos na <a href="/ferramentas/calculadora-de-bolao/">calculadora de bolão</a> e confira vários jogos de uma vez no <a href="/ferramentas/conferidor/">conferidor</a>.</p>`,
     faq: [

@@ -1,0 +1,50 @@
+---
+// Botão de compartilhar no WhatsApp com mensagem pronta. `flutuante` adiciona um botão fixo no celular,
+// que aparece depois de rolar a página.
+import { hrefWhatsApp, linkZap } from '../lib/zap';
+interface Props { texto: string; path: string; campanha: string; rotulo?: string; flutuante?: boolean; compacto?: boolean }
+const { texto, path, campanha, rotulo = 'Compartilhar no WhatsApp', flutuante = false, compacto = false } = Astro.props;
+const link = linkZap(path, campanha);
+const msg = `${texto}\n${link}`;
+const href = hrefWhatsApp(msg);
+const icone = '<svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8S23.2 3 16 3zm0 23.4c-2.1 0-4.2-.6-6-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7c0-5.8 4.8-10.5 10.8-10.5S26.8 10 26.8 15.8 22 26.4 16 26.4zm5.9-7.8c-.3-.2-1.9-1-2.2-1.1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.8.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.6 5.8 5 2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z"/></svg>';
+---
+<div class:list={['zap', compacto && 'zap-c']} data-msg={msg}>
+  <a class="zap-btn" href={href} target="_blank" rel="noopener" data-zap={campanha}><Fragment set:html={icone} /><span>{rotulo}</span></a>
+  <button type="button" class="zap-copiar" title="Copiar mensagem e link">Copiar</button>
+</div>
+{flutuante && <a class="zap-fab" href={href} target="_blank" rel="noopener" aria-label={rotulo} data-zap={`${campanha}-flutuante`}><Fragment set:html={icone} /><span>Enviar no Zap</span></a>}
+<script>
+  document.querySelectorAll<HTMLElement>('.zap').forEach((el) => {
+    const b = el.querySelector<HTMLButtonElement>('.zap-copiar');
+    b?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(el.dataset.msg ?? location.href); b.textContent = 'Copiado!'; } catch { b.textContent = 'Não deu'; }
+      setTimeout(() => (b.textContent = 'Copiar'), 2000);
+    });
+  });
+  // registra no Analytics (se ativo) cada clique de compartilhamento
+  document.querySelectorAll<HTMLAnchorElement>('[data-zap]').forEach((a) => a.addEventListener('click', () => {
+    (window as any).gtag?.('event', 'share', { method: 'WhatsApp', content_type: a.dataset.zap });
+  }));
+  const fab = document.querySelector<HTMLElement>('.zap-fab');
+  if (fab) {
+    const ver = () => fab.classList.toggle('zap-fab-on', window.scrollY > 350);
+    addEventListener('scroll', ver, { passive: true }); ver();
+  }
+</script>
+<style is:global>
+  .zap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  .zap-btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #25d366; color: #05210f; font-weight: 750; text-decoration: none; box-shadow: 0 6px 18px -8px #25d366; }
+  .zap-btn:hover { background: #1fbe5a; color: #05210f; }
+  .zap-c .zap-btn { padding: 8px 14px; font-size: .9rem; }
+  .zap-copiar { padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; }
+  .zap-fab { display: none; }
+  @media (max-width: 760px) {
+    .zap-btn { flex: 1 1 auto; justify-content: center; }
+    .zap-fab { display: inline-flex; align-items: center; gap: 6px; position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 60; padding: 12px 16px; border-radius: 999px;
+      background: #25d366; color: #05210f; font-weight: 750; font-size: .9rem; text-decoration: none; box-shadow: 0 10px 24px -8px rgba(0,0,0,.45);
+      transform: translateY(140%); transition: transform .25s ease; }
+    .zap-fab-on { transform: none; }
+  }
+  @media print { .zap, .zap-fab { display: none !important; } }
+</style>

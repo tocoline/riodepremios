@@ -1,0 +1,110 @@
+---
+// Fechamento para uma quantidade de dezenas (ex.: /lotofacil/fechamento/18-dezenas/). Estática.
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import Bolas from '../../../components/Bolas.astro';
+import Fechamento from '../../../components/tools/Fechamento.astro';
+import Zap from '../../../components/Zap.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { DEZENAS_FECHAMENTO, LOTERIAS_FECHAMENTO, garantia, umEm, pct, decodificarJogos, aplicar, FIXOS_LOTOFACIL } from '../../../lib/fechamento';
+import { ARQUIVOS, opcoes } from '../../../lib/fechamentoDados';
+import { probabilidade } from '../../../lib/math';
+import { reais, numero } from '../../../lib/format';
+import { SITE, autoraLD } from '../../../lib/site';
+
+export function getStaticPaths() {
+  return LOTERIAS_FECHAMENTO.flatMap((loteria) => DEZENAS_FECHAMENTO[loteria].map((v) => ({ params: { loteria, dezenas: `${v}-dezenas` }, props: { v } })));
+}
+const { v } = Astro.props as { v: number };
+const slug = Astro.params.loteria!;
+const l = POR_SLUG[slug];
+const ehLF = slug === 'lotofacil';
+const arq = ARQUIVOS[slug];
+const k = arq.k;
+const ops = opcoes(slug, v);
+// destaque: a garantia "clássica" de cada loteria
+const destaque = (ehLF ? ops.find((f) => f.t === 14) : ops.find((f) => f.m === 6 && f.t === 4) ?? ops.find((f) => f.m === 6)) ?? ops[0];
+// lista de exemplo: a opção mais forte com até 60 jogos
+const exemplo = [...ops].filter((f) => f.n <= 60).sort((a, b) => b.n - a.n)[0];
+const dezenasEx = Array.from({ length: v }, (_, i) => i + 1);
+const jogosEx = exemplo ? decodificarJogos(exemplo.jogos).map((m) => aplicar(m, dezenasEx)) : [];
+const faixas = ehLF ? [15, 14, 13, 12, 11] : [6, 5, 4];
+const simples = (h: number) => faixas.filter((x) => x >= h).reduce((s, x) => s + probabilidade(l, x), 0); // 1 aposta simples
+const multipla = ehLF ? v <= 20 : v <= 20;
+const nomeFaixa = (h: number) => (ehLF ? `${h} pontos` : ({ 4: 'quadra', 5: 'quina', 6: 'sena' } as Record<number, string>)[h]);
+const curto = ehLF ? `${destaque.n} jogos garantem 14 pontos` : destaque.t === 4 ? `${destaque.n} jogo${destaque.n > 1 ? 's' : ''} garante${destaque.n > 1 ? 'm' : ''} a quadra` : `${destaque.n} jogos garantem a quina`;
+const url = `${SITE.url}/${slug}/fechamento/${v}-dezenas/`;
+const titulo = `Fechamento ${l.nome} ${v} dezenas: ${curto}`;
+const desc = `Fechamento e desdobramento da ${l.nome} com ${v} dezenas: ${ops.map((f) => `${f.n} jogo${f.n > 1 ? 's' : ''} (${reais(f.n * l.preco)}) ${garantia(slug, f).replace(/^garante /, 'para ').replace(/ entre as suas \d+ dezenas/, '')}`).slice(0, 2).join('; ')}. Jogos prontos, custo e chances exatas.`;
+const vizinhos = DEZENAS_FECHAMENTO[slug].filter((x) => Math.abs(x - v) <= 2 && x !== v);
+const faq = [
+  { q: `Quantos jogos tem o fechamento da ${l.nome} com ${v} dezenas?`, a: ops.map((f) => `${garantia(slug, f).replace(/^garante/, 'Para garantir')}: ${numero(f.n)} jogo${f.n > 1 ? 's' : ''} (${reais(f.n * l.preco)})`).join('. ') + `. O desdobramento completo tem ${numero(destaque.completo)} jogos.` },
+  { q: `Qual a chance de as sorteadas estarem entre as minhas ${v} dezenas?`, a: `${ehLF ? `De as 15 sorteadas estarem todas entre as suas ${v}` : `De as 6 sorteadas estarem todas entre as suas ${v}`}: ${umEm(ops.find((f) => f.m === (ehLF ? 15 : 6))?.pCondicao ?? destaque.pCondicao)}. É essa a condição para a garantia valer.` },
+  { q: `Quanto custa jogar ${v} dezenas na ${l.nome}?`, a: `O desdobramento completo (ou a aposta múltipla de ${v} números${multipla ? ', permitida no volante' : ''}) custa ${reais(destaque.completo * l.preco)}. O fechamento de ${destaque.n} jogos custa ${reais(destaque.n * l.preco)}.` },
+  { q: 'O fechamento aumenta a chance de ganhar?', a: 'Não muda a chance de cada jogo nem o retorno médio por real apostado. Ele garante um prêmio mínimo quando as sorteadas caem dentro das suas dezenas, em vez de deixar isso à sorte.' },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: arq.geradoEm, dateModified: arq.geradoEm, mainEntityOfPage: url, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
+];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${slug}/` }, { nome: 'Fechamento', url: `/${slug}/fechamento/` }, { nome: `${v} dezenas` }]} />
+    <h1>Fechamento da {l.nome} com {v} dezenas</h1>
+    <p class="lead">Quantos jogos, quanto custa e o que cada opção garante — com a lista de jogos pronta e as chances exatas.</p>
+    <Autor atualizado={arq.geradoEm + 'T12:00:00-03:00'} />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>Com <strong>{v} dezenas</strong> na {l.nome}, um fechamento de <strong>{numero(destaque.n)} jogo{destaque.n > 1 ? 's' : ''}</strong> ({reais(destaque.n * l.preco)}) {garantia(slug, destaque).replace(/ entre as suas \d+ dezenas/, ` entre as suas ${v}`)}. O desdobramento completo teria {numero(destaque.completo)} jogos ({reais(destaque.completo * l.preco)}). A chance de a condição acontecer num sorteio é de <strong>{umEm(destaque.pCondicao)}</strong>.</p></Resposta>
+
+    <h2>Opções de fechamento com {v} dezenas</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Garantia</th><th class="num">Jogos</th><th class="num">Custo</th><th class="num">Chance da condição</th></tr></thead>
+      <tbody>
+        {ops.map((f) => <tr><td>{garantia(slug, f).replace(/^garante/, 'Garante').replace(/ entre as suas \d+ dezenas/, ` entre as suas ${v}`)}</td><td class="num">{numero(f.n)}</td><td class="num">{reais(f.n * l.preco)}</td><td class="num">{umEm(f.pCondicao)}</td></tr>)}
+        <tr class="dc"><td>Desdobramento completo (todas as combinações){multipla ? ' — ou aposta múltipla no volante' : ''}</td><td class="num">{numero(destaque.completo)}</td><td class="num">{reais(destaque.completo * l.preco)}</td><td class="num">{umEm(ops.find((f) => f.m === (ehLF ? 15 : 6))?.pCondicao ?? 0)}</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>Monte o seu com as suas dezenas</h2>
+    <Fechamento loteria={slug} v={v} />
+
+    <h2>Chance real de cada faixa</h2>
+    <p class="muted">Num sorteio qualquer — sem depender da condição —, esta é a chance de pelo menos um dos seus jogos chegar a cada faixa, comparada com uma única aposta simples:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Pelo menos…</th><th class="num">1 aposta simples</th>{ops.map((f) => <th class="num">{numero(f.n)} jogo{f.n > 1 ? 's' : ''} ({ehLF ? `${f.t} pts` : `${nomeFaixa(f.t)}${f.m < 6 ? ` c/ ${f.m}` : ''}`})</th>)}</tr></thead>
+      <tbody>{faixas.map((h) => <tr><td>{nomeFaixa(h)}</td><td class="num">{umEm(simples(h))}</td>{ops.map((f) => <td class="num">{umEm(f.chances[String(h)])}</td>)}</tr>)}</tbody>
+    </table></div>
+    <p class="small faint">Chances exatas, calculadas para os jogos exatos de cada fechamento em todos os sorteios possíveis.{ehLF ? ` Prêmios fixos: 11 pontos ${reais(FIXOS_LOTOFACIL[11])}, 12 ${reais(FIXOS_LOTOFACIL[12])}, 13 ${reais(FIXOS_LOTOFACIL[13])}; 14 e 15 dependem do rateio.` : ''}</p>
+
+    <Ad />
+
+    {exemplo && (
+      <>
+        <h2>Os {exemplo.n} jogos, com as dezenas de 01 a {v}</h2>
+        <p class="muted">Este é o fechamento que {garantia(slug, exemplo).replace(/ entre as suas \d+ dezenas/, ` entre as suas ${v}`)}. Os jogos abaixo usam as dezenas 01 a {String(v).padStart(2, '0')} como exemplo: troque cada número pela sua dezena correspondente (a 1ª da sua lista no lugar do 01, a 2ª no lugar do 02 e assim por diante) — ou use a ferramenta acima, que faz isso sozinha.</p>
+        <ol class="ex">{jogosEx.map((j) => <li><Bolas dezenas={j} cor={l.cor} tam="sm" /></li>)}</ol>
+      </>
+    )}
+
+    <div class="prose">
+      <h2>Fechamento ou desdobramento com {v} dezenas?</h2>
+      <p>O desdobramento completo com {v} dezenas são {numero(destaque.completo)} jogos de {k} números{multipla ? <>, o mesmo que uma aposta múltipla de {v} números no volante da {l.nome}</> : ''}. Ele garante {ehLF ? 'os 15 pontos' : 'a sena'} se as sorteadas estiverem entre as suas, mas custa {reais(destaque.completo * l.preco)}. O fechamento de {numero(destaque.n)} jogos custa {((destaque.n / destaque.completo) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% disso e garante {ehLF ? `${destaque.t} pontos` : nomeFaixa(destaque.t)} na mesma situação.</p>
+      <p>Em qualquer caso, lembre que a condição é rara: as sorteadas caem todas entre as suas {v} dezenas em {pct(destaque.pCondicao)} dos sorteios. Jogue com um valor que caiba no seu orçamento.</p>
+      <p>Outras quantidades: {vizinhos.map((x, i) => <>{i > 0 && ' · '}<a href={`/${slug}/fechamento/${x}-dezenas/`}>{x} dezenas</a></>)} · <a href={`/${slug}/fechamento/`}>todos os fechamentos da {l.nome}</a>.</p>
+    </div>
+    <Zap texto={`🍀 Fechamento da *${l.nome}* com ${v} dezenas: *${curto}*. Veja os jogos prontos e monte o seu:`} path={`/${slug}/fechamento/${v}-dezenas/`} campanha={`fechamento-${slug}-${v}`} rotulo="Mandar no WhatsApp" />
+    <Faq itens={faq} />
+  </section>
+</Base>
+<style>
+  h2 { margin-top: 30px; }
+  tr.dc td { color: var(--muted); }
+  .ex { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 8px 18px; padding-left: 2.2em; }
+  .ex li { min-width: 0; }
+  .ex :global(.balls) { flex-wrap: wrap; }
+</style>

@@ -10,6 +10,9 @@ import Autor from './Autor.astro';
 import Faq from './Faq.astro';
 import Ad from './Ad.astro';
 import ConferirVirada from './tools/ConferirVirada.astro';
+import Zap from './Zap.astro';
+import { mensagemResultado } from '../lib/zap';
+import { POR_SLUG } from '../lib/loterias';
 import { VIRADA } from '../lib/loterias';
 import type { Concurso } from '../lib/db';
 import { premioPrincipal, anoDe } from '../lib/virada';
@@ -58,6 +61,7 @@ const schema = [{ '@context': 'https://schema.org', '@type': 'Article', headline
       {c.dezenas_ordem && <p class="small faint" style="margin:10px 0 0">Ordem do sorteio: {c.dezenas_ordem.map((d) => pad(d)).join(' · ')}</p>}
       <p class="small muted" style="margin:8px 0 0">{pares} pares e {6 - pares} ímpares · soma {soma}{c.local ? ` · ${c.local}` : ''}</p>
     </div>
+    <Zap texto={mensagemResultado(POR_SLUG['mega-sena'], c, `da Mega da Virada ${ano}`)} path={`/mega-da-virada/${ano}/`} campanha={`virada-${ano}`} rotulo="Mandar o resultado no WhatsApp" flutuante />
     <Fonte atualizado={c.atualizado_em} />
     {!rateioOk && <p class="card aviso">⏳ <strong>Rateio em apuração.</strong> As dezenas já são oficiais; a Caixa divulga quantas apostas acertaram e quanto cada uma recebe logo depois do sorteio. Esta página é atualizada automaticamente — recarregue em alguns minutos.</p>}
 

@@ -1,0 +1,84 @@
+---
+// Página estática (pré-renderizada): ferramenta de fechamento + tabela de todos os fechamentos.
+import Base from '../../../layouts/Base.astro';
+import Crumbs from '../../../components/Crumbs.astro';
+import Resposta from '../../../components/Resposta.astro';
+import Autor from '../../../components/Autor.astro';
+import Faq from '../../../components/Faq.astro';
+import Ad from '../../../components/Ad.astro';
+import Fechamento from '../../../components/tools/Fechamento.astro';
+import { POR_SLUG } from '../../../lib/loterias';
+import { DEZENAS_FECHAMENTO, garantia, umEm, LOTERIAS_FECHAMENTO } from '../../../lib/fechamento';
+import { ARQUIVOS, opcoes } from '../../../lib/fechamentoDados';
+import { reais, numero } from '../../../lib/format';
+import { SITE, autoraLD } from '../../../lib/site';
+
+export function getStaticPaths() { return LOTERIAS_FECHAMENTO.map((loteria) => ({ params: { loteria } })); }
+
+const slug = Astro.params.loteria!;
+const l = POR_SLUG[slug];
+const ehLF = slug === 'lotofacil';
+const arq = ARQUIVOS[slug];
+const tamanhos = DEZENAS_FECHAMENTO[slug];
+const linhas = tamanhos.map((v) => ({ v, ops: opcoes(slug, v) }));
+const ex = ehLF ? opcoes(slug, 18).find((f) => f.t === 14)! : opcoes(slug, 10).find((f) => f.m === 6 && f.t === 4)!;
+const url = `${SITE.url}/${slug}/fechamento/`;
+const titulo = ehLF ? 'Fechamento Lotofácil: gerador grátis com garantia de 14 pontos' : 'Fechamento Mega-Sena: gerador grátis com garantia de quadra e quina';
+const desc = ehLF
+  ? `Gere fechamentos e desdobramentos da Lotofácil de 16 a 21 dezenas, com garantia verificada: ex.: 18 dezenas em ${ex.n} jogos garantem 14 pontos se as 15 sorteadas estiverem entre elas. Custo, chances reais e lista de jogos.`
+  : `Gere fechamentos da Mega-Sena de 7 a 20 dezenas com garantia de quadra ou quina: ex.: 10 dezenas em ${ex.n} jogos garantem a quadra se a sena estiver entre elas. Custo, chances reais e jogos prontos.`;
+const faq = [
+  { q: `O que é fechamento na ${l.nome}?`, a: `É um conjunto de jogos montado com as dezenas que você escolheu de forma a garantir um prêmio mínimo se as sorteadas caírem dentro delas. Exemplo: ${garantia(slug, ex).replace(/^garante/, `com ${ex.v} dezenas, ${ex.n} jogos garantem`)}.` },
+  { q: 'Fechamento aumenta a chance de ganhar?', a: 'Não da forma como muita gente promete. Cada jogo tem a mesma chance de qualquer outro, e o retorno médio por real apostado é o mesmo. O fechamento organiza os jogos para que, se a condição acontecer, o prêmio mínimo seja garantido — em vez de depender da sorte na distribuição.' },
+  { q: 'Qual a diferença entre fechamento e desdobramento?', a: `O desdobramento completo usa todas as combinações possíveis das suas dezenas (com ${ex.v} dezenas, ${numero(ex.completo)} jogos) e garante o prêmio máximo se as sorteadas estiverem entre elas. O fechamento usa bem menos jogos (${ex.n}, no exemplo) em troca de uma garantia menor.` },
+  { q: 'Os fechamentos do Rio de Prêmios são confiáveis?', a: 'Cada fechamento foi gerado por computador e depois verificado em todas as combinações possíveis: se a condição acontecer, a garantia vale sempre. As chances mostradas são exatas, não estimativas.' },
+  { q: 'Posso usar os jogos no app da Caixa?', a: 'Sim. Copie ou baixe a lista e registre cada jogo como uma aposta simples, no app Loterias Caixa, no portal Loterias Online ou na lotérica.' },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'WebApplication', name: `Gerador de fechamentos da ${l.nome}`, url, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Qualquer navegador', inLanguage: 'pt-BR', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, publisher: { '@id': `${SITE.url}/#org` } },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: arq.geradoEm, dateModified: arq.geradoEm, mainEntityOfPage: url, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
+];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <div class="wrap phero" style="max-width:980px">
+    <Crumbs itens={[{ nome: l.nome, url: `/${slug}/` }, { nome: 'Fechamento' }]} />
+    <h1>Fechamento e desdobramento da {l.nome}</h1>
+    <p class="lead">Escolha {ehLF ? 'de 16 a 21' : 'de 7 a 20'} dezenas, a garantia que quer e receba os jogos prontos — com o custo e a chance real de cada opção.</p>
+    <Autor atualizado={arq.geradoEm + 'T12:00:00-03:00'} />
+  </div>
+  <section class="wrap" style="max-width:980px">
+    <Resposta><p>Um <strong>fechamento da {l.nome}</strong> é um grupo de jogos montado com as suas dezenas para garantir um prêmio mínimo. Exemplo: com <strong>{ex.v} dezenas</strong>, <strong>{ex.n} jogos</strong> ({reais(ex.n * l.preco)}) {garantia(slug, ex).replace(/ com \d+ dezenas/, '')}. A garantia é condicional: a chance de as sorteadas caírem dentro das suas {ex.v} é de <strong>{umEm(ex.pCondicao)}</strong>. Use a ferramenta abaixo — é grátis e os jogos saem na hora.</p></Resposta>
+
+    <div style="margin-top:18px"><Fechamento loteria={slug} /></div>
+
+    <h2>Todos os fechamentos da {l.nome}</h2>
+    <p class="muted">Clique na quantidade de dezenas para ver os jogos prontos, as chances de cada faixa e a comparação com o desdobramento completo.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Dezenas</th><th>Garantia</th><th class="num">Jogos</th><th class="num">Custo</th><th class="num">Chance da condição</th></tr></thead>
+      <tbody>{linhas.flatMap(({ v, ops }) => ops.map((f, i) => (
+        <tr><td>{i === 0 ? <a href={`/${slug}/fechamento/${v}-dezenas/`}><strong>{v} dezenas</strong></a> : ''}</td><td>{garantia(slug, f).replace(/^garante /, '').replace(/ entre as suas \d+ dezenas/, ' entre as suas')}</td><td class="num">{numero(f.n)}</td><td class="num">{reais(f.n * l.preco)}</td><td class="num">{umEm(f.pCondicao)}</td></tr>
+      )))}</tbody>
+    </table></div>
+
+    <Ad />
+    <div class="prose">
+      <h2>Como funciona um fechamento</h2>
+      <p>Imagine que você escolheu {ex.v} dezenas. Jogar todas as combinações possíveis delas (o desdobramento completo) custaria {numero(ex.completo)} jogos, ou {reais(ex.completo * l.preco)}. O fechamento escolhe só {ex.n} dessas combinações, distribuídas de forma que qualquer resultado dentro das suas {ex.v} dezenas encontre pelo menos um jogo com {ehLF ? `${ex.t} acertos` : 'a quadra'}. É uma troca: você gasta {((1 - ex.n / ex.completo) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% menos e abre mão do prêmio máximo garantido.</p>
+      <h2>A garantia que ninguém explica direito</h2>
+      <p>Todo fechamento tem uma condição. {ehLF ? `Na Lotofácil, a condição é que as 15 dezenas sorteadas estejam todas entre as suas` : 'Na Mega-Sena, a condição é que as sorteadas (todas as 6, ou 5, ou 4, conforme o fechamento) estejam entre as suas'}. Quando ela não acontece — o que é o mais comum —, não há garantia nenhuma, e os seus jogos valem o mesmo que quaisquer outros. Por isso mostramos, para cada fechamento, a chance de a condição acontecer e a chance real de cada faixa num sorteio qualquer.</p>
+      <h2>Fechamento aumenta a chance de ganhar?</h2>
+      <p>Cada combinação tem exatamente a mesma chance de ser sorteada, e o retorno médio por real apostado não muda com a forma de montar os jogos. O que o fechamento faz é <strong>organizar</strong> os jogos: em vez de repetir dezenas ao acaso, ele espalha as combinações para garantir um mínimo quando você acerta as dezenas. É uma ferramenta de organização, não de mágica — desconfie de quem promete mais do que isso.</p>
+      <h2>Fechamento, desdobramento ou aposta múltipla?</h2>
+      <ul>
+        <li><strong>Desdobramento completo:</strong> todas as combinações das suas dezenas. Garante o prêmio máximo se as sorteadas estiverem entre elas, mas é caro.</li>
+        <li><strong>Aposta múltipla:</strong> {ehLF ? 'na Lotofácil, dá para marcar de 16 a 20 números num único volante' : 'na Mega-Sena, dá para marcar de 7 a 20 números num único volante'}. Ela custa o mesmo que o desdobramento completo e é mais prática.</li>
+        <li><strong>Fechamento:</strong> uma fração dos jogos, com uma garantia menor. É a opção para quem quer jogar muitas dezenas com orçamento limitado.</li>
+      </ul>
+      <h2>Como escolher as dezenas</h2>
+      <p>Nenhum método aumenta a chance de as sorteadas estarem entre as suas: todas as dezenas têm a mesma probabilidade. Se quiser critérios, veja os <a href={`/${slug}/numeros-que-mais-saem/`}>números que mais saem</a> e os <a href={`/${slug}/numeros-atrasados/`}>números atrasados</a> — sabendo que o passado não muda o próximo sorteio — ou use o <a href={`/${slug}/gerador/`}>gerador</a>. Depois do sorteio, confira tudo de uma vez no <a href={`/ferramentas/conferidor/?loteria=${slug}`}>conferidor</a>.</p>
+      <p>Para entender os conceitos com um exemplo passo a passo, leia o guia <a href="/guias/fechamentos-e-desdobramentos/">fechamentos e desdobramentos</a>. Veja também o fechamento da {ehLF ? <a href="/mega-sena/fechamento/">Mega-Sena</a> : <a href="/lotofacil/fechamento/">Lotofácil</a>}.</p>
+    </div>
+    <Faq itens={faq} />
+  </section>
+</Base>
+<style> h2 { margin-top: 30px; } </style>

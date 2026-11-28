@@ -10,6 +10,7 @@ import Autor from './Autor.astro';
 import Faq from './Faq.astro';
 import Ad from './Ad.astro';
 import ConferirVirada from './tools/ConferirVirada.astro';
+import Zap from './Zap.astro';
 import { VIRADA } from '../lib/loterias';
 import type { Concurso } from '../lib/db';
 import { premioPrincipal, anoDe } from '../lib/virada';
@@ -56,6 +57,7 @@ const schema = [
       <p class="vivo-txt">O sorteio ainda não aconteceu. No dia {VIRADA.dataCurta}, a partir das {VIRADA.hora}, esta página se atualiza sozinha com as seis dezenas.</p>
       <div class="vivo-bolas" aria-hidden="true">{[1, 2, 3, 4, 5, 6].map(() => <span class="ball">?</span>)}</div>
     </div>
+    <Zap texto={`🎆 *Mega da Virada ${ano}*: prêmio estimado de *${VIRADA.premioTexto}*, sorteio em ${VIRADA.dataCurta.slice(0, 5)} às ${VIRADA.hora}.\n\n✅ Salve seus jogos nesta página: quando o resultado sair, ela confere sozinha e mostra quanto você ganhou.\n👉`} path={`/mega-da-virada/${ano}/`} campanha={`virada-${ano}-pre`} rotulo="Mandar para a família no WhatsApp" flutuante />
 
     <Resposta>
       <p>O resultado da <strong>Mega da Virada {ano}</strong> (concurso {VIRADA.concurso}) sai em <strong>{VIRADA.dataTexto}, às {VIRADA.hora}</strong> (horário de Brasília), e aparece nesta página automaticamente minutos depois do sorteio. O prêmio estimado é de <strong>{VIRADA.premioTexto}</strong>{reservado ? <>, dos quais <strong>{reaisCurto(reservado)}</strong> já estavam reservados até o concurso {ultMega!.numero}</> : ''}. O prêmio <strong>não acumula</strong>: se ninguém acertar as seis dezenas, ele é dividido entre quem acertar a quina.</p>
