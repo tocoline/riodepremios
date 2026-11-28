@@ -12,7 +12,7 @@ import TabelasLoteria from '../../../components/TabelasLoteria.astro';
 import Faq from '../../../components/Faq.astro';
 import Analise from '../../../components/Analise.astro';
 import Fonte from '../../../components/Fonte.astro';
-import { sincronizar } from '../../../lib/sincronizar';
+import { sincronizar, resultadoAtrasado } from '../../../lib/sincronizar';
 import { POR_SLUG, DIAS, diasTexto, VIRADA, MESES } from '../../../lib/loterias';
 import { getDB, concurso, vizinhos, ultimos, anteriores, doMes, dbFalhou } from '../../../lib/db';
 import { resumo } from '../../../lib/resumo';
@@ -29,7 +29,8 @@ const db = getDB(Astro.locals);
 let c = await concurso(db, l, n);
 let [ult] = c ? [null] : await ultimos(db, l, 1);
 // Concurso antigo ainda não sincronizado pelo coletor: busca na Caixa agora e grava
-if (!c && ult && n < ult.numero && (await sincronizar(db, l, n))) { c = await concurso(db, l, n); ult = null; }
+// ou o próximo concurso, já sorteado, que o coletor ainda não pegou
+if (!c && ult && (n < ult.numero || (n === ult.proximo_numero && resultadoAtrasado(ult))) && (await sincronizar(db, l, n))) { c = await concurso(db, l, n); ult = null; }
 
 // Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
 const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
