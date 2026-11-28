@@ -1,0 +1,74 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import ConferirVirada from '../../components/tools/ConferirVirada.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { getDB, concurso } from '../../lib/db';
+import { rateioCompleto } from '../../lib/sincronizar';
+import { dataBR, pad } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+import { SITE, autoraLD } from '../../lib/site';
+
+const l = POR_SLUG['mega-sena'];
+const c = await concurso(getDB(Astro.locals), l, VIRADA.concurso);
+cachear(Astro, c && rateioCompleto(c.premiacoes) ? 1800 : 300);
+const ano = VIRADA.ano;
+const C = (n: number, k: number) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
+// quantos prêmios vale uma aposta de k números com h acertos
+const tabela = [7, 8, 9, 10, 12, 15].map((k) => ({ k, linhas: [6, 5, 4].map((h) => ({ h, sena: C(h, 6) * C(k - h, 0), quina: C(h, 5) * C(k - h, 1), quadra: C(h, 4) * C(k - h, 2) })) }));
+const nomes = (x: { sena: number; quina: number; quadra: number }) => [x.sena && `${x.sena} sena`, x.quina && `${x.quina} quina${x.quina > 1 ? 's' : ''}`, x.quadra && `${x.quadra} quadra${x.quadra > 1 ? 's' : ''}`].filter(Boolean).join(' + ');
+const url = `${SITE.url}/mega-da-virada/conferir/`;
+const titulo = `Conferir Mega da Virada ${ano}: confira seus jogos e bolão`;
+const desc = c
+  ? `Confira seus jogos da Mega da Virada ${ano} (concurso ${VIRADA.concurso}, dezenas ${c.dezenas.map((d) => pad(d)).join('-')}): cole um ou vários jogos de 6 a 20 números e veja na hora quantas senas, quinas e quadras ganhou e quanto.`
+  : `Salve agora seus jogos da Mega da Virada ${ano} e eles são conferidos sozinhos quando o resultado sair, em ${VIRADA.dataCurta}. Funciona com vários jogos e apostas de 6 a 20 números.`;
+const faq = [
+  { q: 'Como conferir vários jogos da Mega da Virada de uma vez?', a: 'Cole os jogos no conferidor, um por linha. Pode ser o seu bilhete, os jogos da família ou todos os jogos de um bolão: cada linha é conferida separadamente, e o total aparece no topo.' },
+  { q: 'Como conferir uma aposta com mais de 6 números?', a: 'Digite todos os números marcados na mesma linha (de 7 a 20). O conferidor calcula todas as combinações de 6 dentro do seu jogo: uma aposta de 8 números com 5 acertos, por exemplo, vale 3 quinas e 15 quadras.' },
+  { q: 'Meus jogos ficam salvos?', a: 'Sim, apenas no seu aparelho (no navegador). Nada é enviado para o Rio de Prêmios. Se você salvar antes do sorteio, basta abrir esta página no dia: a conferência aparece sozinha quando o resultado sair.' },
+  { q: 'Ganhei! O que eu faço?', a: 'Guarde o bilhete original em local seguro e confira o resultado também nos canais oficiais da Caixa. Prêmios menores podem ser retirados em lotéricas; os maiores, em agências da Caixa, com documento de identificação. O prazo é de 90 dias após o sorteio.' },
+  { q: 'Recebi mensagem dizendo que ganhei. É verdade?', a: 'Desconfie. A Caixa não avisa ganhadores por mensagem, e-mail ou ligação nem pede pagamento de taxa para liberar prêmio. Confira você mesmo o bilhete com o resultado oficial.' },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'WebApplication', name: `Conferidor da Mega da Virada ${ano}`, url, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Any', inLanguage: 'pt-BR', offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' }, publisher: { '@id': `${SITE.url}/#org` } },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: '2026-11-28', dateModified: c?.atualizado_em ?? VIRADA.atualizado, mainEntityOfPage: url, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
+];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={c?.atualizado_em}>
+  <ViradaHero titulo={`Conferir Mega da Virada ${ano}`} crumb="Conferir" sub={c ? `Resultado do concurso ${VIRADA.concurso}, de ${dataBR(c.data)}: cole seus jogos e veja se ganhou.` : `Salve seus jogos agora: no dia ${VIRADA.dataCurta.slice(0, 5)}, a conferência é feita sozinha quando o resultado sair.`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:900px">
+    <Resposta>
+      {c
+        ? <p>O resultado da <a href={`/mega-da-virada/${ano}/`}>Mega da Virada {ano}</a> (concurso {VIRADA.concurso}) foi <strong>{c.dezenas.map((d) => pad(d)).join(' - ')}</strong>. Para conferir, cole abaixo um ou vários jogos — um por linha, com 6 a 20 números. O conferidor mostra quantos acertos cada jogo teve, quantas senas, quinas e quadras ele vale e{rateioCompleto(c.premiacoes) ? ' quanto você recebe.' : ' o valor assim que a Caixa divulgar o rateio.'}</p>
+        : <p>O sorteio da Mega da Virada {ano} é em <strong>{VIRADA.dataTexto}, às {VIRADA.hora}</strong>. Cole seus jogos abaixo (um por linha, de 6 a 20 números) e eles ficam salvos neste aparelho. No dia do sorteio, abra esta página: quando o resultado sair, você vê na hora quais jogos ganharam e quanto, sem digitar nada de novo.</p>}
+    </Resposta>
+    <Autor atualizado={c?.atualizado_em ?? VIRADA.atualizado + 'T12:00:00-03:00'} />
+
+    <div style="margin-top:18px"><ConferirVirada resultado={c} /></div>
+
+    <Ad />
+    <div class="prose">
+      <h2>Quanto vale uma aposta com mais números</h2>
+      <p>Na Mega da Virada, uma aposta com mais de 6 números equivale a todas as combinações de 6 dezenas que cabem nela. Por isso, um mesmo bilhete pode ganhar várias quinas e quadras ao mesmo tempo. A tabela mostra o que cada aposta vale de acordo com o número de acertos:</p>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Números no jogo</th><th>Com 4 acertos</th><th>Com 5 acertos</th><th>Com 6 acertos</th></tr></thead>
+      <tbody>{tabela.map((t) => <tr><td><strong>{t.k}</strong></td>{[...t.linhas].reverse().map((x) => <td>{nomes(x)}</td>)}</tr>)}</tbody>
+    </table></div>
+    <div class="prose">
+      <p>Os valores de cada faixa dependem do rateio: o prêmio total de cada faixa é dividido entre todas as apostas que acertaram. Veja <a href="/mega-da-virada/premios-por-acertos/">quanto pagaram sena, quina e quadra nas últimas Viradas</a> e o que significa <a href="/mega-da-virada/acertei-4-numeros/">acertar 4</a> ou <a href="/mega-da-virada/acertei-5-numeros/">5 números</a>.</p>
+      <h2>Conferindo um bolão</h2>
+      <p>Num bolão, todos os jogos são registrados num mesmo recibo. Cole cada jogo do recibo numa linha: o conferidor soma os prêmios do grupo. Para saber quanto cabe a cada participante, divida o total pelo número de cotas — ou use o <a href="/mega-da-virada/bolao-online/">bolão online da família</a>, que já faz essa conta e confere sozinho.</p>
+      <h2>Cuidado com golpes</h2>
+      <p>Depois da Virada, circulam mensagens falsas de “prêmio liberado” e sites que pedem taxa para pagar o ganhador. A Caixa não entra em contato com ganhadores nem cobra para pagar prêmios. Confira sempre o seu bilhete com o resultado oficial.</p>
+    </div>
+    <Faq itens={faq} />
+  </article>
+</Base>

@@ -1,7 +1,7 @@
 // IndexNow: avisa Bing, Yandex, Seznam e Naver (e, via Bing, ChatGPT Search, Copilot e DuckDuckGo)
 // assim que um resultado novo entra no banco. Roda em segundo plano no middleware, no máximo a cada 5 min por isolate.
 // Custo: 9 leituras de 1 linha (MAX por loteria, pelo índice da chave primária) por checagem.
-import { LOTERIAS, POR_API } from './loterias';
+import { LOTERIAS, POR_API, VIRADA } from './loterias';
 import { SITE } from './site';
 import { paginas } from './sitemap';
 
@@ -56,6 +56,8 @@ export async function indexnow(db: any, host: string) {
       for (const p of [`/${l.slug}/concurso/${c.numero}/`, `/${l.slug}/concurso/${c.numero + 1}/`, `/${l.slug}/`, `/${l.slug}/resultados/`, `/${l.slug}/resultados/${c.data.slice(0, 4)}/`, `/${l.slug}/premios/`])
         urls.add(u + p);
       if (l.tipo !== 'colunas') for (const p of ['estatisticas/', 'numeros-que-mais-saem/', 'numeros-atrasados/']) urls.add(`${u}/${l.slug}/${p}`);
+      if (c.loteria === 'megasena' && c.numero === VIRADA.concurso)
+        for (const p of [`${VIRADA.ano}/`, '', 'resultados/', 'estatisticas/', 'conferir/', 'premios-por-acertos/', ...[3, 4, 5, 6].map((k) => `acertei-${k}-numeros/`)]) urls.add(`${u}/mega-da-virada/${p}`);
     }
     if (urls.size) {
       urls.add(SITE.url + '/');

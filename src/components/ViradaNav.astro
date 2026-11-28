@@ -1,6 +1,7 @@
 ---
+import { VIRADA } from '../lib/loterias';
 const itens = [
-  ['/mega-da-virada/', 'Guia'], ['/mega-da-virada/seus-numeros/', '✦ Seus números'], ['/mega-da-virada/bolao-online/', 'Bolão online'], ['/mega-da-virada/quanto-rende/', 'Quanto rende'], ['/mega-da-virada/resultados/', 'Resultados'], ['/mega-da-virada/estatisticas/', 'Estatísticas'],
+  ['/mega-da-virada/', 'Guia'], [`/mega-da-virada/${VIRADA.ano}/`, `Resultado ${VIRADA.ano}`], ['/mega-da-virada/conferir/', 'Conferir'], ['/mega-da-virada/seus-numeros/', '✦ Seus números'], ['/mega-da-virada/bolao-online/', 'Bolão online'], ['/mega-da-virada/quanto-rende/', 'Quanto rende'], ['/mega-da-virada/resultados/', 'Resultados'], ['/mega-da-virada/estatisticas/', 'Estatísticas'],
   ['/mega-da-virada/calculadora-de-bolao/', 'Bolão'], ['/mega-da-virada/simulador/', 'Simulador'], ['/mega-da-virada/gerador/', 'Gerador'],
   ['/mega-da-virada/premio-liquido/', 'Prêmio líquido'], ['/mega-da-virada/como-apostar/', 'Como apostar'],
 ];

@@ -30,7 +30,7 @@ let c = await concurso(db, l, n);
 let [ult] = c ? [null] : await ultimos(db, l, 1);
 // Concurso antigo ainda não sincronizado pelo coletor: busca na Caixa agora e grava
 // ou o próximo concurso, já sorteado, que o coletor ainda não pegou
-if (!c && ult && (n < ult.numero || (n === ult.proximo_numero && resultadoAtrasado(ult))) && (await sincronizar(db, l, n))) { c = await concurso(db, l, n); ult = null; }
+if (!c && ult && (n < ult.numero || (n === ult.proximo_numero && resultadoAtrasado(ult, l.api))) && (await sincronizar(db, l, n))) { c = await concurso(db, l, n); ult = null; }
 
 // Sem resultado: só existe página se for o PRÓXIMO concurso (pré-sorteio)
 const ehVirada = l.slug === 'mega-sena' && n === VIRADA.concurso;
@@ -124,7 +124,7 @@ const faqPre = prox ? [
         </div>
         <div class="side">
           <Resposta>
-            <p>O concurso <strong>{n} da {l.nome}</strong> será sorteado <strong>{diaSemana}, {dataBR(dataSorteio)}, às {horaTxt}</strong> (horário de Brasília).{premioTxt ? <> O prêmio estimado é de <strong>{premioTxt}</strong>.</> : ''}{ehVirada ? <> É a <a href="/mega-da-virada/">Mega da Virada {VIRADA.ano}</a>, que não acumula.</> : ''} A aposta mínima custa {reais(l.preco)}. O resultado será publicado nesta página automaticamente, minutos após o sorteio.</p>
+            <p>O concurso <strong>{n} da {l.nome}</strong> será sorteado <strong>{diaSemana}, {dataBR(dataSorteio)}, às {horaTxt}</strong> (horário de Brasília).{premioTxt ? <> O prêmio estimado é de <strong>{premioTxt}</strong>.</> : ''}{ehVirada ? <> É a <a href="/mega-da-virada/">Mega da Virada {VIRADA.ano}</a>, que não acumula. Acompanhe o <a href={`/mega-da-virada/${VIRADA.ano}/`}>resultado ao vivo</a> e deixe seus jogos salvos para a <a href="/mega-da-virada/conferir/">conferência automática</a>.</> : ''} A aposta mínima custa {reais(l.preco)}. O resultado será publicado nesta página automaticamente, minutos após o sorteio.</p>
           </Resposta>
           <figure class="hero-img"><img src={imagem} alt={`${l.nome} concurso ${n} — ${dataBR(dataSorteio)}`} width="1200" height="675" loading="eager" /></figure>
         </div>

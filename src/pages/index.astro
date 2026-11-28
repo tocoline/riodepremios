@@ -9,13 +9,14 @@ import Fonte from '../components/Fonte.astro';
 import { LOTERIAS, POR_SLUG, VIRADA } from '../lib/loterias';
 import { getDB, ultimosDeTodas, dbFalhou } from '../lib/db';
 import { reaisCurto } from '../lib/format';
-import { cachear } from '../lib/cache';
+import { cachear, janelaVirada } from '../lib/cache';
 
 cachear(Astro);
 const ult = await ultimosDeTodas(getDB(Astro.locals));
 if (dbFalhou(getDB(Astro.locals))) Astro.response.headers.set('Cache-Control', 'no-store');
 const mega = ult['mega-sena'];
 const acumVirada = mega?.acumulado_especial;
+const viradaAoVivo = janelaVirada(); // no dia do sorteio, o destaque leva direto ao resultado
 const atualizado = Object.values(ult).map((c) => c.atualizado_em).sort().at(-1);
 
 const ferramentas = [
@@ -57,12 +58,12 @@ const faq = [
   </section>
 
   <section class="wrap">
-    <a class="virada" href="/mega-da-virada/">
+    <a class="virada" href={viradaAoVivo ? `/mega-da-virada/${VIRADA.ano}/` : '/mega-da-virada/'}>
       <div class="virada-txt">
         <span class="virada-tag">✦ Concurso {VIRADA.concurso} · {VIRADA.dataCurta} às {VIRADA.hora}</span>
-        <h2>Mega da Virada {VIRADA.ano}</h2>
+        <h2>{viradaAoVivo ? `Resultado da Mega da Virada ${VIRADA.ano}` : `Mega da Virada ${VIRADA.ano}`}</h2>
         <p>Prêmio estimado em <strong>{VIRADA.premioTexto}</strong> — e ele não acumula. Calculadoras, estatísticas e todos os resultados históricos.</p>
-        <span class="btn btn-sm virada-btn">Abrir o guia completo →</span>
+        <span class="btn btn-sm virada-btn">{viradaAoVivo ? 'Ver o resultado e conferir meu jogo →' : 'Abrir o guia completo →'}</span>
       </div>
       <Countdown alvo={VIRADA.data} />
     </a>

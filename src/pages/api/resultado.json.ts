@@ -11,8 +11,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const ref = url.searchParams.get('concurso') || 'ultimo';
   const db = getDB(locals);
   const c = ref === 'ultimo' ? (await ultimos(db, l, 1))[0] : await concurso(db, l, Number(ref));
-  if (!c) return Response.json({ erro: 'concurso não encontrado' }, { status: 404 });
+  if (!c) return Response.json({ erro: 'concurso não encontrado' }, { status: 404, headers: { 'Cache-Control': 'public, max-age=15, s-maxage=30' } });
+  // resultado das últimas 48 h (rateio e cidades ainda podem ser complementados): cache curto
+  const fresco = Date.now() - new Date(c.data + 'T12:00:00-03:00').getTime() < 48 * 3600e3;
   return Response.json({ ...c, loteria: l.slug, nome: l.nome, fonte: 'Caixa Econômica Federal (API pública de resultados)' }, {
-    headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300', 'Access-Control-Allow-Origin': '*' },
+    headers: { 'Cache-Control': fresco ? 'public, max-age=20, s-maxage=30' : 'public, max-age=60, s-maxage=300', 'Access-Control-Allow-Origin': '*' },
   });
 };

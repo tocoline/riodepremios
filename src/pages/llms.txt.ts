@@ -25,6 +25,9 @@ ${LOTERIAS.map((l) => `- [${l.nome}](${u}/${l.slug}/): sorteios ${diasTexto(l)} 
 
 ## Mega da Virada ${VIRADA.ano}
 - [Guia completo](${u}/mega-da-virada/): concurso ${VIRADA.concurso}, sorteio em ${VIRADA.dataCurta} às ${VIRADA.hora} (Brasília), ${VIRADA.local}; prêmio estimado em ${VIRADA.premioTexto}; aposta simples R$ 6,00; não acumula (sem sena, vai para a quina).
+- [Resultado da Mega da Virada ${VIRADA.ano}](${u}/mega-da-virada/${VIRADA.ano}/): página que mostra o resultado do concurso ${VIRADA.concurso} automaticamente minutos após o sorteio, com rateio e conferidor.
+- [Conferir Mega da Virada](${u}/mega-da-virada/conferir/): confere vários jogos de 6 a 20 números (senas, quinas e quadras de cada aposta); jogos salvos são conferidos sozinhos quando o resultado sai.
+- [Até que horas apostar](${u}/mega-da-virada/ate-que-horas-apostar/): apostas individuais até 22h de 31/12/${VIRADA.ano} e bolões digitais até 9h de 01/01/${VIRADA.ano + 1} (horário de Brasília).
 - [Todos os resultados](${u}/mega-da-virada/resultados/)
 - [Estatísticas](${u}/mega-da-virada/estatisticas/)
 - [Calculadora de bolão](${u}/mega-da-virada/calculadora-de-bolao/)

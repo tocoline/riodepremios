@@ -1,0 +1,94 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import ViradaHero from '../../components/ViradaHero.astro';
+import ViradaNav from '../../components/ViradaNav.astro';
+import Resposta from '../../components/Resposta.astro';
+import Autor from '../../components/Autor.astro';
+import Faq from '../../components/Faq.astro';
+import Ad from '../../components/Ad.astro';
+import { POR_SLUG, VIRADA } from '../../lib/loterias';
+import { reais } from '../../lib/format';
+import { cachear } from '../../lib/cache';
+import { SITE, autoraLD } from '../../lib/site';
+
+cachear(Astro, 600);
+const l = POR_SLUG['mega-sena'];
+const ano = VIRADA.ano;
+// limites divulgados pela Caixa (ver VIRADA.prazos e fontes)
+const FIM_INDIVIDUAL = `${ano}-12-31T22:00:00-03:00`;
+const FIM_BOLAO = `${ano + 1}-01-01T09:00:00-03:00`;
+const INICIO_EXCLUSIVA = `${ano}-12-16T00:00:00-03:00`;
+const agora = Date.now();
+const fase = agora < new Date(INICIO_EXCLUSIVA).getTime() ? 'paralela' : agora < new Date(FIM_INDIVIDUAL).getTime() ? 'exclusiva' : agora < new Date(FIM_BOLAO).getTime() ? 'bolao' : 'encerrada';
+const url = `${SITE.url}/mega-da-virada/ate-que-horas-apostar/`;
+const titulo = `Até que horas pode apostar na Mega da Virada ${ano}?`;
+const desc = `Apostas na Mega da Virada ${ano} vão até as 22h de 31 de dezembro (horário de Brasília); bolões digitais da Caixa, até as 9h de 1º de janeiro. Veja o tempo que falta, os prazos e onde apostar.`;
+const faq = [
+  { q: `Até que horas posso apostar na Mega da Virada ${ano}?`, a: 'As apostas individuais vão até as <strong>22h de 31 de dezembro de 2026</strong> (horário de Brasília), nas lotéricas, no app Loterias Caixa e no portal Loterias Online. Bolões digitais podem ser comprados nos canais da Caixa até as <strong>9h de 1º de janeiro de 2027</strong>.' },
+  { q: 'Dá para apostar no dia 1º de janeiro?', a: 'Só em bolões digitais, nos canais eletrônicos da Caixa, até as 9h. Apostas individuais terminam às 22h do dia 31.' },
+  { q: 'A lotérica fica aberta até as 22h no dia 31?', a: 'O limite de 22h é do sistema de apostas; o horário de funcionamento varia de lotérica para lotérica. Quem quer garantir a aposta não deve deixar para a última hora — ou pode apostar pelo app ou pelo portal Loterias Online.' },
+  { q: 'Posso jogar a Mega-Sena normal em dezembro?', a: `Até 15 de dezembro, as apostas da Virada são vendidas junto com os concursos regulares. De 16 a 31 de dezembro, as vendas são exclusivas para a Mega da Virada (concurso ${VIRADA.concurso}).` },
+  { q: 'Quanto custa a aposta mínima?', a: `A aposta simples, com 6 números, custa ${reais(l.preco)}. Veja os preços de 6 a 20 números em <a href="/mega-da-virada/quanto-custa-apostar/">quanto custa apostar</a>.` },
+  { q: 'Que horas é o sorteio?', a: `Em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília). O resultado aparece em <a href="/mega-da-virada/${ano}/">resultado da Mega da Virada ${ano}</a> minutos depois.` },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: '2026-11-28', dateModified: VIRADA.atualizado, mainEntityOfPage: url, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
+];
+---
+<Base title={titulo} description={desc} schema={schema} type="article">
+  <ViradaHero titulo="Até que horas pode apostar na Mega da Virada?" crumb="Até que horas apostar" sub={`Apostas individuais até 22h de 31/12; bolões digitais até 9h de 1º/01. Sorteio às ${VIRADA.hora} de ${VIRADA.dataCurta}.`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:900px">
+    <div class="card prazo" data-fim-ind={FIM_INDIVIDUAL} data-fim-bol={FIM_BOLAO}>
+      <p class="prazo-st">{fase === 'encerrada' ? 'As vendas da Mega da Virada ' + ano + ' estão encerradas.' : fase === 'bolao' ? 'Apostas individuais encerradas — ainda dá para comprar bolões digitais até as 9h.' : 'As apostas estão abertas.'}</p>
+      <div class="prazo-grid">
+        <div><span class="prazo-l">Apostas individuais terminam em</span><strong class="prazo-v" data-alvo={FIM_INDIVIDUAL}>—</strong><span class="small faint">31/12 às 22h (Brasília)</span></div>
+        <div><span class="prazo-l">Bolões digitais terminam em</span><strong class="prazo-v" data-alvo={FIM_BOLAO}>—</strong><span class="small faint">01/01 às 9h (Brasília)</span></div>
+      </div>
+    </div>
+
+    <Resposta><p>Dá para apostar na <strong>Mega da Virada {ano}</strong> até as <strong>22h de 31 de dezembro de 2026</strong> (horário de Brasília), nas lotéricas, no app Loterias Caixa e no portal Loterias Online. Depois disso, só os <strong>bolões digitais</strong> continuam à venda nos canais da Caixa, até as <strong>9h de 1º de janeiro de 2027</strong>. O sorteio é no mesmo dia, às {VIRADA.hora}.</p></Resposta>
+    <Autor atualizado={VIRADA.atualizado + 'T12:00:00-03:00'} />
+
+    <h2>Todos os prazos da Mega da Virada {ano}</h2>
+    <ol class="tl">{VIRADA.prazos.map((p) => <li class="card"><span class="tl-q">{p.quando}</span><span>{p.o}</span></li>)}</ol>
+    <p class="small faint">Fontes: {VIRADA.fontes.map((f, i) => <>{i > 0 && ' · '}<a href={f.url} rel="noopener nofollow" target="_blank">{f.nome}</a></>)}, com base em informações divulgadas pela Caixa. Confira sempre os canais oficiais.</p>
+
+    <Ad />
+    <div class="prose">
+      <h2>Horário em cada estado</h2>
+      <p>Os prazos seguem o horário de Brasília. Em Mato Grosso, Mato Grosso do Sul, Rondônia, Roraima e na maior parte do Amazonas, as apostas individuais terminam às 21h do horário local; no Acre e no extremo oeste do Amazonas, às 20h. Os bolões digitais terminam às 8h e 7h locais, respectivamente.</p>
+      <h2>Não deixe para a última hora</h2>
+      <p>No dia 31, as lotéricas costumam ter filas longas e cada uma tem seu próprio horário de funcionamento — o limite de 22h é o do sistema, não uma garantia de que a sua lotérica estará aberta. Pela internet, o <a href="/mega-da-virada/como-jogar-online/">passo a passo para jogar online</a> mostra como apostar pelo app ou pelo portal da Caixa. Lembre-se de que apostas pela internet precisam ser pagas antes do encerramento.</p>
+      <h2>Depois de apostar</h2>
+      <p>Salve seus jogos no <a href="/mega-da-virada/conferir/">conferidor da Mega da Virada</a>: no dia 1º, eles são conferidos sozinhos assim que o resultado sair. Se vai jogar em grupo, monte o <a href="/mega-da-virada/bolao-online/">bolão online da família</a> e use a <a href="/mega-da-virada/calculadora-de-bolao/">calculadora de bolão</a> para dividir as cotas.</p>
+    </div>
+    <Faq itens={faq} />
+  </article>
+</Base>
+<script>
+  document.querySelectorAll<HTMLElement>('.prazo-v').forEach((el) => {
+    const alvo = new Date(el.dataset.alvo!).getTime();
+    const tick = () => {
+      let s = Math.floor((alvo - Date.now()) / 1000);
+      if (s <= 0) { el.textContent = 'encerrado'; return; }
+      const d = Math.floor(s / 86400); s %= 86400; const h = Math.floor(s / 3600); s %= 3600; const m = Math.floor(s / 60);
+      el.textContent = d ? `${d}d ${h}h ${m}min` : `${h}h ${m}min ${s % 60}s`;
+      setTimeout(tick, d ? 30e3 : 1000);
+    };
+    tick();
+  });
+</script>
+<style>
+  .prazo { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); }
+  .prazo-st { margin: 0; font-weight: 700; }
+  .prazo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .prazo-grid > div { display: flex; flex-direction: column; gap: 4px; }
+  .prazo-l { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .prazo-v { font: 700 clamp(1.5rem, 4vw, 2.1rem)/1.1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+  .tl { list-style: none; padding: 0; display: grid; gap: 8px; }
+  .tl li { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
+  .tl-q { font-weight: 700; color: var(--gold); }
+  h2 { margin-top: 30px; }
+</style>

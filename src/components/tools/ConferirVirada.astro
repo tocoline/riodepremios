@@ -1,0 +1,116 @@
+---
+// Conferidor da Mega da Virada: vários jogos (6 a 20 números), salvos no aparelho.
+// Sem resultado ainda: espera e, a partir do horário do sorteio, consulta a API até o resultado sair — e confere sozinho.
+import { VIRADA } from '../../lib/loterias';
+import type { Concurso } from '../../lib/db';
+interface Props { resultado?: Concurso | null; concurso?: number; alvo?: string }
+const { resultado = null, concurso = VIRADA.concurso, alvo = VIRADA.data } = Astro.props;
+const dados = resultado ? { numero: resultado.numero, data: resultado.data, dezenas: resultado.dezenas, premiacoes: resultado.premiacoes } : null;
+---
+<div class="cv card" data-concurso={concurso} data-alvo={alvo} data-resultado={dados ? JSON.stringify(dados) : ''}>
+  <div class="cv-st" aria-live="polite"></div>
+  <label class="cv-lbl" for={`cv-jogos-${concurso}`}>Seus jogos da Mega da Virada — um por linha (6 a 20 números cada)</label>
+  <textarea id={`cv-jogos-${concurso}`} class="cv-jogos" rows="5" placeholder="04 19 22 23 28 37&#10;05 10 15 20 25 30 35"></textarea>
+  <p class="small faint cv-dica">Separe os números por espaço, vírgula ou traço. Os jogos ficam salvos só neste aparelho (nada é enviado para nós).</p>
+  <div class="cv-acoes">
+    <button type="button" class="btn btn-primary cv-ok">Conferir</button>
+    <button type="button" class="btn cv-limpar">Apagar jogos</button>
+  </div>
+  <div class="cv-out" aria-live="polite"></div>
+</div>
+<script>
+  import { bolas, brl, int, p2 } from '../../lib/ui';
+  const CHAVE = 'rp-virada-jogos';
+  const C = (n: number, k: number) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
+  const ler = (s: string) => s.split('\n').map((ln) => [...new Set(ln.split(/[^0-9]+/).filter(Boolean).map(Number))]).filter((j) => j.length);
+  const guardar = (v: string) => { try { localStorage.setItem(CHAVE, v); } catch { /* armazenamento indisponível */ } };
+  const recuperar = () => { try { return localStorage.getItem(CHAVE) ?? ''; } catch { return ''; } };
+
+  document.querySelectorAll<HTMLElement>('.cv').forEach((el) => {
+    const ta = el.querySelector<HTMLTextAreaElement>('.cv-jogos')!;
+    const out = el.querySelector<HTMLElement>('.cv-out')!;
+    const st = el.querySelector<HTMLElement>('.cv-st')!;
+    const concurso = Number(el.dataset.concurso);
+    const alvo = new Date(el.dataset.alvo!).getTime();
+    let res: any = el.dataset.resultado ? JSON.parse(el.dataset.resultado) : null;
+    const q = new URLSearchParams(location.search).get('jogos');
+    ta.value = q ? q.split('_').map((j) => j.replace(/-/g, ' ')).join('\n') : recuperar();
+
+    const premioDe = (a: number) => { const f = res?.premiacoes?.find((x: any) => Number(/^\s*(\d+)/.exec(x.descricao ?? '')?.[1]) === a); return f && f.ganhadores ? f.premio : 0; };
+    const temRateio = () => res?.premiacoes?.some((x: any) => x.ganhadores > 0);
+
+    function conferir() {
+      const jogos = ler(ta.value);
+      if (!jogos.length) { out.innerHTML = ''; return; }
+      const linhas: string[] = [];
+      let total = 0, premiados = 0, invalidos = 0;
+      jogos.forEach((j, i) => {
+        if (j.length < 6 || j.length > 20 || j.some((d) => d < 1 || d > 60)) { invalidos++; linhas.push(`<li class="cv-j cv-inv"><strong>Jogo ${i + 1}</strong>: precisa ter de 6 a 20 números diferentes, de 01 a 60.</li>`); return; }
+        const ord = [...j].sort((a, b) => a - b);
+        if (!res) { linhas.push(`<li class="cv-j">${bolas(ord, '#d9a521', [], 2, 'sm')}<span class="small faint">${j.length} números · aguardando o sorteio</span></li>`); return; }
+        const hits = ord.filter((d) => res.dezenas.includes(d));
+        const h = hits.length, k = ord.length;
+        const faixas = [6, 5, 4].map((a) => ({ a, n: C(h, a) * C(k - h, 6 - a) })).filter((x) => x.n > 0);
+        const nome: Record<number, [string, string]> = { 6: ['sena', 'senas'], 5: ['quina', 'quinas'], 4: ['quadra', 'quadras'] };
+        const valor = faixas.reduce((s, x) => s + x.n * premioDe(x.a), 0);
+        if (faixas.length) premiados++;
+        total += valor;
+        const txt = faixas.length
+          ? `<strong class="cv-win">Premiado: ${faixas.map((x) => `${int(x.n)} ${nome[x.a][x.n > 1 ? 1 : 0]}`).join(' + ')}</strong>${temRateio() ? ` · ${brl(valor)}` : ' · valor assim que a Caixa divulgar o rateio'}`
+          : `${h} acerto${h === 1 ? '' : 's'} — não premiado`;
+        linhas.push(`<li class="cv-j${faixas.length ? ' cv-p' : ''}">${bolas(ord, '#d9a521', hits, 2, 'sm')}<span>${txt}</span></li>`);
+      });
+      const resumo = !res ? `<p class="muted">${jogos.length - invalidos} jogo(s) salvo(s). Quando o resultado sair, a conferência aparece aqui.</p>`
+        : `<p class="cv-res">${premiados ? `🎉 <strong>${premiados} jogo${premiados > 1 ? 's premiados' : ' premiado'}</strong>${temRateio() && total ? ` — total de <strong>${brl(total)}</strong>` : ''}` : `Nenhum dos ${jogos.length - invalidos} jogo(s) foi premiado desta vez.`}</p>`;
+      out.innerHTML = resumo + `<ol class="cv-lista">${linhas.join('')}</ol>`
+        + (res && premiados ? '<p class="small faint">Confira sempre o bilhete nos canais oficiais da Caixa. O prêmio pode ser resgatado em até 90 dias.</p>' : '');
+    }
+
+    function status() {
+      if (res) {
+        st.innerHTML = `<p class="cv-sorteio"><span class="small faint">Resultado do concurso ${res.numero}</span>${bolas(res.dezenas, '#d9a521', [], 2)}</p>`
+          + (temRateio() ? '' : '<p class="small muted">A Caixa ainda está apurando o rateio: os acertos já valem, e os valores aparecem aqui assim que forem divulgados.</p>');
+      } else if (Date.now() < alvo - 5 * 60e3) {
+        st.innerHTML = `<p class="small muted">O sorteio ainda não aconteceu. Salve seus jogos agora: no dia do sorteio, deixe esta página aberta (ou volte depois) que a conferência é feita sozinha.</p>`;
+      } else {
+        st.innerHTML = `<p class="cv-vivo"><span class="cv-dot"></span> Aguardando o resultado — esta página verifica sozinha a cada 30 segundos.</p>`;
+      }
+    }
+
+    // espera o resultado (e depois o rateio) a partir de 5 min antes do sorteio
+    async function vigiar() {
+      if (res && temRateio()) return;
+      if (Date.now() < alvo - 5 * 60e3) { setTimeout(vigiar, Math.min(alvo - 5 * 60e3 - Date.now(), 6 * 3600e3)); return; }
+      try {
+        const r = await fetch(`/api/resultado.json?loteria=mega-sena&concurso=${concurso}&t=${Math.floor(Date.now() / 30000)}`);
+        if (r.ok) { const c = await r.json(); res = { numero: c.numero, data: c.data, dezenas: c.dezenas, premiacoes: c.premiacoes }; status(); conferir(); }
+      } catch { /* tenta de novo */ }
+      if (!(res && temRateio()) && Date.now() < alvo + 3 * 86400e3) setTimeout(vigiar, res ? 60e3 : 30e3);
+    }
+
+    el.querySelector('.cv-ok')!.addEventListener('click', () => { guardar(ta.value); conferir(); });
+    el.querySelector('.cv-limpar')!.addEventListener('click', () => { ta.value = ''; guardar(''); out.innerHTML = ''; });
+    ta.addEventListener('input', () => guardar(ta.value));
+    // jogos salvos em outra aba (ex.: na página de conferir) aparecem aqui também
+    window.addEventListener('storage', (e) => { if (e.key === CHAVE && document.activeElement !== ta) { ta.value = e.newValue ?? ''; conferir(); } });
+    status(); conferir(); vigiar();
+  });
+</script>
+<style is:global>
+  .cv { display: flex; flex-direction: column; gap: 10px; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); }
+  .cv-lbl { font-weight: 650; }
+  .cv-jogos { width: 100%; font: 600 1rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface2); color: var(--text); resize: vertical; }
+  .cv-dica { margin: 0; }
+  .cv-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cv-lista { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 10px; }
+  .cv-j { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface2); min-width: 0; }
+  .cv-j .balls { flex-wrap: wrap; }
+  .cv-p { outline: 2px solid var(--gold); }
+  .cv-inv { color: var(--muted); }
+  .cv-win { color: var(--gold); }
+  .cv-res { font-size: 1.1rem; margin: 6px 0 0; }
+  .cv-sorteio { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+  .cv-vivo { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 600; }
+  .cv-dot { width: 10px; height: 10px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 0 #e5484d; animation: cvpulse 1.6s infinite; }
+  @keyframes cvpulse { 70% { box-shadow: 0 0 0 10px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+</style>

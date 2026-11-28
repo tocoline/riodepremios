@@ -12,7 +12,7 @@ const titulo = `Que horas é o sorteio da Mega da Virada ${VIRADA.ano} e onde as
 const desc = `O sorteio da Mega da Virada ${VIRADA.ano} é em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília), no ${VIRADA.local}. Veja onde assistir ao vivo, até que horas apostar e quando sai o resultado.`;
 const schema = [
   { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: CONTEUDO_ATUALIZADO, dateModified: VIRADA.atualizado, mainEntityOfPage: `${SITE.url}/mega-da-virada/horario-e-onde-assistir/`, publisher: { '@id': `${SITE.url}/#org` } },
-  { '@context': 'https://schema.org', '@type': 'Event', name: `Sorteio da Mega da Virada ${VIRADA.ano}`, startDate: VIRADA.data, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode', location: [{ '@type': 'Place', name: 'Espaço da Sorte', address: { '@type': 'PostalAddress', addressLocality: 'São Paulo', addressRegion: 'SP', addressCountry: 'BR' } }, { '@type': 'VirtualLocation', url: `${SITE.url}/mega-sena/concurso/${VIRADA.concurso}/` }], organizer: { '@type': 'Organization', name: 'Caixa Econômica Federal', url: 'https://loterias.caixa.gov.br' } },
+  { '@context': 'https://schema.org', '@type': 'Event', name: `Sorteio da Mega da Virada ${VIRADA.ano}`, startDate: VIRADA.data, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode', location: [{ '@type': 'Place', name: 'Espaço da Sorte', address: { '@type': 'PostalAddress', addressLocality: 'São Paulo', addressRegion: 'SP', addressCountry: 'BR' } }, { '@type': 'VirtualLocation', url: `${SITE.url}/mega-da-virada/${VIRADA.ano}/` }], organizer: { '@type': 'Organization', name: 'Caixa Econômica Federal', url: 'https://loterias.caixa.gov.br' } },
 ];
 ---
 <Base title={titulo.replace(` ${VIRADA.ano}`, '')} description={desc} schema={schema} type="article">
@@ -34,7 +34,7 @@ const schema = [
       <p>Até a edição de 2024, a Mega da Virada era sorteada em 31 de dezembro. Desde a edição de 2025, sorteada em 1º de janeiro de 2026, o concurso passou para o primeiro dia do ano. Na edição {VIRADA.ano}, o sorteio será na manhã de {VIRADA.dataTexto}, às {VIRADA.hora} — e as apostas individuais seguem até as 22h do dia 31, com bolões digitais até as 9h do dia 1º. Veja as datas de todas as edições em <a href="/mega-da-virada/resultados/">resultados da Mega da Virada</a>.</p>
       <h2>Onde assistir ao sorteio ao vivo</h2>
       <p>A Caixa transmite todos os sorteios ao vivo nos seus canais oficiais nas redes sociais. Na Mega da Virada, emissoras de TV e portais de notícias também costumam exibir o sorteio — confira a programação no dia.</p>
-      <p>Se preferir, acompanhe por aqui: a página do <a href={`/mega-sena/concurso/${VIRADA.concurso}/`}>concurso {VIRADA.concurso}</a> mostra o resultado automaticamente minutos depois do sorteio, com o rateio e as cidades dos ganhadores.</p>
+      <p>Se preferir, acompanhe por aqui: a página do <a href={`/mega-da-virada/${VIRADA.ano}/`}>resultado da Mega da Virada {VIRADA.ano}</a> mostra o resultado automaticamente minutos depois do sorteio, com o rateio e as cidades dos ganhadores.</p>
       <h2>Quando sai o resultado</h2>
       <p>As seis dezenas são conhecidas durante o próprio sorteio. O rateio — quantas apostas acertaram e quanto cada uma recebe — é divulgado pela Caixa logo em seguida e pode ser complementado ao longo do dia, com a lista de cidades dos ganhadores.</p>
     </div>
@@ -44,13 +44,13 @@ const schema = [
       <ul>{VIRADA.prazos.map((p) => <li><strong>{p.quando}:</strong> {p.o}</li>)}</ul>
       <p>Veja <a href="/mega-da-virada/como-jogar-online/">como jogar online</a>, <a href="/mega-da-virada/quanto-custa-apostar/">quanto custa cada aposta</a> e monte um <a href="/mega-da-virada/bolao-online/">bolão com a família</a>.</p>
       <h2>Depois do sorteio</h2>
-      <p>Confira seus jogos no <a href="/mega-sena/conferir/">conferidor</a> e veja se acertou alguma faixa: <a href="/mega-da-virada/acertei-4-numeros/">acertei 4 números</a> · <a href="/mega-da-virada/acertei-5-numeros/">acertei 5</a> · <a href="/mega-da-virada/acertei-3-numeros/">acertei 3, ganho algo?</a></p>
+      <p>Confira seus jogos no <a href="/mega-da-virada/conferir/">conferidor da Mega da Virada</a> (salve os jogos antes e eles se conferem sozinhos) e veja se acertou alguma faixa: <a href="/mega-da-virada/acertei-4-numeros/">acertei 4 números</a> · <a href="/mega-da-virada/acertei-5-numeros/">acertei 5</a> · <a href="/mega-da-virada/acertei-3-numeros/">acertei 3, ganho algo?</a></p>
     </div>
     <Faq itens={[
       { q: 'Que horas é o sorteio da Mega da Virada?', a: `Em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília).` },
       { q: 'Onde vai ser o sorteio?', a: `No ${VIRADA.local}, com transmissão ao vivo pelos canais oficiais da Caixa.` },
       { q: 'Até que horas posso apostar?', a: 'Apostas individuais até 31/12/2026, às 22h. Bolões digitais até 9h de 1º/01/2027.' },
-      { q: 'Onde vejo o resultado?', a: `Na página do concurso ${VIRADA.concurso}, aqui no Rio de Prêmios, minutos depois do sorteio, além dos canais oficiais da Caixa.` },
+      { q: 'Onde vejo o resultado?', a: `Na página do <a href="/mega-da-virada/${VIRADA.ano}/">resultado da Mega da Virada ${VIRADA.ano}</a>, aqui no Rio de Prêmios, minutos depois do sorteio, além dos canais oficiais da Caixa.` },
     ]} />
   </article>
 </Base>

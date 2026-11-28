@@ -1,6 +1,16 @@
-// Cabeçalhos de cache para páginas dinâmicas (o navegador guarda 1 min; o CDN do Cloudflare, 5 min).
+import { VIRADA } from './loterias';
+
+/** Período em que o resultado da Mega da Virada está saindo/sendo complementado (30 min antes a 36 h depois do sorteio). */
+export function janelaVirada(agora = Date.now()) {
+  const t = new Date(VIRADA.data).getTime();
+  return agora > t - 30 * 60e3 && agora < t + 36 * 3600e3;
+}
+
+// Cabeçalhos de cache para páginas dinâmicas (o navegador guarda 1 min; o CDN do Cloudflare, 5 min por padrão).
+// Na janela do sorteio da Virada, tudo fica no máximo 1 min no CDN, para o resultado aparecer logo em todas as páginas.
 export function cachear(Astro: { response: { headers: Headers } }, cdn = 300) {
-  Astro.response.headers.set('Cache-Control', `public, max-age=60, s-maxage=${cdn}, stale-while-revalidate=600`);
+  const v = janelaVirada();
+  Astro.response.headers.set('Cache-Control', v ? 'public, max-age=30, s-maxage=60, stale-while-revalidate=30' : `public, max-age=60, s-maxage=${cdn}, stale-while-revalidate=600`);
 }
 
 /** Responde 404 usando a página estática /404.html. */

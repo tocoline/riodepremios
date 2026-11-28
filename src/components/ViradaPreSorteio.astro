@@ -1,0 +1,155 @@
+---
+// Página da edição atual da Mega da Virada antes do sorteio: indexável desde já, vira a página do resultado
+// sozinha (o script recarrega quando o concurso entra no banco; o servidor passa a mostrar ViradaResultado).
+import Base from '../layouts/Base.astro';
+import ViradaHero from './ViradaHero.astro';
+import ViradaNav from './ViradaNav.astro';
+import Resposta from './Resposta.astro';
+import Bolas from './Bolas.astro';
+import Autor from './Autor.astro';
+import Faq from './Faq.astro';
+import Ad from './Ad.astro';
+import ConferirVirada from './tools/ConferirVirada.astro';
+import { VIRADA } from '../lib/loterias';
+import type { Concurso } from '../lib/db';
+import { premioPrincipal, anoDe } from '../lib/virada';
+import { reais, reaisCurto, numero, dataBR, pad } from '../lib/format';
+import { SITE, autoraLD } from '../lib/site';
+
+interface Props { todas: Concurso[]; ultMega: Concurso | null }
+const { todas, ultMega } = Astro.props;
+const ano = VIRADA.ano;
+const reservado = ultMega?.acumulado_especial ?? null;
+const anteriores = todas.slice(0, 6); // mais recentes primeiro
+const anterior = todas[0];
+const pAnterior = anterior ? premioPrincipal(anterior) : null;
+const recorde = [...todas].map((c) => ({ c, p: premioPrincipal(c) })).sort((a, b) => b.p.total - a.p.total)[0];
+const semSena = todas.filter((c) => !c.premiacoes[0]?.ganhadores).length;
+const url = `${SITE.url}/mega-da-virada/${ano}/`;
+const titulo = `Resultado da Mega da Virada ${ano}: sorteio ao vivo em ${VIRADA.dataCurta.slice(0, 5)}`;
+const desc = `Resultado da Mega da Virada ${ano} (concurso ${VIRADA.concurso}) ao vivo: sorteio em ${VIRADA.dataTexto}, às ${VIRADA.hora}, com prêmio estimado em ${VIRADA.premioTexto}. As dezenas aparecem aqui sozinhas minutos depois; salve seus jogos e eles são conferidos automaticamente.`;
+const faq = [
+  { q: `Que horas sai o resultado da Mega da Virada ${ano}?`, a: `O sorteio é em ${VIRADA.dataTexto}, às ${VIRADA.hora} (horário de Brasília), no ${VIRADA.local}. As seis dezenas são conhecidas durante o próprio sorteio e aparecem nesta página poucos minutos depois; o rateio (quantos ganharam e quanto cada um recebe) vem em seguida.` },
+  { q: `Qual o prêmio da Mega da Virada ${ano}?`, a: `A Caixa estima ${VIRADA.premioTexto}.${reservado ? ` Até o concurso ${ultMega!.numero} da Mega-Sena, ${reais(reservado)} já estavam reservados para a Virada; o restante vem das apostas feitas até o fim das vendas.` : ''}` },
+  { q: 'Se ninguém acertar as seis dezenas, o prêmio acumula?', a: 'Não. A Mega da Virada não acumula: sem ganhador da sena, o prêmio principal é dividido entre as apostas que acertaram a quina (5 números); se também não houver quina, vai para a quadra.' },
+  { q: 'Como conferir meu jogo da Mega da Virada?', a: `Digite seus jogos no conferidor desta página. Eles ficam salvos no seu aparelho e, quando o resultado sair, a conferência aparece sozinha — inclusive para apostas com 7 a 20 números, que valem várias quinas e quadras. Também dá para usar a página <a href="/mega-da-virada/conferir/">conferir Mega da Virada</a>.` },
+  { q: 'Até quando posso apostar?', a: 'Apostas individuais até 31 de dezembro de 2026, às 22h; bolões digitais nos canais da Caixa até 9h de 1º de janeiro de 2027. Veja todos os prazos em <a href="/mega-da-virada/ate-que-horas-apostar/">até que horas apostar</a>.' },
+  { q: 'Em quanto tempo preciso resgatar o prêmio?', a: 'Em até 90 dias corridos após o sorteio. Prêmios altos são pagos nas agências da Caixa, com o bilhete original e documento de identificação.' },
+];
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'Event', name: `Sorteio da Mega da Virada ${ano}`, startDate: VIRADA.data, url,
+    eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
+    location: [{ '@type': 'Place', name: 'Espaço da Sorte', address: { '@type': 'PostalAddress', addressLocality: 'São Paulo', addressRegion: 'SP', addressCountry: 'BR' } }, { '@type': 'VirtualLocation', url }],
+    organizer: { '@type': 'Organization', name: 'Caixa Econômica Federal', url: 'https://loterias.caixa.gov.br' },
+    description: `Concurso ${VIRADA.concurso} da Mega-Sena, edição especial de fim de ano que não acumula.`,
+  },
+  { '@context': 'https://schema.org', '@type': 'Article', headline: titulo, description: desc, inLanguage: 'pt-BR', datePublished: '2026-11-28', dateModified: ultMega?.atualizado_em ?? VIRADA.atualizado, mainEntityOfPage: url, author: autoraLD(), publisher: { '@id': `${SITE.url}/#org` } },
+];
+---
+<Base title={titulo} description={desc} schema={schema} type="article" modificado={ultMega?.atualizado_em}>
+  <ViradaHero titulo={`Resultado da Mega da Virada ${ano}`} crumb={String(ano)} sub={`Sorteio em ${VIRADA.dataTexto}, às ${VIRADA.hora} (Brasília). As dezenas aparecem aqui sozinhas, minutos depois.`} />
+  <ViradaNav />
+  <article class="wrap section-sm" style="max-width:980px">
+    <div class="card vivo" data-alvo={VIRADA.data} data-concurso={VIRADA.concurso}>
+      <span class="vivo-tag">Concurso {VIRADA.concurso}</span>
+      <p class="vivo-txt">O sorteio ainda não aconteceu. No dia {VIRADA.dataCurta}, a partir das {VIRADA.hora}, esta página se atualiza sozinha com as seis dezenas.</p>
+      <div class="vivo-bolas" aria-hidden="true">{[1, 2, 3, 4, 5, 6].map(() => <span class="ball">?</span>)}</div>
+    </div>
+
+    <Resposta>
+      <p>O resultado da <strong>Mega da Virada {ano}</strong> (concurso {VIRADA.concurso}) sai em <strong>{VIRADA.dataTexto}, às {VIRADA.hora}</strong> (horário de Brasília), e aparece nesta página automaticamente minutos depois do sorteio. O prêmio estimado é de <strong>{VIRADA.premioTexto}</strong>{reservado ? <>, dos quais <strong>{reaisCurto(reservado)}</strong> já estavam reservados até o concurso {ultMega!.numero}</> : ''}. O prêmio <strong>não acumula</strong>: se ninguém acertar as seis dezenas, ele é dividido entre quem acertar a quina.</p>
+    </Resposta>
+    <Autor atualizado={ultMega?.atualizado_em} modo="auto" />
+
+    <h2>Salve seus jogos: a conferência é automática</h2>
+    <p class="muted">Digite agora os jogos que você fez (ou os do bolão). Eles ficam guardados neste aparelho. No dia {VIRADA.dataCurta.slice(0, 5)}, abra esta página: assim que o resultado sair, você vê na hora quais jogos ganharam e quanto — sem precisar digitar nada de novo.</p>
+    <ConferirVirada />
+
+    <h2>Como vai ser o dia do sorteio</h2>
+    <ol class="dia">
+      <li class="card"><span class="dia-h">31/12, até 22h</span><span>Fim das apostas individuais (lotéricas, app e internet).</span></li>
+      <li class="card"><span class="dia-h">01/01, até 9h</span><span>Fim da venda de bolões digitais nos canais da Caixa.</span></li>
+      <li class="card dia-f"><span class="dia-h">01/01, {VIRADA.hora}</span><span>Sorteio ao vivo no {VIRADA.local}. As dezenas aparecem aqui em poucos minutos.</span></li>
+      <li class="card"><span class="dia-h">Logo depois</span><span>A Caixa divulga o rateio: quantas apostas acertaram 6, 5 e 4 números e quanto cada uma recebe.</span></li>
+      <li class="card"><span class="dia-h">Ao longo do dia</span><span>Saem as cidades dos ganhadores e o resultado é complementado. Esta página acompanha tudo.</span></li>
+    </ol>
+
+    <h2>Quanto do prêmio já está garantido</h2>
+    <div class="prose">
+      {reservado
+        ? <p>Uma parte da arrecadação de cada concurso regular da Mega-Sena vai para uma reserva da Mega da Virada. Segundo os dados da Caixa, essa reserva somava <strong>{reais(reservado)}</strong> após o <a href={`/mega-sena/concurso/${ultMega!.numero}/`}>concurso {ultMega!.numero}</a>, de {dataBR(ultMega!.data)}. O valor sobe a cada sorteio e, somado às apostas feitas para a própria Virada, forma o prêmio final — estimado em {VIRADA.premioTexto}. Esse número é atualizado aqui automaticamente.</p>
+        : <p>O prêmio é formado por uma reserva acumulada ao longo do ano nos concursos regulares da Mega-Sena, mais as apostas feitas para a própria Virada. A estimativa da Caixa é de {VIRADA.premioTexto}.</p>}
+      {pAnterior && <p>Na edição anterior, a <a href={`/mega-da-virada/${anoDe(anterior)}/`}>Mega da Virada {anoDe(anterior)}</a>, a faixa principal pagou {reaisCurto(pAnterior.total)} {pAnterior.faixa === 'sena' ? `para ${numero(pAnterior.ganhadores)} aposta(s) que acertaram as seis dezenas` : `divididos entre ${numero(pAnterior.ganhadores)} acertadores da quina, porque ninguém acertou a sena`}.{recorde && recorde.c.numero !== anterior.numero ? <> O recorde da história é de {reaisCurto(recorde.p.total)}, na <a href={`/mega-da-virada/${anoDe(recorde.c)}/`}>Virada de {anoDe(recorde.c)}</a>.</> : ''}</p>}
+      <h2>E se ninguém acertar as seis dezenas?</h2>
+      <p>A Mega da Virada é o único concurso da Mega-Sena que <strong>não acumula</strong>. Sem ganhador da sena, todo o prêmio principal é dividido entre as apostas que acertaram cinco números; sem quina, ele passa para a quadra. Em {todas.length} edições, isso aconteceu {semSena === 0 ? 'nenhuma vez' : semSena === 1 ? 'uma vez' : `${semSena} vezes`}.</p>
+    </div>
+
+    <Ad />
+
+    {anteriores.length > 0 && (
+      <>
+        <h2>Resultados das últimas Viradas</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Edição</th><th>Dezenas</th><th class="num">Ganhadores da sena</th><th class="num">Prêmio por ganhador</th></tr></thead>
+          <tbody>{anteriores.map((c) => { const p = premioPrincipal(c); return (
+            <tr><td><a href={`/mega-da-virada/${anoDe(c)}/`}><strong>{anoDe(c)}</strong></a></td><td>{c.dezenas.map((d) => pad(d)).join(' ')}</td><td class="num">{numero(c.premiacoes[0]?.ganhadores ?? 0)}</td><td class="num">{p.faixa === 'sena' ? reais(p.porGanhador) : `${reais(p.porGanhador)} (quina)`}</td></tr>
+          ); })}</tbody>
+        </table></div>
+        <p class="small faint"><a href="/mega-da-virada/resultados/">Todos os resultados da Mega da Virada desde 2008 →</a></p>
+        <div class="card ult">
+          <p class="small faint" style="margin:0">Última edição: Mega da Virada {anoDe(anterior)}</p>
+          <Bolas dezenas={anterior.dezenas} cor="#d9a521" />
+        </div>
+      </>
+    )}
+
+    <h2>Enquanto o sorteio não chega</h2>
+    <ul class="links">
+      <li><a href="/mega-da-virada/ate-que-horas-apostar/">Até que horas dá para apostar</a></li>
+      <li><a href="/mega-da-virada/horario-e-onde-assistir/">Horário do sorteio em cada estado e onde assistir</a></li>
+      <li><a href="/mega-da-virada/bolao-online/">Monte o bolão da família, que confere sozinho no dia 1º</a></li>
+      <li><a href="/mega-da-virada/premios-por-acertos/">Quanto paga cada faixa (sena, quina e quadra)</a></li>
+      <li><a href="/mega-da-virada/seus-numeros/">Gere seus números da sorte</a></li>
+      <li><a href={`/mega-sena/concurso/${VIRADA.concurso}/`}>Palpites estatísticos para o concurso {VIRADA.concurso}</a></li>
+    </ul>
+    <Faq itens={faq} />
+  </article>
+</Base>
+<script>
+  // a partir de 5 min antes do sorteio: verifica a cada 30 s e recarrega quando o resultado entrar
+  const el = document.querySelector<HTMLElement>('.vivo');
+  if (el) {
+    const alvo = new Date(el.dataset.alvo!).getTime();
+    const txt = el.querySelector<HTMLElement>('.vivo-txt')!;
+    const checar = async () => {
+      if (Date.now() < alvo - 5 * 60e3) { setTimeout(checar, Math.min(alvo - 5 * 60e3 - Date.now(), 6 * 3600e3)); return; }
+      el.classList.add('vivo-on');
+      txt.textContent = Date.now() < alvo ? 'O sorteio começa em instantes. Esta página verifica o resultado a cada 30 segundos e se atualiza sozinha.' : 'Sorteio em andamento ou resultado sendo publicado pela Caixa. Esta página verifica a cada 30 segundos e mostra as dezenas sozinha.';
+      try {
+        const r = await fetch(`/api/resultado.json?loteria=mega-sena&concurso=${el.dataset.concurso}&t=${Math.floor(Date.now() / 30000)}`);
+        if (r.ok) { location.reload(); return; }
+      } catch { /* tenta de novo */ }
+      setTimeout(checar, 30e3);
+    };
+    checar();
+  }
+</script>
+<style>
+  .vivo { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); }
+  .vivo-tag { font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 700; }
+  .vivo-txt { margin: 0; font-weight: 600; }
+  .vivo-on .vivo-tag::before { content: '● AO VIVO · '; color: #e5484d; }
+  .vivo-bolas { display: flex; gap: 8px; flex-wrap: wrap; }
+  .vivo-bolas .ball { --c: #d9a521; opacity: .45; }
+  .vivo-on .vivo-bolas .ball { animation: vb 1.2s ease-in-out infinite alternate; }
+  @keyframes vb { to { opacity: .9; } }
+  .dia { list-style: none; padding: 0; display: grid; gap: 8px; }
+  .dia li { display: flex; gap: 14px; align-items: baseline; padding: 12px 16px; }
+  .dia-h { flex: none; min-width: 110px; font-weight: 700; color: var(--gold); }
+  .dia-f { border-color: var(--gold); }
+  .ult { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .links { columns: 2 260px; padding-left: 18px; }
+  .links li { margin: 6px 0; }
+  h2 { margin-top: 30px; }
+</style>

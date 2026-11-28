@@ -24,6 +24,7 @@ const viradas = await especiais(db, l);
 const ultima = viradas[0];
 const ultimaJaSorteada = ultima && anoDe(ultima) === VIRADA.ano;
 const acumulado = VIRADA.premioValor;
+const reservado = !ultimaJaSorteada ? ultMega?.acumulado_especial ?? null : null;
 const ranking = [...viradas].map((c) => ({ c, p: premioPrincipal(c) })).sort((a, b) => b.p.total - a.p.total).slice(0, 5);
 const recorde = ranking[0];
 
@@ -62,6 +63,9 @@ const artigos = [
   ['/mega-da-virada/como-apostar/', '📝', 'Como apostar', 'Passo a passo do volante ao comprovante'],
 ];
 const buscados = [
+  [`/mega-da-virada/${VIRADA.ano}/`, `Resultado da Mega da Virada ${VIRADA.ano}`],
+  ['/mega-da-virada/conferir/', 'Como conferir meus jogos da Virada'],
+  ['/mega-da-virada/ate-que-horas-apostar/', 'Até que horas posso apostar?'],
   ['/mega-da-virada/horario-e-onde-assistir/', 'Que horas é o sorteio e onde assistir'],
   ['/mega-da-virada/acertei-3-numeros/', 'Acertei 3 números: ganho alguma coisa?'],
   ['/mega-da-virada/acertei-4-numeros/', 'Acertei 4 números: quanto ganho?'],
@@ -92,6 +96,7 @@ const ferramentas = [
         <Resposta>
           <p>A <strong>Mega da Virada {VIRADA.ano}</strong> (concurso <strong>{VIRADA.concurso}</strong>) tem prêmio estimado em <strong>{VIRADA.premioTexto}</strong> e será sorteada em <strong>{VIRADA.dataTexto}, às {VIRADA.hora}</strong> (horário de Brasília), no {VIRADA.local}. A aposta simples custa <strong>{reais(l.preco)}</strong> e a chance de acertar as seis dezenas é de <strong>1 em 50.063.860</strong>. O prêmio <strong>não acumula</strong>: sem ganhador da sena, ele é dividido entre quem acertar a quina.</p>
         </Resposta>
+        {reservado ? <p class="small muted">💰 Já reservado para a Virada até o <a href={`/mega-sena/concurso/${ultMega!.numero}/`}>concurso {ultMega!.numero}</a>: <strong>{reais(reservado)}</strong> (dado da Caixa, atualizado a cada sorteio).</p> : null}
         <Autor atualizado={ultMega?.atualizado_em} />
       </div>
       <div class="facts">
@@ -109,7 +114,7 @@ const ferramentas = [
       {VIRADA.prazos.map((p, i) => <li class:list={['card', i === VIRADA.prazos.length - 1 && 'tl-final']}><span class="tl-q">{p.quando}</span><span class="tl-o">{p.o}</span></li>)}
     </ol>
     <p class="small faint">Fontes: {VIRADA.fontes.map((f, i) => <>{i > 0 && ' · '}<a href={f.url} rel="noopener nofollow" target="_blank">{f.nome}</a></>)}, com base em informações divulgadas pela Caixa. Confira sempre os canais oficiais.</p>
-    <p><a class="btn btn-primary" href={`/mega-sena/concurso/${VIRADA.concurso}/`}>Página do concurso {VIRADA.concurso}: palpites e resultado →</a></p>
+    <p class="hub-acoes"><a class="btn btn-primary" href={`/mega-da-virada/${VIRADA.ano}/`}>Resultado da Mega da Virada {VIRADA.ano} ao vivo →</a> <a class="btn" href="/mega-da-virada/conferir/">Salvar e conferir meus jogos</a> <a class="btn" href="/mega-da-virada/ate-que-horas-apostar/">Até que horas apostar</a></p>
   </section>
 
   {ultima && (
@@ -121,7 +126,7 @@ const ferramentas = [
           <Bolas dezenas={ultima.dezenas} cor="#d9a521" tam="lg" />
           <p class="muted" style="margin-top:14px">{(() => { const p = premioPrincipal(ultima); return p.faixa === 'sena' ? `${p.ganhadores} aposta(s) acertaram as seis dezenas e cada uma recebeu ${reais(p.porGanhador)}.` : `Ninguém acertou as seis dezenas; o prêmio foi dividido entre ${numero(p.ganhadores)} acertadores da quina.`; })()}</p>
         </div>
-        <a class="btn" href={`/mega-sena/concurso/${ultima.numero}/`}>Ver premiação completa →</a>
+        <a class="btn" href={`/mega-da-virada/${anoDe(ultima)}/`}>Ver premiação completa →</a>
       </div>
     </section>
   )}
@@ -141,7 +146,7 @@ const ferramentas = [
     <h2>Perguntas que todo mundo faz na Virada</h2>
     <ul class="busc">{buscados.map(([h, t]) => <li><a href={h}>{t}</a></li>)}</ul>
     <h3>Resultados de cada edição</h3>
-    <nav class="eds-h">{[...viradas].reverse().map((c) => <a href={`/mega-da-virada/${anoDe(c)}/`}>{anoDe(c)}</a>)}</nav>
+    <nav class="eds-h">{[...viradas].reverse().map((c) => <a href={`/mega-da-virada/${anoDe(c)}/`}>{anoDe(c)}</a>)}{!ultimaJaSorteada && <a href={`/mega-da-virada/${VIRADA.ano}/`}>{VIRADA.ano} ✦</a>}</nav>
   </section>
 
   <section class="wrap section-sm">
@@ -229,6 +234,7 @@ const ferramentas = [
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .facts .card { padding: 18px; }
   .last { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
+  .hub-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
   .busc { columns: 2 280px; padding-left: 1.2em; margin: 8px 0 18px; }
   .busc li { margin-bottom: 8px; }
   .eds-h { display: flex; flex-wrap: wrap; gap: 8px; }
